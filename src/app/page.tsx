@@ -135,6 +135,9 @@ export default function HomePage() {
         return;
       }
 
+      // ÖNCE Google Maps API'yi yükle (Player için de gerekli!)
+      await initializeGoogleMaps();
+
       // Haritayı kur
       initializeMap();
 
