@@ -29,15 +29,71 @@ export function useRoom() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Odayı dinle
+  // Odayı dinle ve otomatik tahmin kontrolü yap
   useEffect(() => {
     if (!room?.id) return;
 
     const roomRef = ref(database, `rooms/${room.id}`);
-    const unsubscribe = onValue(roomRef, (snapshot) => {
+    const unsubscribe = onValue(roomRef, async (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        setRoom(data as Room);
+        const roomData = data as Room;
+        setRoom(roomData);
+
+        // Sadece host otomatik kontrol yapsın (race condition önleme)
+        // Ve sadece "playing" durumundayken
+        if (playerId === roomData.hostId && roomData.status === "playing" && roomData.players) {
+          const playerList = Object.values(roomData.players);
+          const allGuessed = playerList.length > 0 && playerList.every((p) => p.hasGuessed);
+
+          if (allGuessed && roomData.currentLocation) {
+            // Kısa bir gecikme ile sonuçları hesapla (Firebase sync için)
+            setTimeout(async () => {
+              // Tekrar kontrol et (status değişmiş olabilir)
+              const freshSnap = await get(ref(database, `rooms/${roomData.id}`));
+              const freshRoom = freshSnap.val() as Room | null;
+
+              if (freshRoom && freshRoom.status === "playing") {
+                // Sonuçları hesapla
+                const freshPlayers = Object.values(freshRoom.players || {});
+                const results = freshPlayers.map((player) => {
+                  const distance = player.currentGuess
+                    ? calculateDistance(freshRoom.currentLocation!, player.currentGuess)
+                    : 9999;
+                  const score = calculateScore(distance);
+
+                  return {
+                    odlayerId: player.id,
+                    playerName: player.name,
+                    guess: player.currentGuess || { lat: 0, lng: 0 },
+                    distance,
+                    score,
+                  };
+                });
+
+                // Skorları güncelle
+                const updatedPlayers: { [key: string]: Player } = {};
+                freshPlayers.forEach((player) => {
+                  const result = results.find((r) => r.odlayerId === player.id);
+                  const currentRoundScores = player.roundScores || [];
+                  updatedPlayers[player.id] = {
+                    ...player,
+                    totalScore: (player.totalScore || 0) + (result?.score || 0),
+                    roundScores: [...currentRoundScores, result?.score || 0],
+                  };
+                });
+
+                await update(ref(database, `rooms/${freshRoom.id}`), {
+                  status: "roundEnd",
+                  roundResults: results,
+                  players: updatedPlayers,
+                });
+
+                console.log("Tüm oyuncular tahmin etti - sonuçlar hesaplandı");
+              }
+            }, 500);
+          }
+        }
       } else {
         setRoom(null);
         setError("Oda silindi veya bulunamadı");
@@ -45,7 +101,7 @@ export function useRoom() {
     });
 
     return () => unsubscribe();
-  }, [room?.id]);
+  }, [room?.id, playerId]);
 
   // Oda oluştur
   const createRoom = useCallback(async (name: string, gameMode: GameMode = "urban") => {

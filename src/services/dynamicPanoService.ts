@@ -151,11 +151,19 @@ function calculateDistanceKm(lat1: number, lng1: number, lat2: number, lng2: num
 
 /**
  * Belirli bir merkez etrafında rastgele koordinat üret
+ * Urban mod için şehir merkezine yakın, Geo mod için daha geniş alan
  */
-function getRandomCoordinateNearCity(city: CityData): { lat: number; lng: number } {
+function getRandomCoordinateNearCity(city: CityData, mode: GameMode): { lat: number; lng: number } {
   // Rastgele açı ve mesafe
   const angle = Math.random() * 2 * Math.PI;
-  const distance = Math.random() * city.radius; // km
+
+  // Urban modda şehir merkezine daha yakın ol (radius'un %40'ı)
+  // Geo modda daha geniş alan (tüm radius)
+  const maxDistance = mode === "urban"
+    ? city.radius * 0.4  // Şehir merkezine yakın
+    : city.radius;       // Tüm alan
+
+  const distance = Math.random() * maxDistance; // km
 
   // Yaklaşık dönüşüm (1 derece ≈ 111 km)
   const latOffset = (distance * Math.cos(angle)) / 111;
@@ -353,8 +361,13 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
     // Rastgele şehir seç
     const city = selectWeightedCity(mode);
 
-    // Şehir içinde rastgele koordinat
-    const randomCoord = getRandomCoordinateNearCity(city);
+    // Urban modda sadece büyükşehirleri kullan
+    if (mode === "urban" && !city.isUrban) {
+      continue; // Kırsal şehirleri atla
+    }
+
+    // Şehir içinde rastgele koordinat (mod'a göre)
+    const randomCoord = getRandomCoordinateNearCity(city, mode);
 
     // Bu lokasyon daha önce kullanılmış mı?
     const hash = getLocationHash(randomCoord.lat, randomCoord.lng);
@@ -363,10 +376,12 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
     }
 
     // Street View pano bul
+    // Urban modda çok dar arama (100m) - sadece cadde kenarları
+    // Geo modda geniş arama (2000m) - doğa, kırsal
     const centerPano = await findStreetViewPano(
       randomCoord.lat,
       randomCoord.lng,
-      mode === "urban" ? 200 : 1000 // Urban modda daha dar arama
+      mode === "urban" ? 100 : 2000
     );
 
     if (!centerPano) {

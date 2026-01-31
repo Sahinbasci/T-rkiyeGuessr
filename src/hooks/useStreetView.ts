@@ -2,7 +2,7 @@
 
 /**
  * useStreetView Hook
- * Street View yönetimi - Normal gezinti AMA sınırlı hareket hakkı
+ * Street View yönetimi - Sınırsız gezinti
  */
 
 import { useState, useCallback, useRef } from "react";
@@ -19,20 +19,14 @@ let isLoaded = false;
 export function useStreetView() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [movesUsed, setMovesUsed] = useState(0);
-  const [moveLimit, setMoveLimit] = useState(4);
-  const [isMovementLocked, setIsMovementLocked] = useState(false);
+  // Sınırsız hareket - bu değerler artık kullanılmıyor ama API uyumluluğu için kalıyor
+  const [movesUsed] = useState(0);
+  const [moveLimit] = useState(999);
+  const [isMovementLocked] = useState(false);
 
   const streetViewRef = useRef<HTMLDivElement>(null);
   const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
   const streetViewServiceRef = useRef<google.maps.StreetViewService | null>(null);
-
-  // Ref'ler - closure sorununu çözmek için
-  const movesUsedRef = useRef(0);
-  const moveLimitRef = useRef(4);
-  const isMovementLockedRef = useRef(false);
-  const visitedPanosRef = useRef<Set<string>>(new Set());
-  const startPanoIdRef = useRef<string>("");
 
   const initializeGoogleMaps = useCallback(async () => {
     if (isLoaded) return;
@@ -51,31 +45,21 @@ export function useStreetView() {
   }, []);
 
   /**
-   * Hareket hakkı ayarla
+   * Hareket hakkı ayarla (artık kullanılmıyor - sınırsız)
    */
-  const setMoves = useCallback((limit: number) => {
-    setMoveLimit(limit);
-    moveLimitRef.current = limit;
-    setMovesUsed(0);
-    movesUsedRef.current = 0;
-    setIsMovementLocked(false);
-    isMovementLockedRef.current = false;
-    visitedPanosRef.current = new Set();
+  const setMoves = useCallback((_limit: number) => {
+    // Sınırsız hareket - hiçbir şey yapma
   }, []);
 
   /**
-   * Hareket sayısını sıfırla (yeni round)
+   * Hareket sayısını sıfırla (artık kullanılmıyor - sınırsız)
    */
   const resetMoves = useCallback(() => {
-    setMovesUsed(0);
-    movesUsedRef.current = 0;
-    setIsMovementLocked(false);
-    isMovementLockedRef.current = false;
-    visitedPanosRef.current = new Set();
+    // Sınırsız hareket - hiçbir şey yapma
   }, []);
 
   /**
-   * Street View'ı göster - Normal gezinti AMA sınırlı hareket
+   * Street View'ı göster - Sınırsız gezinti
    */
   const showStreetView = useCallback(
     async (panoId: string, heading: number = 0) => {
@@ -86,11 +70,7 @@ export function useStreetView() {
         return;
       }
 
-      // Başlangıç pano'sunu kaydet
-      startPanoIdRef.current = panoId;
-      visitedPanosRef.current = new Set([panoId]);
-
-      // Street View seçenekleri - NORMAL GEZİNTİ
+      // Street View seçenekleri - SINIRSIZ GEZİNTİ
       const streetViewOptions: google.maps.StreetViewPanoramaOptions = {
         pano: panoId,
         pov: {
@@ -104,7 +84,7 @@ export function useStreetView() {
         showRoadLabels: false,
         zoomControl: true,
         panControl: false,
-        linksControl: true, // OKLAR AÇIK - Normal gezinti
+        linksControl: true, // OKLAR AÇIK - Serbest gezinti
         motionTracking: false,
         motionTrackingControl: false,
         clickToGo: true, // Tıklayarak ilerleme AÇIK
@@ -117,46 +97,6 @@ export function useStreetView() {
         streetViewRef.current,
         streetViewOptions
       );
-
-      // Pano değişikliğini dinle - hareket hakkı kontrolü
-      panoramaRef.current.addListener("pano_changed", () => {
-        if (!panoramaRef.current) return;
-
-        // Zaten kilitliyse hiçbir şey yapma
-        if (isMovementLockedRef.current) {
-          return;
-        }
-
-        const newPanoId = panoramaRef.current.getPano();
-
-        // Daha önce ziyaret edilmiş mi? (geri dönüş - hak harcamaz)
-        if (visitedPanosRef.current.has(newPanoId)) {
-          console.log("Geri dönüş - hak harcanmadı");
-          return;
-        }
-
-        // Yeni yer - hareket hakkı harca
-        visitedPanosRef.current.add(newPanoId);
-        movesUsedRef.current += 1;
-        setMovesUsed(movesUsedRef.current);
-
-        console.log(`Hareket: ${movesUsedRef.current}/${moveLimitRef.current}`);
-
-        // Hareket hakkı bitti mi?
-        if (movesUsedRef.current >= moveLimitRef.current) {
-          console.log("Hareket hakkı bitti - kilitlendi!");
-          isMovementLockedRef.current = true;
-          setIsMovementLocked(true);
-
-          // Kontrolleri kapat
-          if (panoramaRef.current) {
-            panoramaRef.current.setOptions({
-              linksControl: false,
-              clickToGo: false,
-            });
-          }
-        }
-      });
     },
     [initializeGoogleMaps]
   );

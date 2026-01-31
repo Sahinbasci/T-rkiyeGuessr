@@ -28,7 +28,6 @@ import {
   Maximize2,
   Minimize2,
   Timer,
-  Footprints,
   ArrowRight,
   MessageCircle,
   RotateCcw,
@@ -87,9 +86,7 @@ export default function HomePage() {
     showStreetView,
     showPanoPackage,
     initializeGoogleMaps,
-    // Hareket sistemi
-    movesRemaining,
-    isMovementLocked,
+    // Hareket sistemi (artık sınırsız ama API uyumluluğu için)
     setMoves,
     resetMoves,
   } = useStreetView();
@@ -234,14 +231,7 @@ export default function HomePage() {
   // Tahmin gönder
   const handleSubmitGuess = async () => {
     if (!guessLocation) return;
-
     await submitGuess(guessLocation);
-
-    if (isHost) {
-      setTimeout(() => {
-        checkAllGuessed();
-      }, 300);
-    }
   };
 
   // Sonraki tur
@@ -723,24 +713,27 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Hareket Sayacı - Sol Alt */}
-        {!isRoundEnd && !isGameOver && !hasGuessed && (
+        {/* Oyuncular - Sol Alt */}
+        {!isRoundEnd && !isGameOver && (
           <div className="absolute left-4 bottom-24 sm:bottom-6 z-20">
-            <div className={`glass rounded-xl px-4 py-3 flex items-center gap-3 ${
-              isMovementLocked ? "border-2 border-red-500" : ""
-            }`}>
-              <Footprints size={20} className={isMovementLocked ? "text-red-400" : "text-blue-400"} />
-              <div>
-                <span className="text-xs text-gray-400 block">Kalan Adım</span>
-                <span className={`font-bold text-lg ${
-                  movesRemaining <= 1 ? "text-red-400" : movesRemaining <= 2 ? "text-yellow-400" : "text-white"
-                }`}>
-                  {movesRemaining}
-                </span>
+            <div className="glass rounded-xl p-2 sm:p-3">
+              <p className="text-gray-400 text-xs mb-1.5">Oyuncular</p>
+              <div className="flex items-center gap-1.5">
+                {players.map((p, i) => (
+                  <div
+                    key={p.id}
+                    className={`player-badge w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      p.hasGuessed
+                        ? "guessed ring-2 ring-green-400 ring-offset-1 ring-offset-[#12121a]"
+                        : "opacity-50"
+                    }`}
+                    style={{ backgroundColor: PLAYER_COLORS[i] }}
+                    title={`${p.name}${p.hasGuessed ? " ✓" : ""}`}
+                  >
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
+                ))}
               </div>
-              {isMovementLocked && (
-                <span className="text-xs text-red-400 ml-2">Hareket bitti!</span>
-              )}
             </div>
           </div>
         )}
@@ -825,28 +818,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Players Status - Desktop */}
-        {!isRoundEnd && !isGameOver && (
-          <div className="absolute bottom-6 left-20 z-20 glass rounded-xl p-3 hidden md:block">
-            <p className="text-gray-400 text-xs mb-2">Oyuncular</p>
-            <div className="flex items-center gap-2">
-              {players.map((p, i) => (
-                <div
-                  key={p.id}
-                  className={`player-badge w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
-                    p.hasGuessed
-                      ? "guessed ring-2 ring-green-400 ring-offset-2 ring-offset-[#12121a]"
-                      : "opacity-50"
-                  }`}
-                  style={{ backgroundColor: PLAYER_COLORS[i] }}
-                  title={`${p.name}${p.hasGuessed ? " ✓" : ""}`}
-                >
-                  {p.name.charAt(0).toUpperCase()}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Round End Modal */}
         {isRoundEnd && (
