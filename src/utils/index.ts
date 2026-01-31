@@ -20,6 +20,8 @@ function toRadians(degrees: number): number {
 }
 
 export function formatDistance(distanceKm: number): string {
+  // Tahmin yapılmadıysa
+  if (distanceKm >= 9999) return "Tahmin yok";
   if (distanceKm < 1) return `${Math.round(distanceKm * 1000)} m`;
   if (distanceKm < 10) return `${distanceKm.toFixed(1)} km`;
   return `${Math.round(distanceKm)} km`;

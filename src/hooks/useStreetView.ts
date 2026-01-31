@@ -28,7 +28,7 @@ export function useStreetView() {
 
   // Hareket limiti sistemi
   const [movesUsed, setMovesUsed] = useState(0);
-  const [moveLimit, setMoveLimitState] = useState(4);
+  const [moveLimit, setMoveLimitState] = useState(3); // Varsayılan 3 (Urban mod)
   const [usedDirections, setUsedDirections] = useState<Set<Direction>>(new Set());
   const [isMovementLocked, setIsMovementLocked] = useState(false);
 
@@ -101,7 +101,7 @@ export function useStreetView() {
   }, []);
 
   /**
-   * Başlangıca dön
+   * Başlangıca dön - Hareket hakları da sıfırlanır
    */
   const returnToStart = useCallback(() => {
     if (panoramaRef.current && startPanoIdRef.current) {
@@ -112,6 +112,11 @@ export function useStreetView() {
       });
       lastPanoIdRef.current = startPanoIdRef.current;
       lastHeadingRef.current = startHeadingRef.current;
+
+      // Hareket haklarını sıfırla - tekrar keşfedilebilsin
+      setUsedDirections(new Set());
+      setMovesUsed(0);
+      setIsMovementLocked(false);
     }
   }, []);
 
@@ -155,11 +160,26 @@ export function useStreetView() {
         scrollwheel: true,
       };
 
+      // Mevcut panorama varsa temizle
+      if (panoramaRef.current) {
+        google.maps.event.clearInstanceListeners(panoramaRef.current);
+      }
+
       // Yeni panorama oluştur
       panoramaRef.current = new google.maps.StreetViewPanorama(
         streetViewRef.current,
         streetViewOptions
       );
+
+      // Panorama yüklenme kontrolü - rendering sorunlarını önle
+      panoramaRef.current.addListener("status_changed", () => {
+        const status = panoramaRef.current?.getStatus();
+        if (status === google.maps.StreetViewStatus.OK) {
+          console.log("Panorama başarıyla yüklendi");
+        } else {
+          console.warn("Panorama yüklenemedi:", status);
+        }
+      });
 
       // Hareket dinleyicisi ekle
       panoramaRef.current.addListener("pano_changed", () => {

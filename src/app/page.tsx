@@ -147,15 +147,15 @@ export default function HomePage() {
 
       // Pano paketi varsa göster
       if (room.currentPanoPackage) {
-        // Hareket hakkını ayarla (4 hak)
-        setMoves(4);
+        // Hareket hakkını ayarla (oda ayarlarından)
+        setMoves(room.moveLimit || 3);
         await showPanoPackage(room.currentPanoPackage);
         // Timer'ı başlat (sadece host değil, herkes için)
         resetTimer(room.timeLimit);
         startTimer();
       } else if (room.currentPanoPackageId) {
         // Eski sistem (geriye uyumluluk)
-        setMoves(4);
+        setMoves(room.moveLimit || 3);
         await showStreetView(room.currentPanoPackageId);
       }
     };
@@ -174,7 +174,7 @@ export default function HomePage() {
       setGuessLocation(null);
       resetMap();
       resetMoves();
-      setMoves(4); // 4 hareket hakkı
+      setMoves(room.moveLimit || 3); // Oda ayarlarından hareket hakkı
       resetTimer(room.timeLimit);
       startTimer();
     }
@@ -249,7 +249,7 @@ export default function HomePage() {
     resetMap();
     setGuessLocation(null);
     resetMoves();
-    setMoves(4); // 4 hareket hakkı
+    setMoves(room.moveLimit || 3); // Oda ayarlarından hareket hakkı
 
     // Yeni pano paketi al
     const panoPackage = await getRandomPanoPackage(room.gameMode || "urban");
@@ -273,6 +273,15 @@ export default function HomePage() {
     resetMoves();
     await restartGame();
     setScreen("lobby");
+  };
+
+  // Odadan ayrıl ve ana menüye dön
+  const handleLeaveRoom = async () => {
+    await leaveRoom();
+    setScreen("menu");
+    resetMap();
+    setGuessLocation(null);
+    resetMoves();
   };
 
   // Kodu kopyala
@@ -616,7 +625,7 @@ export default function HomePage() {
             )}
 
             <button
-              onClick={leaveRoom}
+              onClick={handleLeaveRoom}
               className="w-full mt-3 py-2 text-gray-500 hover:text-red-400 transition text-sm"
             >
               Odadan Ayrıl
@@ -718,7 +727,7 @@ export default function HomePage() {
                       movesRemaining <= 1 ? "text-orange-400" : ""
                     }`}
                   >
-                    {movesRemaining}/{room?.moveLimit || 4}
+                    {movesRemaining}/{room?.moveLimit || 3}
                   </span>
                 </div>
               )}
@@ -995,7 +1004,7 @@ export default function HomePage() {
                     Tekrar Oyna
                   </button>
                   <button
-                    onClick={leaveRoom}
+                    onClick={handleLeaveRoom}
                     className="w-full py-2 text-gray-400 hover:text-white transition text-sm"
                   >
                     Lobiye Dön
