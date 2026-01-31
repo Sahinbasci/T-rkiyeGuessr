@@ -13,84 +13,113 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
   const markerRef = useRef<google.maps.Marker | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const polylineRef = useRef<google.maps.Polyline | null>(null);
+  const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const onLocationSelectRef = useRef(onLocationSelect);
+
+  // Callback'i ref'te tut, böylece listener her zaman güncel fonksiyonu çağırır
+  onLocationSelectRef.current = onLocationSelect;
 
   const initializeMap = useCallback(() => {
     if (!guessMapRef.current) return;
-    if (typeof google === "undefined") return;
 
-    // RoundEnd ekranında mini map component'i unmount oluyor.
-    // Google Map instance'ı eski (DOM'dan silinmiş) div'e bağlı kalırsa
-    // sonraki round'da harita tıklamaları çalışmıyor / harita donuk kalıyor.
-    // Bu yüzden mevcut map'in bağlı olduğu div değiştiyse yeniden oluştur.
+    // Google Maps API'nin tam olarak yüklendiğinden emin ol
+    if (
+      typeof google === "undefined" ||
+      !google.maps ||
+      !google.maps.Map
+    ) {
+      return;
+    }
+
+    // Mevcut map'in bağlı olduğu div kontrol et
     if (mapRef.current) {
       const currentDiv = mapRef.current.getDiv();
-      if (currentDiv !== guessMapRef.current) {
-        mapRef.current = null;
+      if (currentDiv === guessMapRef.current) {
+        // Map zaten doğru div'e bağlı, listener varsa dokunma
+        if (clickListenerRef.current) {
+          return; // Zaten hazır, hiçbir şey yapma
+        }
+        // Listener yoksa sadece listener ekle (aşağıda)
       } else {
-        const center = getTurkeyCenter();
-        mapRef.current.setCenter({ lat: center.lat, lng: center.lng });
-        mapRef.current.setZoom(getTurkeyZoom());
-        return;
+        // Div değişmiş, eski map'i temizle
+        if (clickListenerRef.current) {
+          google.maps.event.removeListener(clickListenerRef.current);
+          clickListenerRef.current = null;
+        }
+        mapRef.current = null;
+        markerRef.current = null;
       }
     }
 
     const center = getTurkeyCenter();
 
-    mapRef.current = new google.maps.Map(guessMapRef.current, {
-      ...MAPS_CONFIG.guessMapOptions,
-      center: { lat: center.lat, lng: center.lng },
-      zoom: getTurkeyZoom(),
-      styles: MAPS_CONFIG.darkMapStyles,
-      restriction: {
-        latLngBounds: TURKEY_MAP_RESTRICTION,
-        strictBounds: false,
-      },
-    });
+    // Map yoksa oluştur
+    if (!mapRef.current) {
+      mapRef.current = new google.maps.Map(guessMapRef.current, {
+        ...MAPS_CONFIG.guessMapOptions,
+        center: { lat: center.lat, lng: center.lng },
+        zoom: getTurkeyZoom(),
+        styles: MAPS_CONFIG.darkMapStyles,
+        restriction: {
+          latLngBounds: TURKEY_MAP_RESTRICTION,
+          strictBounds: false,
+        },
+      });
+    }
 
-    mapRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
-      if (!e.latLng) return;
+    // Listener yoksa ekle
+    if (!clickListenerRef.current) {
+      clickListenerRef.current = mapRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
+        if (!e.latLng) return;
 
-      const coord: Coordinates = {
-        lat: e.latLng.lat(),
-        lng: e.latLng.lng(),
-      };
+        const coord: Coordinates = {
+          lat: e.latLng.lat(),
+          lng: e.latLng.lng(),
+        };
 
-      setSelectedLocation(coord);
-      onLocationSelect(coord);
+        setSelectedLocation(coord);
+        onLocationSelectRef.current(coord);
 
-      if (markerRef.current) {
-        markerRef.current.setPosition(e.latLng);
-      } else {
-        markerRef.current = new google.maps.Marker({
-          position: e.latLng,
-          map: mapRef.current,
-          icon: {
-            path: MAPS_CONFIG.markers.guess.path,
-            fillColor: MAPS_CONFIG.markers.guess.fillColor,
-            fillOpacity: MAPS_CONFIG.markers.guess.fillOpacity,
-            strokeColor: MAPS_CONFIG.markers.guess.strokeColor,
-            strokeWeight: MAPS_CONFIG.markers.guess.strokeWeight,
-            scale: MAPS_CONFIG.markers.guess.scale,
-            anchor: new google.maps.Point(12, 24),
-          },
-          animation: google.maps.Animation.DROP,
-        });
-      }
-    });
-  }, [onLocationSelect]);
+        // Marker'ı güncelle veya oluştur
+        if (markerRef.current) {
+          markerRef.current.setPosition(e.latLng);
+          markerRef.current.setMap(mapRef.current);
+        } else {
+          markerRef.current = new google.maps.Marker({
+            position: e.latLng,
+            map: mapRef.current,
+            icon: {
+              path: MAPS_CONFIG.markers.guess.path,
+              fillColor: MAPS_CONFIG.markers.guess.fillColor,
+              fillOpacity: MAPS_CONFIG.markers.guess.fillOpacity,
+              strokeColor: MAPS_CONFIG.markers.guess.strokeColor,
+              strokeWeight: MAPS_CONFIG.markers.guess.strokeWeight,
+              scale: MAPS_CONFIG.markers.guess.scale,
+              anchor: new google.maps.Point(12, 24),
+            },
+            animation: google.maps.Animation.DROP,
+          });
+        }
+      });
+    }
+  }, []);
 
   const resetMap = useCallback(() => {
+    // Tahmin marker'ını temizle
     if (markerRef.current) {
       markerRef.current.setMap(null);
       markerRef.current = null;
     }
+    // Sonuç marker'larını temizle
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
+    // Polyline'ları temizle
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
       polylineRef.current = null;
     }
 
+    // Map'i merkeze al
     if (mapRef.current) {
       const center = getTurkeyCenter();
       mapRef.current.setCenter({ lat: center.lat, lng: center.lng });
@@ -98,8 +127,8 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
     }
 
     setSelectedLocation(null);
-    onLocationSelect(null);
-  }, [onLocationSelect]);
+    onLocationSelectRef.current(null);
+  }, []);
 
   const showResults = useCallback((
     actualLocation: Coordinates,

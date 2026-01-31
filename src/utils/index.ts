@@ -74,3 +74,70 @@ export function generateRoomCode(): string {
 export function generatePlayerId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
+
+// Koordinatlardan il/ilçe bilgisi al (Reverse Geocoding)
+export async function getLocationName(coord: Coordinates): Promise<string> {
+  if (typeof google === "undefined" || !google.maps) {
+    return "Türkiye";
+  }
+
+  try {
+    const geocoder = new google.maps.Geocoder();
+    const result = await new Promise<google.maps.GeocoderResult[] | null>((resolve) => {
+      geocoder.geocode(
+        { location: { lat: coord.lat, lng: coord.lng } },
+        (results, status) => {
+          if (status === google.maps.GeocoderStatus.OK && results) {
+            resolve(results);
+          } else {
+            resolve(null);
+          }
+        }
+      );
+    });
+
+    if (!result || result.length === 0) {
+      return "Türkiye";
+    }
+
+    let ilce = "";
+    let il = "";
+
+    // Sonuçları tara ve il/ilçe bul
+    for (const r of result) {
+      for (const component of r.address_components) {
+        // İlçe (administrative_area_level_2 veya locality)
+        if (
+          component.types.includes("administrative_area_level_2") ||
+          component.types.includes("locality")
+        ) {
+          if (!ilce) ilce = component.long_name;
+        }
+        // İl (administrative_area_level_1)
+        if (component.types.includes("administrative_area_level_1")) {
+          if (!il) il = component.long_name;
+        }
+      }
+      // İkisini de bulduysan çık
+      if (il && ilce) break;
+    }
+
+    // Sonucu formatla
+    if (ilce && il) {
+      // İlçe ve il aynıysa (merkez ilçe) sadece il göster
+      if (ilce === il || ilce.includes("Merkez")) {
+        return il;
+      }
+      return `${ilce}, ${il}`;
+    } else if (il) {
+      return il;
+    } else if (ilce) {
+      return ilce;
+    }
+
+    return "Türkiye";
+  } catch (error) {
+    console.error("Geocoding error:", error);
+    return "Türkiye";
+  }
+}

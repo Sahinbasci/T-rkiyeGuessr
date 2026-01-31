@@ -1,9 +1,26 @@
 "use client";
 
+/**
+ * useRoom Hook
+ * Oda yönetimi - Mod seçimi, timer, pano paketi desteği
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { database, ref, set, get, onValue, update, remove } from "@/config/firebase";
-import { Room, Player, Coordinates } from "@/types";
-import { generateRoomCode, generatePlayerId, calculateDistance, calculateScore } from "@/utils";
+import {
+  Room,
+  Player,
+  Coordinates,
+  GameMode,
+  PanoPackage,
+  GAME_MODE_CONFIG,
+} from "@/types";
+import {
+  generateRoomCode,
+  generatePlayerId,
+  calculateDistance,
+  calculateScore,
+} from "@/utils";
 
 export function useRoom() {
   const [room, setRoom] = useState<Room | null>(null);
@@ -31,13 +48,14 @@ export function useRoom() {
   }, [room?.id]);
 
   // Oda oluştur
-  const createRoom = useCallback(async (name: string) => {
+  const createRoom = useCallback(async (name: string, gameMode: GameMode = "urban") => {
     setIsLoading(true);
     setError(null);
 
     try {
       const roomCode = generateRoomCode();
       const odlayerId = generatePlayerId();
+      const modeConfig = GAME_MODE_CONFIG[gameMode];
 
       const newPlayer: Player = {
         id: odlayerId,
@@ -56,9 +74,21 @@ export function useRoom() {
         currentRound: 0,
         totalRounds: 5,
         players: { [odlayerId]: newPlayer },
+
+        // Oyun modu
+        gameMode: gameMode,
+        timeLimit: modeConfig.timeLimit,
+        moveLimit: modeConfig.moveLimit,
+
+        // Pano paketi
+        currentPanoPackageId: null,
+        currentPanoPackage: null,
         currentLocation: null,
-        currentPanoId: null,
+        currentLocationName: null,
+
+        // Round
         roundResults: null,
+        roundStartTime: null,
       };
 
       await set(ref(database, `rooms/${roomCode}`), newRoom);
@@ -132,52 +162,108 @@ export function useRoom() {
     }
   }, []);
 
-  // Oyunu başlat (sadece host)
-  const startGame = useCallback(async (location: Coordinates, panoId: string) => {
-    if (!room || playerId !== room.hostId) return;
+  // Oyun modunu değiştir (sadece host, lobby'de)
+  const setGameMode = useCallback(
+    async (mode: GameMode) => {
+      if (!room || playerId !== room.hostId || room.status !== "waiting") return;
 
-    // Tüm oyuncuların guess'lerini sıfırla
-    const updatedPlayers: { [key: string]: Player } = {};
-    Object.values(room.players).forEach((player) => {
-      updatedPlayers[player.id] = {
-        ...player,
-        currentGuess: null,
-        hasGuessed: false,
-      };
-    });
+      const modeConfig = GAME_MODE_CONFIG[mode];
 
-    await update(ref(database, `rooms/${room.id}`), {
-      status: "playing",
-      currentRound: 1,
-      currentLocation: location,
-      currentPanoId: panoId,
-      players: updatedPlayers,
-      roundResults: null,
-    });
-  }, [room, playerId]);
+      await update(ref(database, `rooms/${room.id}`), {
+        gameMode: mode,
+        timeLimit: modeConfig.timeLimit,
+        moveLimit: modeConfig.moveLimit,
+      });
+    },
+    [room, playerId]
+  );
+
+  // Oyunu başlat (sadece host) - Pano paketi ile
+  const startGameWithPanoPackage = useCallback(
+    async (panoPackage: PanoPackage) => {
+      if (!room || playerId !== room.hostId) return;
+
+      // Tüm oyuncuların guess'lerini sıfırla
+      const updatedPlayers: { [key: string]: Player } = {};
+      Object.values(room.players).forEach((player) => {
+        updatedPlayers[player.id] = {
+          ...player,
+          currentGuess: null,
+          hasGuessed: false,
+        };
+      });
+
+      await update(ref(database, `rooms/${room.id}`), {
+        status: "playing",
+        currentRound: 1,
+        currentPanoPackageId: panoPackage.id,
+        currentPanoPackage: panoPackage,
+        currentLocation: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
+        currentLocationName: panoPackage.locationName,
+        players: updatedPlayers,
+        roundResults: null,
+        roundStartTime: Date.now(),
+      });
+    },
+    [room, playerId]
+  );
+
+  // Eski startGame (geriye uyumluluk için)
+  const startGame = useCallback(
+    async (location: Coordinates, panoId: string, locationName?: string) => {
+      if (!room || playerId !== room.hostId) return;
+
+      const updatedPlayers: { [key: string]: Player } = {};
+      Object.values(room.players).forEach((player) => {
+        updatedPlayers[player.id] = {
+          ...player,
+          currentGuess: null,
+          hasGuessed: false,
+        };
+      });
+
+      await update(ref(database, `rooms/${room.id}`), {
+        status: "playing",
+        currentRound: 1,
+        currentLocation: location,
+        currentPanoPackageId: panoId,
+        currentLocationName: locationName || null,
+        players: updatedPlayers,
+        roundResults: null,
+        roundStartTime: Date.now(),
+      });
+    },
+    [room, playerId]
+  );
 
   // Tahmin gönder
-  const submitGuess = useCallback(async (guess: Coordinates) => {
-    if (!room || !playerId) return;
+  const submitGuess = useCallback(
+    async (guess: Coordinates) => {
+      if (!room || !playerId) return;
 
-    await update(ref(database, `rooms/${room.id}/players/${playerId}`), {
-      currentGuess: guess,
-      hasGuessed: true,
-    });
-  }, [room, playerId]);
+      await update(ref(database, `rooms/${room.id}/players/${playerId}`), {
+        currentGuess: guess,
+        hasGuessed: true,
+      });
+    },
+    [room, playerId]
+  );
 
   // Tüm tahminler geldi mi kontrol et ve sonuçları hesapla
   const checkAllGuessed = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
-    // State bazen gecikmeli güncellenebildiği için en güncel odayı DB'den çek
     const latestSnap = await get(ref(database, `rooms/${room.id}`));
     const latestRoom = latestSnap.val() as Room | null;
 
     if (!latestRoom?.players) return;
 
+    // Zaten roundEnd veya gameOver durumundaysa tekrar hesaplama yapma
+    if (latestRoom.status !== "playing") return;
+
     const playerList = Object.values(latestRoom.players);
-    const allGuessed = playerList.length > 0 && playerList.every((p) => p.hasGuessed);
+    const allGuessed =
+      playerList.length > 0 && playerList.every((p) => p.hasGuessed);
 
     if (allGuessed && latestRoom.currentLocation) {
       // Sonuçları hesapla
@@ -216,38 +302,125 @@ export function useRoom() {
     }
   }, [room, playerId]);
 
-
-  // Sonraki tura geç (sadece host)
-  const nextRound = useCallback(async (location: Coordinates, panoId: string) => {
+  // Süre doldu - otomatik tahmin gönder (tahmin yapmayanlar için 0 puan)
+  const handleTimeUp = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
-    const isGameOver = room.currentRound >= room.totalRounds;
+    const latestSnap = await get(ref(database, `rooms/${room.id}`));
+    const latestRoom = latestSnap.val() as Room | null;
 
-    if (isGameOver) {
-      await update(ref(database, `rooms/${room.id}`), {
-        status: "gameOver",
-      });
-    } else {
-      // Tüm oyuncuların guess'lerini sıfırla
-      const updatedPlayers: { [key: string]: Player } = {};
-      Object.values(room.players).forEach((player) => {
-        updatedPlayers[player.id] = {
-          ...player,
-          currentGuess: null,
-          hasGuessed: false,
-        };
-      });
+    if (!latestRoom?.players || latestRoom.status !== "playing") return;
 
-      await update(ref(database, `rooms/${room.id}`), {
-        status: "playing",
-        currentRound: room.currentRound + 1,
-        currentLocation: location,
-        currentPanoId: panoId,
-        players: updatedPlayers,
-        roundResults: null,
-      });
-    }
+    const playerList = Object.values(latestRoom.players);
+
+    // Sonuçları hesapla (tahmin yapmayanlar 0 puan)
+    const results = playerList.map((player) => {
+      const distance = player.currentGuess
+        ? calculateDistance(latestRoom.currentLocation!, player.currentGuess)
+        : 9999;
+      const score = player.hasGuessed ? calculateScore(distance) : 0;
+
+      return {
+        odlayerId: player.id,
+        playerName: player.name,
+        guess: player.currentGuess || { lat: 0, lng: 0 },
+        distance: player.hasGuessed ? distance : 9999,
+        score,
+      };
+    });
+
+    // Skorları güncelle
+    const updatedPlayers: { [key: string]: Player } = {};
+    playerList.forEach((player) => {
+      const result = results.find((r) => r.odlayerId === player.id);
+      const currentRoundScores = player.roundScores || [];
+      updatedPlayers[player.id] = {
+        ...player,
+        totalScore: (player.totalScore || 0) + (result?.score || 0),
+        roundScores: [...currentRoundScores, result?.score || 0],
+        hasGuessed: true, // Süre dolduğunda herkes "tahmin yapmış" sayılır
+      };
+    });
+
+    await update(ref(database, `rooms/${latestRoom.id}`), {
+      status: "roundEnd",
+      roundResults: results,
+      players: updatedPlayers,
+    });
   }, [room, playerId]);
+
+  // Sonraki tura geç - Pano paketi ile
+  const nextRoundWithPanoPackage = useCallback(
+    async (panoPackage: PanoPackage) => {
+      if (!room || playerId !== room.hostId) return;
+
+      const isGameOver = room.currentRound >= room.totalRounds;
+
+      if (isGameOver) {
+        await update(ref(database, `rooms/${room.id}`), {
+          status: "gameOver",
+        });
+      } else {
+        const updatedPlayers: { [key: string]: Player } = {};
+        Object.values(room.players).forEach((player) => {
+          updatedPlayers[player.id] = {
+            ...player,
+            currentGuess: null,
+            hasGuessed: false,
+          };
+        });
+
+        await update(ref(database, `rooms/${room.id}`), {
+          status: "playing",
+          currentRound: room.currentRound + 1,
+          currentPanoPackageId: panoPackage.id,
+          currentPanoPackage: panoPackage,
+          currentLocation: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
+          currentLocationName: panoPackage.locationName,
+          players: updatedPlayers,
+          roundResults: null,
+          roundStartTime: Date.now(),
+        });
+      }
+    },
+    [room, playerId]
+  );
+
+  // Eski nextRound (geriye uyumluluk için)
+  const nextRound = useCallback(
+    async (location: Coordinates, panoId: string, locationName?: string) => {
+      if (!room || playerId !== room.hostId) return;
+
+      const isGameOver = room.currentRound >= room.totalRounds;
+
+      if (isGameOver) {
+        await update(ref(database, `rooms/${room.id}`), {
+          status: "gameOver",
+        });
+      } else {
+        const updatedPlayers: { [key: string]: Player } = {};
+        Object.values(room.players).forEach((player) => {
+          updatedPlayers[player.id] = {
+            ...player,
+            currentGuess: null,
+            hasGuessed: false,
+          };
+        });
+
+        await update(ref(database, `rooms/${room.id}`), {
+          status: "playing",
+          currentRound: room.currentRound + 1,
+          currentLocation: location,
+          currentPanoPackageId: panoId,
+          currentLocationName: locationName || null,
+          players: updatedPlayers,
+          roundResults: null,
+          roundStartTime: Date.now(),
+        });
+      }
+    },
+    [room, playerId]
+  );
 
   // Odadan ayrıl
   const leaveRoom = useCallback(async () => {
@@ -256,13 +429,10 @@ export function useRoom() {
     const playerList = Object.values(room.players);
 
     if (playerList.length === 1) {
-      // Son kişiysen odayı sil
       await remove(ref(database, `rooms/${room.id}`));
     } else {
-      // Oyuncuyu sil
       await remove(ref(database, `rooms/${room.id}/players/${playerId}`));
 
-      // Host ayrılıyorsa yeni host ata
       if (playerId === room.hostId) {
         const newHost = playerList.find((p) => p.id !== playerId);
         if (newHost) {
@@ -271,6 +441,48 @@ export function useRoom() {
           });
           await update(ref(database, `rooms/${room.id}/players/${newHost.id}`), {
             isHost: true,
+          });
+        }
+      }
+
+      // Oyun sırasında birisi ayrılırsa kontrol et
+      if (room.status === "playing") {
+        const remainingPlayers = playerList.filter((p) => p.id !== playerId);
+        const allRemainingGuessed =
+          remainingPlayers.length > 0 &&
+          remainingPlayers.every((p) => p.hasGuessed);
+
+        if (allRemainingGuessed && room.currentLocation) {
+          const results = remainingPlayers.map((player) => {
+            const distance = player.currentGuess
+              ? calculateDistance(room.currentLocation!, player.currentGuess)
+              : 9999;
+            const score = calculateScore(distance);
+
+            return {
+              odlayerId: player.id,
+              playerName: player.name,
+              guess: player.currentGuess || { lat: 0, lng: 0 },
+              distance,
+              score,
+            };
+          });
+
+          const updatedPlayers: { [key: string]: Player } = {};
+          remainingPlayers.forEach((player) => {
+            const result = results.find((r) => r.odlayerId === player.id);
+            const currentRoundScores = player.roundScores || [];
+            updatedPlayers[player.id] = {
+              ...player,
+              totalScore: (player.totalScore || 0) + (result?.score || 0),
+              roundScores: [...currentRoundScores, result?.score || 0],
+            };
+          });
+
+          await update(ref(database, `rooms/${room.id}`), {
+            status: "roundEnd",
+            roundResults: results,
+            players: updatedPlayers,
           });
         }
       }
@@ -299,8 +511,11 @@ export function useRoom() {
       status: "waiting",
       currentRound: 0,
       currentLocation: null,
-      currentPanoId: null,
+      currentPanoPackageId: null,
+      currentPanoPackage: null,
+      currentLocationName: null,
       roundResults: null,
+      roundStartTime: null,
       players: updatedPlayers,
     });
   }, [room, playerId]);
@@ -320,10 +535,14 @@ export function useRoom() {
     isLoading,
     createRoom,
     joinRoom,
+    setGameMode,
     startGame,
+    startGameWithPanoPackage,
     submitGuess,
     checkAllGuessed,
+    handleTimeUp,
     nextRound,
+    nextRoundWithPanoPackage,
     leaveRoom,
     restartGame,
   };

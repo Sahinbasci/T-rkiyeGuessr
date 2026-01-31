@@ -1,5 +1,5 @@
 // Google Maps API Key
-export const GOOGLE_MAPS_API_KEY = "AIzaSyCaL61lJZyD2dKKp98DtHnPPF4GEpXdn94";
+export const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 // Maps configuration
 export const MAPS_CONFIG = {
