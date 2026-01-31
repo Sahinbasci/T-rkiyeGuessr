@@ -31,6 +31,8 @@ import {
   ArrowRight,
   MessageCircle,
   RotateCcw,
+  Footprints,
+  Home,
 } from "lucide-react";
 
 const PLAYER_COLORS = [
@@ -86,9 +88,14 @@ export default function HomePage() {
     showStreetView,
     showPanoPackage,
     initializeGoogleMaps,
-    // Hareket sistemi (artık sınırsız ama API uyumluluğu için)
+    // Hareket sistemi
     setMoves,
     resetMoves,
+    movesRemaining,
+    movesUsed,
+    isMovementLocked,
+    returnToStart,
+    usedDirections,
   } = useStreetView();
 
   const { guessMapRef, initializeMap, resetMap } = useGuessMap(setGuessLocation);
@@ -692,6 +699,29 @@ export default function HomePage() {
                   {currentPlayer?.totalScore || 0}
                 </span>
               </div>
+
+              {/* Hareket Hakkı */}
+              {!isRoundEnd && !isGameOver && (
+                <div
+                  className={`glass rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 ${
+                    movesRemaining <= 1 ? "bg-orange-500/30 border-orange-500" : ""
+                  }`}
+                >
+                  <Footprints
+                    size={14}
+                    className={`sm:w-[18px] sm:h-[18px] ${
+                      movesRemaining <= 1 ? "text-orange-400" : "text-green-400"
+                    }`}
+                  />
+                  <span
+                    className={`font-bold text-sm sm:text-base ${
+                      movesRemaining <= 1 ? "text-orange-400" : ""
+                    }`}
+                  >
+                    {movesRemaining}/{room?.moveLimit || 4}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -713,9 +743,20 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Oyuncular - Sol Alt */}
+        {/* Oyuncular ve Başlangıca Dön - Sol Alt */}
         {!isRoundEnd && !isGameOver && (
-          <div className="absolute left-4 bottom-24 sm:bottom-6 z-20">
+          <div className="absolute left-4 bottom-24 sm:bottom-6 z-20 flex flex-col gap-2">
+            {/* Başlangıca Dön Butonu */}
+            <button
+              onClick={returnToStart}
+              className="glass rounded-xl p-2 sm:p-3 flex items-center gap-2 hover:bg-white/10 transition-all"
+              title="Başlangıca Dön"
+            >
+              <Home size={16} className="text-blue-400" />
+              <span className="text-xs text-gray-300 hidden sm:inline">Başlangıç</span>
+            </button>
+
+            {/* Oyuncular */}
             <div className="glass rounded-xl p-2 sm:p-3">
               <p className="text-gray-400 text-xs mb-1.5">Oyuncular</p>
               <div className="flex items-center gap-1.5">

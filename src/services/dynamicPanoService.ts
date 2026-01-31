@@ -151,19 +151,24 @@ function calculateDistanceKm(lat1: number, lng1: number, lat2: number, lng2: num
 
 /**
  * Belirli bir merkez etrafında rastgele koordinat üret
- * Urban mod için şehir merkezine yakın, Geo mod için daha geniş alan
+ * Urban mod için şehir merkezine yakın, Geo mod için şehir merkezinden UZAK
  */
 function getRandomCoordinateNearCity(city: CityData, mode: GameMode): { lat: number; lng: number } {
-  // Rastgele açı ve mesafe
+  // Rastgele açı
   const angle = Math.random() * 2 * Math.PI;
 
-  // Urban modda şehir merkezine daha yakın ol (radius'un %40'ı)
-  // Geo modda daha geniş alan (tüm radius)
-  const maxDistance = mode === "urban"
-    ? city.radius * 0.4  // Şehir merkezine yakın
-    : city.radius;       // Tüm alan
+  let distance: number;
 
-  const distance = Math.random() * maxDistance; // km
+  if (mode === "urban") {
+    // Urban modda şehir merkezine daha yakın ol (radius'un %40'ı)
+    distance = Math.random() * city.radius * 0.4;
+  } else {
+    // Geo modda şehir merkezinden UZAK ol
+    // Minimum mesafe: radius'un %60'ı, maksimum: radius'un %150'si
+    const minDistance = city.radius * 0.6;
+    const maxDistance = city.radius * 1.5;
+    distance = minDistance + Math.random() * (maxDistance - minDistance);
+  }
 
   // Yaklaşık dönüşüm (1 derece ≈ 111 km)
   const latOffset = (distance * Math.cos(angle)) / 111;
@@ -183,17 +188,25 @@ function selectWeightedCity(mode: GameMode): CityData {
   let weightedCities: { city: CityData; weight: number }[] = [];
 
   if (mode === "urban") {
-    // Urban mod: Büyük şehirlere daha fazla ağırlık
-    weightedCities = TURKEY_CITIES.map(city => ({
-      city,
-      weight: city.isUrban ? city.population : city.population * 0.3
-    }));
+    // Urban mod: Sadece büyükşehirlere ağırlık ver
+    weightedCities = TURKEY_CITIES
+      .filter(city => city.isUrban) // Sadece büyükşehirler
+      .map(city => ({
+        city,
+        weight: city.population
+      }));
   } else {
-    // Geo mod: Doğal güzellikler için kırsal bölgelere ağırlık
+    // Geo mod: Kırsal bölgelere ve doğa alanlarına ağırlık
+    // Büyükşehirleri hariç tut veya çok düşük ağırlık ver
     weightedCities = TURKEY_CITIES.map(city => ({
       city,
-      weight: city.isUrban ? city.population * 0.5 : city.population * 1.5
+      weight: city.isUrban ? city.population * 0.1 : city.population * 2 // Kırsal 20x daha fazla şans
     }));
+  }
+
+  // Boş liste kontrolü
+  if (weightedCities.length === 0) {
+    weightedCities = TURKEY_CITIES.map(city => ({ city, weight: city.population }));
   }
 
   const totalWeight = weightedCities.reduce((sum, wc) => sum + wc.weight, 0);
@@ -207,6 +220,74 @@ function selectWeightedCity(mode: GameMode): CityData {
   }
 
   return weightedCities[0].city;
+}
+
+/**
+ * Koordinatlardan konum adı al (Reverse Geocoding)
+ */
+async function getLocationNameFromCoords(lat: number, lng: number, fallbackCity: string): Promise<string> {
+  if (typeof google === "undefined" || !google.maps) {
+    return fallbackCity;
+  }
+
+  try {
+    const geocoder = new google.maps.Geocoder();
+    const result = await new Promise<google.maps.GeocoderResult[] | null>((resolve) => {
+      geocoder.geocode(
+        { location: { lat, lng } },
+        (results, status) => {
+          if (status === google.maps.GeocoderStatus.OK && results) {
+            resolve(results);
+          } else {
+            resolve(null);
+          }
+        }
+      );
+    });
+
+    if (!result || result.length === 0) {
+      return fallbackCity;
+    }
+
+    let ilce = "";
+    let il = "";
+
+    // Sonuçları tara ve il/ilçe bul
+    for (const r of result) {
+      for (const component of r.address_components) {
+        // İlçe
+        if (
+          component.types.includes("administrative_area_level_2") ||
+          component.types.includes("locality")
+        ) {
+          if (!ilce) ilce = component.long_name;
+        }
+        // İl
+        if (component.types.includes("administrative_area_level_1")) {
+          if (!il) il = component.long_name;
+        }
+      }
+      if (il && ilce) break;
+    }
+
+    // Sonucu formatla: "İlçe, İl"
+    if (ilce && il) {
+      // İlçe ve il aynıysa veya merkez ise sadece il göster
+      if (ilce === il || ilce.includes("Merkez")) {
+        return il;
+      }
+      return `${ilce}, ${il}`;
+    } else if (il) {
+      return il;
+    } else if (ilce) {
+      return ilce;
+    }
+
+    return fallbackCity;
+  } catch (error) {
+    console.error("Geocoding error:", error);
+    return fallbackCity;
+  }
 }
 
 /**
@@ -398,6 +479,9 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
     // Lokasyonu kullanıldı olarak işaretle
     usedLocationHashes.add(hash);
 
+    // Konum adını al (ilçe, il formatında)
+    const locationName = await getLocationNameFromCoords(centerPano.lat, centerPano.lng, city.name);
+
     // Pano paketi oluştur
     const panoPackage: PanoPackage = {
       id: `dynamic_${mode}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -416,10 +500,10 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
       pano1: branches.pano1,
       pano2: branches.pano2,
       pano3: branches.pano3,
-      locationName: city.name
+      locationName: locationName
     };
 
-    console.log(`Dinamik pano oluşturuldu: ${city.name} (${mode})`);
+    console.log(`Dinamik pano oluşturuldu: ${locationName} (${mode})`);
     return panoPackage;
   }
 

@@ -2,7 +2,10 @@
 
 /**
  * useStreetView Hook
- * Street View yönetimi - Sınırsız gezinti
+ * Street View yönetimi - Yön bazlı hareket limiti
+ *
+ * Her yöne (ileri, geri, sağ, sol) sadece 1 kez hareket edilebilir
+ * Başlangıca dönüş her zaman serbesttir
  */
 
 import { useState, useCallback, useRef } from "react";
@@ -16,17 +19,28 @@ const MAX_ATTEMPTS = 50;
 let globalLoader: Loader | null = null;
 let isLoaded = false;
 
+// Yön tipleri
+type Direction = "forward" | "backward" | "left" | "right";
+
 export function useStreetView() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Sınırsız hareket - bu değerler artık kullanılmıyor ama API uyumluluğu için kalıyor
-  const [movesUsed] = useState(0);
-  const [moveLimit] = useState(999);
-  const [isMovementLocked] = useState(false);
+
+  // Hareket limiti sistemi
+  const [movesUsed, setMovesUsed] = useState(0);
+  const [moveLimit, setMoveLimitState] = useState(4);
+  const [usedDirections, setUsedDirections] = useState<Set<Direction>>(new Set());
+  const [isMovementLocked, setIsMovementLocked] = useState(false);
 
   const streetViewRef = useRef<HTMLDivElement>(null);
   const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
   const streetViewServiceRef = useRef<google.maps.StreetViewService | null>(null);
+
+  // Başlangıç pozisyonu (geri dönüş için)
+  const startPanoIdRef = useRef<string | null>(null);
+  const startHeadingRef = useRef<number>(0);
+  const lastPanoIdRef = useRef<string | null>(null);
+  const lastHeadingRef = useRef<number>(0);
 
   const initializeGoogleMaps = useCallback(async () => {
     if (isLoaded) return;
@@ -45,21 +59,64 @@ export function useStreetView() {
   }, []);
 
   /**
-   * Hareket hakkı ayarla (artık kullanılmıyor - sınırsız)
+   * Heading değişikliğinden yön hesapla
    */
-  const setMoves = useCallback((_limit: number) => {
-    // Sınırsız hareket - hiçbir şey yapma
+  const calculateDirection = useCallback((oldHeading: number, newHeading: number): Direction | null => {
+    // Heading farkını normalize et (-180 ile 180 arasında)
+    let diff = newHeading - oldHeading;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+
+    // Yön belirle (45 derecelik tolerans)
+    if (Math.abs(diff) < 45) {
+      return "forward";
+    } else if (Math.abs(diff) > 135) {
+      return "backward";
+    } else if (diff > 0) {
+      return "right";
+    } else {
+      return "left";
+    }
   }, []);
 
   /**
-   * Hareket sayısını sıfırla (artık kullanılmıyor - sınırsız)
+   * Hareket hakkı ayarla
+   */
+  const setMoves = useCallback((limit: number) => {
+    setMoveLimitState(limit);
+    setMovesUsed(0);
+    setUsedDirections(new Set());
+    setIsMovementLocked(false);
+  }, []);
+
+  /**
+   * Hareket sayısını sıfırla
    */
   const resetMoves = useCallback(() => {
-    // Sınırsız hareket - hiçbir şey yapma
+    setMovesUsed(0);
+    setUsedDirections(new Set());
+    setIsMovementLocked(false);
+    startPanoIdRef.current = null;
+    lastPanoIdRef.current = null;
   }, []);
 
   /**
-   * Street View'ı göster - Sınırsız gezinti
+   * Başlangıca dön
+   */
+  const returnToStart = useCallback(() => {
+    if (panoramaRef.current && startPanoIdRef.current) {
+      panoramaRef.current.setPano(startPanoIdRef.current);
+      panoramaRef.current.setPov({
+        heading: startHeadingRef.current,
+        pitch: 0,
+      });
+      lastPanoIdRef.current = startPanoIdRef.current;
+      lastHeadingRef.current = startHeadingRef.current;
+    }
+  }, []);
+
+  /**
+   * Street View'ı göster - Yön bazlı hareket limiti
    */
   const showStreetView = useCallback(
     async (panoId: string, heading: number = 0) => {
@@ -70,7 +127,13 @@ export function useStreetView() {
         return;
       }
 
-      // Street View seçenekleri - SINIRSIZ GEZİNTİ
+      // Başlangıç pozisyonunu kaydet
+      startPanoIdRef.current = panoId;
+      startHeadingRef.current = heading;
+      lastPanoIdRef.current = panoId;
+      lastHeadingRef.current = heading;
+
+      // Street View seçenekleri - Hareket kontrollü
       const streetViewOptions: google.maps.StreetViewPanoramaOptions = {
         pano: panoId,
         pov: {
@@ -84,10 +147,10 @@ export function useStreetView() {
         showRoadLabels: false,
         zoomControl: true,
         panControl: false,
-        linksControl: true, // OKLAR AÇIK - Serbest gezinti
+        linksControl: true, // Oklar açık - ama hareket kontrol edilecek
         motionTracking: false,
         motionTrackingControl: false,
-        clickToGo: true, // Tıklayarak ilerleme AÇIK
+        clickToGo: true, // Tıklayarak ilerleme açık - ama hareket kontrol edilecek
         disableDefaultUI: false,
         scrollwheel: true,
       };
@@ -97,8 +160,78 @@ export function useStreetView() {
         streetViewRef.current,
         streetViewOptions
       );
+
+      // Hareket dinleyicisi ekle
+      panoramaRef.current.addListener("pano_changed", () => {
+        if (!panoramaRef.current) return;
+
+        const currentPanoId = panoramaRef.current.getPano();
+        const currentPov = panoramaRef.current.getPov();
+
+        // Aynı panoda kalınmışsa (sadece kamera döndürme) - izin ver
+        if (currentPanoId === lastPanoIdRef.current) {
+          lastHeadingRef.current = currentPov.heading || 0;
+          return;
+        }
+
+        // Başlangıca dönüş - her zaman serbest
+        if (currentPanoId === startPanoIdRef.current) {
+          lastPanoIdRef.current = currentPanoId;
+          lastHeadingRef.current = currentPov.heading || 0;
+          return;
+        }
+
+        // Yön hesapla
+        const direction = calculateDirection(lastHeadingRef.current, currentPov.heading || 0);
+
+        if (direction) {
+          // Bu yön daha önce kullanılmış mı?
+          setUsedDirections(prev => {
+            const newSet = new Set(prev);
+
+            if (newSet.has(direction)) {
+              // Bu yön zaten kullanıldı - geri al
+              console.log(`${direction} yönü zaten kullanıldı, hareket engelleniyor`);
+              if (panoramaRef.current && lastPanoIdRef.current) {
+                panoramaRef.current.setPano(lastPanoIdRef.current);
+              }
+              return prev;
+            }
+
+            // Hareket limiti kontrolü
+            if (newSet.size >= moveLimit) {
+              // Limit aşıldı - geri al
+              console.log("Hareket limiti aşıldı");
+              if (panoramaRef.current && lastPanoIdRef.current) {
+                panoramaRef.current.setPano(lastPanoIdRef.current);
+              }
+              setIsMovementLocked(true);
+              return prev;
+            }
+
+            // Yeni yön - izin ver ve kaydet
+            console.log(`${direction} yönüne hareket edildi`);
+            newSet.add(direction);
+            setMovesUsed(newSet.size);
+
+            // Son pozisyonu güncelle
+            lastPanoIdRef.current = currentPanoId;
+            lastHeadingRef.current = currentPov.heading || 0;
+
+            if (newSet.size >= moveLimit) {
+              setIsMovementLocked(true);
+            }
+
+            return newSet;
+          });
+        } else {
+          // Yön belirlenemedi - pozisyonu güncelle
+          lastPanoIdRef.current = currentPanoId;
+          lastHeadingRef.current = currentPov.heading || 0;
+        }
+      });
     },
-    [initializeGoogleMaps]
+    [initializeGoogleMaps, calculateDirection, moveLimit]
   );
 
   /**
@@ -261,5 +394,7 @@ export function useStreetView() {
     isMovementLocked,
     setMoves,
     resetMoves,
+    returnToStart,
+    usedDirections,
   };
 }
