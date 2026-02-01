@@ -189,6 +189,21 @@ export default function HomePage() {
     }
   }, [room?.status, screen]);
 
+  // Oda silindiğinde veya error durumunda ana menüye dön
+  useEffect(() => {
+    if (screen !== "menu" && !room && !isLoading) {
+      // Oda silindi veya bulunamadı - ana menüye yönlendir
+      setScreen("menu");
+      resetMap();
+      setGuessLocation(null);
+      resetMoves();
+      if (error) {
+        setShowToast(error === "Oda silindi veya bulunamadı" ? "Oda kapatıldı" : error);
+        setTimeout(() => setShowToast(null), 3000);
+      }
+    }
+  }, [room, error, screen, isLoading]);
+
   // ==================== HANDLERS ====================
 
   // Oda oluştur
@@ -752,27 +767,27 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Oyuncular ve Başlangıca Dön - Sol Alt */}
+        {/* Mobil: Başlangıca Dön - Sol Üst (header altı) */}
         {!isRoundEnd && !isGameOver && (
-          <div className="absolute left-4 bottom-24 sm:bottom-6 z-20 flex flex-col gap-2">
+          <div className="absolute left-3 top-20 sm:top-auto sm:left-4 sm:bottom-6 z-20 flex flex-col gap-2">
             {/* Başlangıca Dön Butonu */}
             <button
               onClick={returnToStart}
-              className="glass rounded-xl p-2 sm:p-3 flex items-center gap-2 hover:bg-white/10 transition-all"
+              className="glass rounded-xl p-2.5 sm:p-3 flex items-center gap-2 hover:bg-white/10 transition-all active:scale-95"
               title="Başlangıca Dön"
             >
-              <Home size={16} className="text-blue-400" />
-              <span className="text-xs text-gray-300 hidden sm:inline">Başlangıç</span>
+              <Home size={18} className="text-blue-400" />
+              <span className="text-xs text-gray-300 sm:inline">Başlangıç</span>
             </button>
 
-            {/* Oyuncular */}
+            {/* Oyuncular - Mobilde kompakt */}
             <div className="glass rounded-xl p-2 sm:p-3">
-              <p className="text-gray-400 text-xs mb-1.5">Oyuncular</p>
-              <div className="flex items-center gap-1.5">
+              <p className="text-gray-400 text-[10px] sm:text-xs mb-1">Oyuncular</p>
+              <div className="flex items-center gap-1">
                 {players.map((p, i) => (
                   <div
                     key={p.id}
-                    className={`player-badge w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    className={`player-badge w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
                       p.hasGuessed
                         ? "guessed ring-2 ring-green-400 ring-offset-1 ring-offset-[#12121a]"
                         : "opacity-50"

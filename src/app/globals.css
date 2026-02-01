@@ -127,17 +127,17 @@ body {
 /* Mobile: Full width expandable map */
 @media (max-width: 768px) {
   .mini-map-container {
-    width: calc(100% - 2rem);
-    height: 180px;
-    /* Mobilde daha yukarıda - Safari araç çubuğu için */
-    bottom: calc(90px + env(safe-area-inset-bottom, 20px));
-    left: 1rem;
-    right: 1rem;
+    width: calc(100% - 1.5rem);
+    height: 200px;
+    /* Mobilde action bar'ın üstünde */
+    bottom: calc(80px + env(safe-area-inset-bottom, 16px));
+    left: 0.75rem;
+    right: 0.75rem;
   }
 
   .mini-map-container.expanded {
-    height: 55vh;
-    bottom: calc(90px + env(safe-area-inset-bottom, 20px));
+    height: 50vh;
+    bottom: calc(80px + env(safe-area-inset-bottom, 16px));
   }
 }
 
@@ -145,10 +145,10 @@ body {
 @supports (-webkit-touch-callout: none) {
   @media (max-width: 768px) {
     .mini-map-container {
-      bottom: calc(100px + env(safe-area-inset-bottom, 34px));
+      bottom: calc(85px + env(safe-area-inset-bottom, 20px));
     }
     .mini-map-container.expanded {
-      bottom: calc(100px + env(safe-area-inset-bottom, 34px));
+      bottom: calc(85px + env(safe-area-inset-bottom, 20px));
     }
   }
 }
