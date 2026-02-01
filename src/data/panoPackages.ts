@@ -2125,4 +2125,4 @@ export function getRandomPanoPackageFromData(mode: "urban" | "geo"): PanoPackage
   return packages[Math.floor(Math.random() * packages.length)];
 }
 
-console.log(`Pano paketleri yüklendi: ${URBAN_PACKAGES.length} Urban, ${GEO_PACKAGES.length} Geo`);
+// Debug log kaldırıldı - production'da gereksiz

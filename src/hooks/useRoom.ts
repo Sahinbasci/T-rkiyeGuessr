@@ -155,7 +155,8 @@ export function useRoom() {
 
       return roomCode;
     } catch (err) {
-      setError("Oda oluşturulamadı");
+      console.error("Oda oluşturma hatası:", err);
+      setError("Oda oluşturulamadı. Lütfen tekrar deneyin.");
       return null;
     } finally {
       setIsLoading(false);
@@ -211,7 +212,8 @@ export function useRoom() {
 
       return true;
     } catch (err) {
-      setError("Odaya katılınamadı");
+      console.error("Odaya katılma hatası:", err);
+      setError("Odaya katılınamadı. Lütfen tekrar deneyin.");
       return false;
     } finally {
       setIsLoading(false);

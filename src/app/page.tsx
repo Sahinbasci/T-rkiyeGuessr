@@ -315,7 +315,7 @@ export default function HomePage() {
   // WhatsApp ile paylaş
   const shareWhatsApp = () => {
     if (room?.id) {
-      const text = `🎯 TürkiyeGuessr'da bana katıl!\n\nOda Kodu: ${room.id}\n\nhttps://turkiyeguessr.com`;
+      const text = `🎯 TürkiyeGuessr'da bana katıl!\n\nOda Kodu: ${room.id}\n\nhttps://turkiyeguessr.xyz`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     }
   };
