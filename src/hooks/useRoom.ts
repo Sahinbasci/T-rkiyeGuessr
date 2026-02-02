@@ -470,7 +470,7 @@ export function useRoom() {
       if (!room || playerId !== room.hostId) return;
 
       const updatedPlayers: { [key: string]: Player } = {};
-      Object.values(room.players).forEach((player) => {
+      Object.values(room.players || {}).forEach((player) => {
         updatedPlayers[player.id] = {
           ...player,
           currentGuess: null,
@@ -499,7 +499,7 @@ export function useRoom() {
       if (!room || playerId !== room.hostId) return;
 
       const updatedPlayers: { [key: string]: Player } = {};
-      Object.values(room.players).forEach((player) => {
+      Object.values(room.players || {}).forEach((player) => {
         updatedPlayers[player.id] = {
           ...player,
           currentGuess: null,
@@ -656,7 +656,7 @@ export function useRoom() {
         });
       } else {
         const updatedPlayers: { [key: string]: Player } = {};
-        Object.values(room.players).forEach((player) => {
+        Object.values(room.players || {}).forEach((player) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -693,7 +693,7 @@ export function useRoom() {
         });
       } else {
         const updatedPlayers: { [key: string]: Player } = {};
-        Object.values(room.players).forEach((player) => {
+        Object.values(room.players || {}).forEach((player) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -718,9 +718,9 @@ export function useRoom() {
 
   // Odadan ayrıl
   const leaveRoom = useCallback(async () => {
-    if (!room || !playerId || !room.players) return;
+    if (!room || !playerId) return;
 
-    const playerList = Object.values(room.players);
+    const playerList = Object.values(room.players || {});
 
     if (playerList.length === 1) {
       // Son oyuncu - odayı sil
@@ -802,7 +802,7 @@ export function useRoom() {
     if (!room || playerId !== room.hostId) return;
 
     const updatedPlayers: { [key: string]: Player } = {};
-    Object.values(room.players).forEach((player) => {
+    Object.values(room.players || {}).forEach((player) => {
       updatedPlayers[player.id] = {
         ...player,
         totalScore: 0,
