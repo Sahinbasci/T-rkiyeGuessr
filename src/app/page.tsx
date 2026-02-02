@@ -37,6 +37,7 @@ import {
   UserMinus,
   UserPlus,
   X,
+  RefreshCw,
 } from "lucide-react";
 
 const PLAYER_COLORS = [
@@ -209,6 +210,24 @@ export default function HomePage() {
       }
     }
   }, [room, error, screen, isLoading]);
+
+  // Visibility change handler - ekran kapandığında/açıldığında
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && screen === "game" && !room) {
+        // Ekran açıldı ama room yok - ana menüye dön
+        setScreen("menu");
+        resetMap();
+        setGuessLocation(null);
+        resetMoves();
+        setShowToast("Bağlantı koptu, yeniden bağlanın");
+        setTimeout(() => setShowToast(null), 3000);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [screen, room]);
 
   // ==================== HANDLERS ====================
 
@@ -674,82 +693,49 @@ export default function HomePage() {
     const finalRankings = [...players].sort((a, b) => b.totalScore - a.totalScore);
 
     return (
-      <main className="relative w-screen h-screen overflow-hidden">
-        {/* Header - Mobile Optimized */}
-        <header className="absolute top-0 left-0 right-0 z-30 game-header safe-top">
-          <div className="flex items-center justify-between gap-2">
-            {/* Logo - Compact on mobile */}
-            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-              <div className="bg-red-600 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
-                <MapPin size={14} className="sm:w-5 sm:h-5 text-white" />
+      <main className="relative w-screen h-screen overflow-hidden bg-[#0a0a0f]">
+        {/* HEADER - Always visible, high z-index */}
+        <header className="game-header">
+          <div className="flex items-center justify-between">
+            {/* Left: Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                <MapPin size={16} className="text-white" />
               </div>
-              <span
-                className="text-sm sm:text-xl font-bold hidden sm:block"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
+              <span className="text-base font-bold hidden sm:block" style={{ fontFamily: "var(--font-display)" }}>
                 TürkiyeGuessr
               </span>
             </div>
 
-            {/* Stats - Scrollable on mobile if needed */}
-            <div className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto hide-scrollbar">
-              {/* Timer */}
+            {/* Right: Stats */}
+            <div className="flex items-center gap-2">
+              {/* Timer - Always show during game */}
               {!isRoundEnd && !isGameOver && (
-                <div
-                  className={`stat-badge glass flex-shrink-0 ${
-                    timeRemaining <= 10 ? "bg-red-500/30 border-red-500 countdown-critical" : ""
-                  }`}
-                >
-                  <Timer
-                    size={14}
-                    className={`flex-shrink-0 ${
-                      timeRemaining <= 10 ? "text-red-400" : "text-blue-400"
-                    }`}
-                  />
-                  <span
-                    className={`font-bold font-mono ${
-                      timeRemaining <= 10 ? "text-red-400" : ""
-                    }`}
-                  >
+                <div className={`stat-badge ${timeRemaining <= 10 ? "countdown-critical" : ""}`}>
+                  <Timer size={14} className={timeRemaining <= 10 ? "text-red-400" : "text-blue-400"} />
+                  <span className={`font-mono ${timeRemaining <= 10 ? "text-red-400" : "text-white"}`}>
                     {formattedTime}
                   </span>
                 </div>
               )}
 
               {/* Round */}
-              <div className="stat-badge glass flex-shrink-0">
-                <Target size={14} className="text-yellow-400 flex-shrink-0" />
-                <span className="font-bold">
-                  {room.currentRound}/{room.totalRounds}
-                </span>
+              <div className="stat-badge">
+                <Target size={14} className="text-yellow-400" />
+                <span>{room.currentRound}/{room.totalRounds}</span>
               </div>
 
               {/* Score */}
-              <div className="stat-badge glass flex-shrink-0">
-                <Trophy size={14} className="text-yellow-400 flex-shrink-0" />
-                <span className="font-bold">
-                  {currentPlayer?.totalScore || 0}
-                </span>
+              <div className="stat-badge">
+                <Trophy size={14} className="text-yellow-400" />
+                <span>{currentPlayer?.totalScore || 0}</span>
               </div>
 
-              {/* Move Budget */}
+              {/* Moves - Only during game */}
               {!isRoundEnd && !isGameOver && (
-                <div
-                  className={`stat-badge glass flex-shrink-0 ${
-                    movesRemaining <= 1 ? "bg-orange-500/30 border-orange-500" : ""
-                  }`}
-                >
-                  <Footprints
-                    size={14}
-                    className={`flex-shrink-0 ${
-                      movesRemaining <= 1 ? "text-orange-400" : "text-green-400"
-                    }`}
-                  />
-                  <span
-                    className={`font-bold ${
-                      movesRemaining <= 1 ? "text-orange-400" : ""
-                    }`}
-                  >
+                <div className={`stat-badge ${movesRemaining <= 1 ? "bg-orange-500/20 border-orange-500/50" : ""}`}>
+                  <Footprints size={14} className={movesRemaining <= 1 ? "text-orange-400" : "text-green-400"} />
+                  <span className={movesRemaining <= 1 ? "text-orange-400" : ""}>
                     {movesRemaining}/{room?.moveLimit || 3}
                   </span>
                 </div>
@@ -1105,6 +1091,30 @@ export default function HomePage() {
           </div>
         )}
       </main>
+    );
+  }
+
+  // Connection lost fallback
+  if (screen === "game" && !room) {
+    return (
+      <div className="error-screen">
+        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+          <RefreshCw size={32} className="text-red-400" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Bağlantı Koptu</h2>
+        <p className="text-gray-400 mb-6">Oyun odasıyla bağlantı kesildi</p>
+        <button
+          onClick={() => {
+            setScreen("menu");
+            resetMap();
+            setGuessLocation(null);
+            resetMoves();
+          }}
+          className="btn-primary"
+        >
+          Ana Menüye Dön
+        </button>
+      </div>
     );
   }
 

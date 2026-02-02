@@ -4,41 +4,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   CSS VARIABLES
+   ============================================ */
 :root {
   --font-display: 'Bebas Neue', sans-serif;
   --font-body: 'DM Sans', sans-serif;
-  /* Safe area variables */
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  /* Mobile action bar height - consistent reference */
-  --action-bar-height: 72px;
-  --action-bar-total: calc(var(--action-bar-height) + var(--safe-area-bottom) + 16px);
-}
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+  /* Safe area - iOS notch & home indicator */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  /* Layout constants */
+  --header-height: 56px;
+  --action-bar-height: 80px;
+  --mini-map-height: 140px;
 }
 
 /* ============================================
-   MOBILE VIEWPORT FIX - iOS Safari 100vh issue
+   RESET & BASE
    ============================================ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
 html {
-  height: -webkit-fill-available;
   height: 100%;
+  height: -webkit-fill-available;
 }
 
 body {
   font-family: var(--font-body);
   background: #0a0a0f;
   color: #f5f5f5;
-  overflow: hidden;
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  /* Prevent pull-to-refresh */
+  overflow: hidden;
   overscroll-behavior: none;
-  /* Touch optimization */
   -webkit-overflow-scrolling: touch;
+  /* Prevent zoom on iOS */
+  touch-action: manipulation;
 }
 
 /* ============================================
@@ -46,7 +55,8 @@ body {
    ============================================ */
 .gm-style-cc,
 .gmnoprint,
-.gm-fullscreen-control {
+.gm-fullscreen-control,
+.gm-style > div > a {
   display: none !important;
 }
 
@@ -56,24 +66,30 @@ body {
 .btn-primary {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(to right, #dc2626, #ef4444);
+  background: linear-gradient(135deg, #dc2626, #ef4444);
   color: white;
   font-weight: 600;
-  padding: 0.875rem 1.5rem;
-  border-radius: 0.75rem;
-  transition: all 0.2s ease-out;
-  /* Better touch target */
-  min-height: 48px;
-  touch-action: manipulation;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 52px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(to right, #ef4444, #f87171);
-  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
 }
 
 .btn-primary:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
   transition: transform 0.1s;
 }
 
@@ -81,49 +97,37 @@ body {
   background: #374151;
   cursor: not-allowed;
   box-shadow: none;
-  opacity: 0.7;
+  opacity: 0.6;
+  transform: none;
 }
 
 .btn-secondary {
-  background-color: #22222e;
+  background: rgba(34, 34, 46, 0.9);
   color: white;
   font-weight: 600;
-  padding: 0.875rem 1.5rem;
-  border-radius: 0.75rem;
-  border: 1px solid #2a2a38;
+  padding: 14px 24px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
   transition: all 0.2s;
-  min-height: 48px;
-  touch-action: manipulation;
+  min-height: 52px;
+  font-size: 16px;
 }
 
 .btn-secondary:hover {
-  background-color: #2a2a38;
-  border-color: #3a3a4a;
+  background: rgba(42, 42, 56, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary:active {
-  transform: scale(0.97);
-}
-
-/* Ripple effect for buttons */
-.btn-primary::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to right, rgba(255,255,255,0.2), transparent);
-  transform: translateX(-100%);
-  transition: transform 0.5s;
-}
-
-.btn-primary:hover::after {
-  transform: translateX(100%);
+  transform: scale(0.98);
 }
 
 /* ============================================
    GLASS MORPHISM
    ============================================ */
 .glass {
-  background: rgba(18, 18, 26, 0.92);
+  background: rgba(18, 18, 26, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -134,19 +138,20 @@ body {
    ============================================ */
 .input-dark {
   background: #1a1a24;
-  border: 1px solid #2a2a38;
-  border-radius: 0.75rem;
-  padding: 0.875rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
   color: white;
   width: 100%;
   outline: none;
-  transition: border-color 0.2s;
-  font-size: 16px; /* Prevents iOS zoom on focus */
-  min-height: 48px;
+  transition: all 0.2s;
+  font-size: 16px; /* Prevents iOS zoom */
+  min-height: 52px;
 }
 
 .input-dark:focus {
   border-color: #ef4444;
+  background: #1f1f2a;
 }
 
 .input-dark::placeholder {
@@ -156,163 +161,170 @@ body {
 /* ============================================
    ANIMATIONS
    ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50% { transform: translateY(-8px); }
 }
 
-.animate-bounce {
-  animation: bounce 1s infinite;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes countdownPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
 }
 
-.animate-slideDown {
-  animation: slideDown 0.3s ease-out forwards;
-}
+.animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+.animate-slideUp { animation: slideUp 0.3s ease-out; }
+.animate-slideDown { animation: slideDown 0.3s ease-out; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+.animate-bounce { animation: bounce 1s infinite; }
+.animate-spin { animation: spin 0.8s linear infinite; }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slideUp {
-  animation: slideUp 0.3s ease-out forwards;
+/* ============================================
+   GAME HEADER - ALWAYS VISIBLE
+   ============================================ */
+.game-header {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  padding: 8px 12px;
+  padding-top: calc(8px + var(--sat));
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 15, 0.98) 0%,
+    rgba(10, 10, 15, 0.9) 60%,
+    rgba(10, 10, 15, 0) 100%
+  );
+  pointer-events: auto;
+  /* Force visibility */
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* ============================================
-   MINI MAP - MOBILE FIRST
+   STAT BADGES - COMPACT & VISIBLE
    ============================================ */
-.mini-map-container {
-  position: absolute;
-  z-index: 20;
-  border-radius: 1rem;
-  overflow: hidden;
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
   background: rgba(18, 18, 26, 0.95);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 40px;
 }
 
-/* Mobile: Collapsible map at bottom */
+.stat-badge.countdown-critical {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  animation: countdownPulse 0.5s ease-in-out infinite;
+}
+
+/* ============================================
+   MINI MAP - MOBILE OPTIMIZED
+   ============================================ */
+.mini-map-container {
+  position: fixed;
+  z-index: 50;
+  background: rgba(10, 10, 15, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Hardware acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Mobile: Small corner map */
 @media (max-width: 768px) {
   .mini-map-container {
-    /* Positioned above action bar with safe margin */
-    position: fixed;
-    bottom: calc(var(--action-bar-total) + 8px);
-    left: 12px;
     right: 12px;
-    width: auto;
-    height: 180px;
-    border-radius: 16px;
+    bottom: calc(var(--action-bar-height) + var(--sab) + 16px);
+    width: 120px;
+    height: 100px;
   }
 
   .mini-map-container.expanded {
-    height: 45vh;
-    max-height: calc(100vh - var(--action-bar-total) - 80px);
+    left: 12px;
+    right: 12px;
+    width: auto;
+    height: 200px;
   }
 }
 
-/* iOS Safari specific - extra bottom padding */
-@supports (-webkit-touch-callout: none) {
-  @media (max-width: 768px) {
-    .mini-map-container {
-      bottom: calc(var(--action-bar-total) + 12px);
-    }
-  }
-}
-
-/* Desktop: Side panel map */
+/* Desktop: Larger side panel */
 @media (min-width: 769px) {
   .mini-map-container {
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 320px;
-    height: 220px;
+    right: 24px;
+    bottom: 24px;
+    width: 300px;
+    height: 200px;
   }
 
   .mini-map-container:hover,
   .mini-map-container.expanded {
-    width: 480px;
-    height: 380px;
+    width: 400px;
+    height: 300px;
   }
 }
 
-/* ============================================
-   MOBILE ACTION BAR - CRITICAL
-   ============================================ */
-.mobile-action-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 30;
-  /* Gradient background for visibility */
-  background: linear-gradient(
-    to top,
-    rgba(10, 10, 15, 1) 0%,
-    rgba(10, 10, 15, 0.98) 60%,
-    rgba(10, 10, 15, 0.95) 100%
-  );
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  /* Padding with safe area */
-  padding: 12px 16px;
-  padding-bottom: calc(16px + var(--safe-area-bottom));
-  /* Hardware acceleration */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
+/* Map expand button */
+.map-expand-btn {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-/* iOS Safari specific adjustments */
-@supports (-webkit-touch-callout: none) {
-  .mobile-action-bar {
-    /* Extra padding for Safari toolbar */
-    padding-bottom: calc(20px + max(var(--safe-area-bottom), 20px));
-  }
+.map-expand-btn:active {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.95);
 }
 
-/* Chrome on iOS */
-@supports (-webkit-touch-callout: none) and (not (-webkit-hyphens: none)) {
-  .mobile-action-bar {
-    padding-bottom: calc(16px + max(var(--safe-area-bottom), 34px));
-  }
-}
-
-/* Hide on desktop */
-@media (min-width: 769px) {
-  .mobile-action-bar {
-    display: none;
-  }
-}
-
-/* ============================================
-   DESKTOP SUBMIT BUTTON (inside map)
-   ============================================ */
+/* Desktop submit button inside map */
 .desktop-submit-btn {
   display: none;
 }
@@ -324,135 +336,59 @@ body {
 }
 
 /* ============================================
-   MAP EXPAND BUTTON (mobile only)
+   MOBILE ACTION BAR - FIXED BOTTOM
    ============================================ */
-.map-expand-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 10;
-  background: rgba(0, 0, 0, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  padding: 10px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  /* Better touch target */
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.mobile-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + var(--sab));
+  background: linear-gradient(
+    0deg,
+    rgba(10, 10, 15, 1) 0%,
+    rgba(10, 10, 15, 0.98) 80%,
+    rgba(10, 10, 15, 0.95) 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
-.map-expand-btn:active {
-  background: rgba(0, 0, 0, 0.9);
-  transform: scale(0.95);
+/* iOS Safari extra padding */
+@supports (-webkit-touch-callout: none) {
+  .mobile-action-bar {
+    padding-bottom: calc(16px + max(var(--sab), 20px));
+  }
 }
 
+/* Hide on desktop */
 @media (min-width: 769px) {
-  .map-expand-btn {
+  .mobile-action-bar {
     display: none;
   }
 }
 
 /* ============================================
-   SAFE AREA UTILITIES
+   PLAYERS SIDEBAR - LEFT SIDE
    ============================================ */
-.safe-bottom {
-  padding-bottom: var(--safe-area-bottom);
-}
-
-.safe-top {
-  padding-top: var(--safe-area-top);
-}
-
-@supports (padding: max(0px)) {
-  .safe-bottom {
-    padding-bottom: max(1rem, var(--safe-area-bottom));
-  }
-}
-
-/* ============================================
-   GAME HEADER - MOBILE OPTIMIZED
-   ============================================ */
-.game-header {
-  padding: 10px 12px;
-  /* Safe area for notch devices */
-  padding-top: max(10px, var(--safe-area-top));
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 10, 15, 0.95) 0%,
-    rgba(10, 10, 15, 0.8) 70%,
-    transparent 100%
-  );
-}
-
-@media (min-width: 769px) {
-  .game-header {
-    padding: 16px 20px;
-  }
-}
-
-/* ============================================
-   STAT BADGES - MOBILE COMPACT
-   ============================================ */
-.stat-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  min-height: 36px;
-}
-
-@media (min-width: 769px) {
-  .stat-badge {
-    gap: 8px;
-    padding: 8px 14px;
-    font-size: 15px;
-    min-height: 40px;
-  }
-}
-
-/* ============================================
-   TOAST NOTIFICATIONS
-   ============================================ */
-.toast {
+.players-sidebar {
   position: fixed;
-  /* Position above action bar on mobile */
-  bottom: calc(var(--action-bar-total) + 200px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(34, 197, 94, 0.95);
-  color: white;
-  padding: 12px 20px;
-  border-radius: 9999px;
-  font-weight: 500;
-  font-size: 14px;
-  z-index: 100;
-  animation: toast-in 0.3s ease-out;
-  max-width: calc(100% - 32px);
-  text-align: center;
+  left: 12px;
+  top: calc(var(--header-height) + var(--sat) + 8px);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 @media (min-width: 769px) {
-  .toast {
-    bottom: 2rem;
-  }
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+  .players-sidebar {
+    left: 24px;
+    top: auto;
+    bottom: 24px;
   }
 }
 
@@ -461,17 +397,23 @@ body {
    ============================================ */
 .player-badge {
   position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
   transition: all 0.2s;
-  /* Better touch target */
-  min-width: 32px;
-  min-height: 32px;
 }
 
 .player-badge.guessed::after {
   content: '✓';
   position: absolute;
-  bottom: -3px;
-  right: -3px;
+  bottom: -2px;
+  right: -2px;
   width: 14px;
   height: 14px;
   background: #22c55e;
@@ -479,138 +421,30 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 8px;
   border: 2px solid #0a0a0f;
-  color: white;
 }
 
 @media (min-width: 769px) {
   .player-badge {
-    min-width: 36px;
-    min-height: 36px;
-  }
-
-  .player-badge.guessed::after {
-    width: 16px;
-    height: 16px;
-    font-size: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
 }
 
 /* ============================================
-   SCORE ANIMATIONS
-   ============================================ */
-@keyframes score-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-  100% { transform: scale(1); }
-}
-
-.score-updated {
-  animation: score-pop 0.3s ease-out;
-}
-
-/* ============================================
-   COUNTDOWN TIMER
-   ============================================ */
-@keyframes countdown-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.9; }
-}
-
-.countdown-critical {
-  animation: countdown-pulse 0.5s ease-in-out infinite;
-}
-
-/* ============================================
-   ROOM CODE COPY ANIMATION
-   ============================================ */
-.copy-success {
-  animation: copy-flash 0.5s ease-out;
-}
-
-@keyframes copy-flash {
-  0% { background: rgba(34, 197, 94, 0.3); }
-  100% { background: transparent; }
-}
-
-/* ============================================
-   SKELETON LOADING
-   ============================================ */
-.skeleton {
-  background: linear-gradient(90deg, #1a1a24 25%, #2a2a38 50%, #1a1a24 75%);
-  background-size: 200% 100%;
-  animation: skeleton-loading 1.5s infinite;
-}
-
-@keyframes skeleton-loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* ============================================
-   SHARE BUTTONS
-   ============================================ */
-.share-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-weight: 500;
-  transition: all 0.2s;
-  min-height: 48px;
-  touch-action: manipulation;
-}
-
-.share-btn-whatsapp {
-  background: #25D366;
-  color: white;
-}
-
-.share-btn-whatsapp:active {
-  background: #1ea952;
-  transform: scale(0.97);
-}
-
-.share-btn-copy {
-  background: #374151;
-  color: white;
-}
-
-.share-btn-copy:active {
-  background: #4b5563;
-  transform: scale(0.97);
-}
-
-/* ============================================
-   BUDGET WARNING ANIMATION
-   ============================================ */
-@keyframes budgetPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 15px 3px rgba(249, 115, 22, 0.3);
-  }
-}
-
-.budget-warning {
-  animation: budgetPulse 1.5s ease-in-out infinite;
-}
-
-/* ============================================
-   MODALS - MOBILE OPTIMIZED
+   MODAL - BOTTOM SHEET ON MOBILE
    ============================================ */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 200;
   background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: fadeIn 0.2s ease-out;
 }
 
 @media (min-width: 769px) {
@@ -621,13 +455,12 @@ body {
 
 .modal-content {
   width: 100%;
-  max-width: 100%;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
   border-radius: 24px 24px 0 0;
-  padding-bottom: calc(20px + var(--safe-area-bottom));
+  padding: 24px 20px;
+  padding-bottom: calc(24px + var(--sab));
   animation: slideUp 0.3s ease-out;
-  /* Smooth scrolling */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -635,99 +468,28 @@ body {
   .modal-content {
     max-width: 420px;
     border-radius: 20px;
-    max-height: 85vh;
-    padding-bottom: 20px;
+    padding-bottom: 24px;
   }
 }
 
 /* ============================================
-   PLAYERS SIDEBAR - MOBILE COMPACT
+   TOAST NOTIFICATIONS
    ============================================ */
-.players-sidebar {
-  position: absolute;
-  left: 12px;
-  top: 72px;
-  z-index: 20;
-  max-width: 140px;
-}
-
-@media (min-width: 769px) {
-  .players-sidebar {
-    left: 20px;
-    top: auto;
-    bottom: 24px;
-    max-width: 200px;
-  }
-}
-
-/* ============================================
-   TOUCH OPTIMIZATIONS
-   ============================================ */
-button,
-a,
-[role="button"] {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Minimum touch target size */
-.touch-target {
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ============================================
-   SCROLLBAR STYLING
-   ============================================ */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* Hide scrollbar on mobile for cleaner look */
-@media (max-width: 768px) {
-  ::-webkit-scrollbar {
-    display: none;
-  }
-
-  * {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-}
-
-/* ============================================
-   LOADING STATES
-   ============================================ */
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top-color: #ef4444;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.toast {
+  position: fixed;
+  top: calc(var(--header-height) + var(--sat) + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(34, 197, 94, 0.95);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 300;
+  animation: slideDown 0.3s ease-out;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
 }
 
 /* ============================================
@@ -735,38 +497,88 @@ a,
    ============================================ */
 .notification-badge {
   position: fixed;
-  top: 80px;
+  top: calc(var(--header-height) + var(--sat) + 8px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 45;
-  max-width: calc(100% - 32px);
+  z-index: 150;
   width: auto;
+  max-width: calc(100% - 24px);
 }
 
 @media (min-width: 769px) {
   .notification-badge {
-    top: 100px;
     max-width: 400px;
   }
 }
 
 /* ============================================
-   WARNING BADGES - MOBILE POSITIONING
+   WARNING BADGES
    ============================================ */
 .warning-badge {
   position: fixed;
+  z-index: 80;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
-  /* Above map, below modals */
-  bottom: calc(var(--action-bar-total) + 200px);
+  top: calc(var(--header-height) + var(--sat) + 8px);
 }
 
-@media (min-width: 769px) {
-  .warning-badge {
-    top: 80px;
-    bottom: auto;
-  }
+@keyframes budgetPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+  50% { box-shadow: 0 0 20px 4px rgba(249, 115, 22, 0.3); }
+}
+
+.budget-warning {
+  animation: budgetPulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   SHARE BUTTONS
+   ============================================ */
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  min-height: 48px;
+}
+
+.share-btn-copy {
+  background: #374151;
+  color: white;
+}
+
+.share-btn-copy:active {
+  background: #4b5563;
+  transform: scale(0.98);
+}
+
+.share-btn-whatsapp {
+  background: #25D366;
+  color: white;
+}
+
+.share-btn-whatsapp:active {
+  background: #1ea952;
+  transform: scale(0.98);
+}
+
+/* ============================================
+   ROOM CODE ANIMATION
+   ============================================ */
+.copy-success {
+  animation: copyFlash 0.5s ease-out;
+}
+
+@keyframes copyFlash {
+  0% { background: rgba(34, 197, 94, 0.3); }
+  100% { background: transparent; }
 }
 
 /* ============================================
@@ -781,16 +593,85 @@ a,
   display: none;
 }
 
-/* Prevent text selection on buttons */
 .no-select {
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
 }
 
-/* Full height on mobile */
-.mobile-full-height {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+/* Touch target minimum size */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* ============================================
+   SCROLLBAR STYLING (Desktop)
+   ============================================ */
+@media (min-width: 769px) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================
+   LOADING SPINNER
+   ============================================ */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #ef4444;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ============================================
+   SKELETON LOADING
+   ============================================ */
+.skeleton {
+  background: linear-gradient(90deg, #1a1a24 25%, #2a2a38 50%, #1a1a24 75%);
+  background-size: 200% 100%;
+  animation: skeleton 1.5s infinite;
+}
+
+@keyframes skeleton {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ============================================
+   ERROR SCREEN
+   ============================================ */
+.error-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0a0a0f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
 }
