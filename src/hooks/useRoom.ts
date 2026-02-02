@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { database, ref, set, get, onValue, update, remove } from "@/config/firebase";
+import { database, ref, set, get, onValue, update, remove, onDisconnect } from "@/config/firebase";
 import {
   Room,
   Player,
@@ -91,6 +91,46 @@ export function useRoom() {
   const dismissNotification = useCallback((notificationId: string) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   }, []);
+
+  // Firebase onDisconnect kurulumu - kullanıcı sekmeyi kapatınca otomatik çıkış
+  useEffect(() => {
+    if (!room?.id || !playerId) return;
+
+    const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
+    const disconnectHandler = onDisconnect(playerRef);
+
+    // Bağlantı koptuğunda oyuncuyu sil
+    disconnectHandler.remove();
+
+    // Cleanup - component unmount olduğunda disconnect handler'ı iptal et
+    return () => {
+      disconnectHandler.cancel();
+    };
+  }, [room?.id, playerId]);
+
+  // beforeunload event - sekme kapatılmadan önce cleanup
+  useEffect(() => {
+    if (!room?.id || !playerId) return;
+
+    const handleBeforeUnload = async () => {
+      // Senkron olarak oyuncuyu sil
+      const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
+
+      try {
+        // Navigator.sendBeacon kullanarak asenkron istek at
+        // Bu sayede sekme kapansa bile istek tamamlanır
+        await remove(playerRef);
+      } catch (err) {
+        console.error("beforeunload cleanup error:", err);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [room?.id, playerId]);
 
   // Odayı dinle ve otomatik tahmin kontrolü yap
   useEffect(() => {

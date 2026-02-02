@@ -30,19 +30,19 @@ const BUDGET_WARNING_THRESHOLD = 1; // Son 1 hareket kaldığında uyarı göste
 let globalLoader: Loader | null = null;
 let isLoaded = false;
 
-// Yön tipleri
-type Direction = "forward" | "backward" | "left" | "right";
-
 export function useStreetView() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Hareket limiti sistemi
+  // Hareket limiti sistemi - TOPLAM hareket sayısı (yön fark etmez)
   const [movesUsed, setMovesUsed] = useState(0);
   const [moveLimit, setMoveLimitState] = useState(3);
-  const [usedDirections, setUsedDirections] = useState<Set<Direction>>(new Set());
   const [isMovementLocked, setIsMovementLocked] = useState(false);
   const [showBudgetWarning, setShowBudgetWarning] = useState(false);
+
+  // Hareket sayısını ref olarak da tut (listener içinde güncel değere erişim için)
+  const movesUsedRef = useRef(0);
+  const moveLimitRef = useRef(3);
 
   const streetViewRef = useRef<HTMLDivElement>(null);
   const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
@@ -74,26 +74,13 @@ export function useStreetView() {
   }, []);
 
   /**
-   * Heading değişikliğinden yön hesapla
-   */
-  const calculateDirection = useCallback((oldHeading: number, newHeading: number): Direction | null => {
-    let diff = newHeading - oldHeading;
-    while (diff > 180) diff -= 360;
-    while (diff < -180) diff += 360;
-
-    if (Math.abs(diff) < 45) return "forward";
-    if (Math.abs(diff) > 135) return "backward";
-    if (diff > 0) return "right";
-    return "left";
-  }, []);
-
-  /**
    * Hareket hakkı ayarla (yeni round başlangıcı)
    */
   const setMoves = useCallback((limit: number) => {
     setMoveLimitState(limit);
+    moveLimitRef.current = limit;
     setMovesUsed(0);
-    setUsedDirections(new Set());
+    movesUsedRef.current = 0;
     setIsMovementLocked(false);
     setShowBudgetWarning(false);
   }, []);
@@ -103,7 +90,7 @@ export function useStreetView() {
    */
   const resetMoves = useCallback(() => {
     setMovesUsed(0);
-    setUsedDirections(new Set());
+    movesUsedRef.current = 0;
     setIsMovementLocked(false);
     setShowBudgetWarning(false);
     startPanoIdRef.current = null;
@@ -126,12 +113,8 @@ export function useStreetView() {
       });
       lastPanoIdRef.current = startPanoIdRef.current;
       lastHeadingRef.current = startHeadingRef.current;
-
-      // Hareket haklarını sıfırla - tekrar keşfedilebilsin
-      setUsedDirections(new Set());
-      setMovesUsed(0);
-      setIsMovementLocked(false);
-      setShowBudgetWarning(false);
+      // NOT: Başlangıca dönünce hareket hakları SIFIRLANMAZ
+      // Kullanıcı toplam 3 hak kullanabilir, başlangıca dönse bile
     }
   }, []);
 
@@ -183,7 +166,7 @@ export function useStreetView() {
         streetViewOptions
       );
 
-      // Hareket dinleyicisi - PANO CACHING ile
+      // Hareket dinleyicisi - TOPLAM HAREKET SAYISI (yön fark etmez)
       panoramaRef.current.addListener("pano_changed", () => {
         if (!panoramaRef.current) return;
 
@@ -213,63 +196,45 @@ export function useStreetView() {
           return;
         }
 
-        // YENİ PANO - Hareket limiti kontrolü yap
-        const direction = calculateDirection(lastHeadingRef.current, currentPov.heading || 0);
+        // YENİ PANO - Hareket limiti kontrolü yap (TOPLAM hareket)
+        const currentMoves = movesUsedRef.current;
+        const limit = moveLimitRef.current;
 
-        if (direction) {
-          setUsedDirections(prev => {
-            const newSet = new Set(prev);
-
-            // Bu yön zaten kullanıldı mı?
-            if (newSet.has(direction)) {
-              console.log(`${direction} yönü zaten kullanıldı`);
-              if (panoramaRef.current && lastPanoIdRef.current) {
-                panoramaRef.current.setPano(lastPanoIdRef.current);
-              }
-              return prev;
-            }
-
-            // Hareket limiti aşıldı mı?
-            if (newSet.size >= moveLimit) {
-              console.log("Hareket limiti aşıldı");
-              if (panoramaRef.current && lastPanoIdRef.current) {
-                panoramaRef.current.setPano(lastPanoIdRef.current);
-              }
-              setIsMovementLocked(true);
-              return prev;
-            }
-
-            // YENİ HAREKET İZİN VERİLDİ
-            newSet.add(direction);
-            setMovesUsed(newSet.size);
-
-            // Pano'yu cache'e ekle
-            visitedPanosRef.current.add(currentPanoId);
-
-            // Pozisyonu güncelle
-            lastPanoIdRef.current = currentPanoId;
-            lastHeadingRef.current = currentPov.heading || 0;
-
-            // Uyarı kontrolü
-            if (moveLimit - newSet.size <= BUDGET_WARNING_THRESHOLD) {
-              setShowBudgetWarning(true);
-            }
-
-            if (newSet.size >= moveLimit) {
-              setIsMovementLocked(true);
-            }
-
-            return newSet;
-          });
-        } else {
-          // Yön belirlenemedi - cache'e ekle ve pozisyonu güncelle
-          visitedPanosRef.current.add(currentPanoId);
-          lastPanoIdRef.current = currentPanoId;
-          lastHeadingRef.current = currentPov.heading || 0;
+        // Hareket limiti aşıldı mı?
+        if (currentMoves >= limit) {
+          console.log("Hareket limiti aşıldı - geri dönülüyor");
+          if (panoramaRef.current && lastPanoIdRef.current) {
+            panoramaRef.current.setPano(lastPanoIdRef.current);
+          }
+          setIsMovementLocked(true);
+          return;
         }
+
+        // YENİ HAREKET İZİN VERİLDİ
+        const newMoveCount = currentMoves + 1;
+        movesUsedRef.current = newMoveCount;
+        setMovesUsed(newMoveCount);
+
+        // Pano'yu cache'e ekle
+        visitedPanosRef.current.add(currentPanoId);
+
+        // Pozisyonu güncelle
+        lastPanoIdRef.current = currentPanoId;
+        lastHeadingRef.current = currentPov.heading || 0;
+
+        // Uyarı kontrolü
+        if (limit - newMoveCount <= BUDGET_WARNING_THRESHOLD) {
+          setShowBudgetWarning(true);
+        }
+
+        if (newMoveCount >= limit) {
+          setIsMovementLocked(true);
+        }
+
+        console.log(`Hareket: ${newMoveCount}/${limit}`);
       });
     },
-    [initializeGoogleMaps, calculateDirection, moveLimit]
+    [initializeGoogleMaps]
   );
 
   /**
@@ -433,7 +398,6 @@ export function useStreetView() {
     setMoves,
     resetMoves,
     returnToStart,
-    usedDirections,
     // Cache bilgisi (debug için)
     visitedPanoCount: visitedPanosRef.current.size,
   };

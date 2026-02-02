@@ -102,7 +102,6 @@ export default function HomePage() {
     isMovementLocked,
     showBudgetWarning,
     returnToStart,
-    usedDirections,
   } = useStreetView();
 
   const { guessMapRef, initializeMap, resetMap } = useGuessMap(setGuessLocation);
