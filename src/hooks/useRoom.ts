@@ -175,7 +175,31 @@ export function useRoom() {
           });
         }
 
-        // === HOST DEĞİŞTİ Mİ KONTROLÜ ===
+        // === HOST AYRILDI MI KONTROLÜ ===
+        // Host artık oyuncular arasında değilse, yeni host ata
+        const hostStillExists = currentPlayerIds.includes(roomData.hostId);
+
+        if (!hostStillExists && currentPlayerIds.length > 0) {
+          // Host ayrılmış ve başka oyuncular var - yeni host ata
+          // İlk oyuncuyu yeni host yap (en eskisi)
+          const newHostId = currentPlayerIds[0];
+
+          // Sadece ilk algılayan oyuncu host ataması yapsın (race condition önleme)
+          // Bu oyuncu yeni host olacaksa, kendisi güncelleme yapsın
+          if (newHostId === playerId) {
+            console.log("Host ayrıldı, yeni host atanıyor:", newHostId);
+
+            // Firebase'de host güncelle
+            update(ref(database, `rooms/${roomData.id}`), {
+              hostId: newHostId,
+            });
+            update(ref(database, `rooms/${roomData.id}/players/${newHostId}`), {
+              isHost: true,
+            });
+          }
+        }
+
+        // === HOST DEĞİŞTİ Mİ KONTROLÜ (bildirim için) ===
         if (previousHostIdRef.current && previousHostIdRef.current !== roomData.hostId) {
           const newHostName = currentPlayerNames[roomData.hostId] || "Yeni host";
 
