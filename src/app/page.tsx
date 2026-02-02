@@ -184,6 +184,8 @@ export default function HomePage() {
       setMoves(room.moveLimit || 3); // Oda ayarlarından hareket hakkı
       resetTimer(room.timeLimit);
       startTimer();
+      // Haritayı küçült
+      setMapExpanded(false);
     }
   }, [room?.currentRound, room?.status]);
 
@@ -678,6 +680,30 @@ export default function HomePage() {
     );
   }
 
+  // Connection lost fallback - MUST be before game screen check
+  if (screen === "game" && !room) {
+    return (
+      <div className="error-screen">
+        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+          <RefreshCw size={32} className="text-red-400" />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Bağlantı Koptu</h2>
+        <p className="text-gray-400 mb-6">Oyun odasıyla bağlantı kesildi</p>
+        <button
+          onClick={() => {
+            setScreen("menu");
+            resetMap();
+            setGuessLocation(null);
+            resetMoves();
+          }}
+          className="btn-primary"
+        >
+          Ana Menüye Dön
+        </button>
+      </div>
+    );
+  }
+
   // ==================== GAME SCREEN ====================
   if (screen === "game" && room) {
     const isRoundEnd = room.status === "roundEnd";
@@ -799,9 +825,18 @@ export default function HomePage() {
 
         {/* Mini Map */}
         {!isRoundEnd && !isGameOver && (
-          <div className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}>
-            <button onClick={() => setMapExpanded(!mapExpanded)} className="map-expand-btn">
-              {mapExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          <div
+            className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}
+            onClick={() => !mapExpanded && setMapExpanded(true)}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMapExpanded(!mapExpanded);
+              }}
+              className="map-expand-btn"
+            >
+              {mapExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
 
             <div ref={guessMapRef} className="w-full h-full pointer-events-auto" />
@@ -1091,30 +1126,6 @@ export default function HomePage() {
           </div>
         )}
       </main>
-    );
-  }
-
-  // Connection lost fallback
-  if (screen === "game" && !room) {
-    return (
-      <div className="error-screen">
-        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
-          <RefreshCw size={32} className="text-red-400" />
-        </div>
-        <h2 className="text-xl font-bold mb-2">Bağlantı Koptu</h2>
-        <p className="text-gray-400 mb-6">Oyun odasıyla bağlantı kesildi</p>
-        <button
-          onClick={() => {
-            setScreen("menu");
-            resetMap();
-            setGuessLocation(null);
-            resetMoves();
-          }}
-          className="btn-primary"
-        >
-          Ana Menüye Dön
-        </button>
-      </div>
     );
   }
 

@@ -56,8 +56,24 @@ body {
 .gm-style-cc,
 .gmnoprint,
 .gm-fullscreen-control,
-.gm-style > div > a {
+.gm-style > div > a,
+.gm-style a[href^="https://maps.google.com"],
+.gm-style a[href^="https://www.google.com/maps"],
+.gm-style .gm-style-mtc,
+.gm-style img[alt="Google"] {
   display: none !important;
+}
+
+/* Hide Google logo specifically */
+.mini-map-container .gm-style a,
+.mini-map-container .gm-style img[src*="google"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Disable clicks on Google attribution */
+.mini-map-container .gm-style > div:last-child {
+  pointer-events: none !important;
 }
 
 /* ============================================
