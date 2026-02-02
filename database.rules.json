@@ -1,0 +1,122 @@
+{
+  "rules": {
+    "rooms": {
+      ".read": false,
+      ".write": false,
+
+      "$roomId": {
+        ".validate": "$roomId.matches(/^[A-Z0-9]{6}$/)",
+        ".read": true,
+        ".write": "!data.exists() || data.exists()",
+
+        "id": {
+          ".validate": "newData.isString() && newData.val() == $roomId"
+        },
+
+        "hostId": {
+          ".validate": "newData.isString() && newData.val().length >= 10 && newData.val().length <= 20"
+        },
+
+        "status": {
+          ".validate": "newData.isString() && newData.val().matches(/^(waiting|playing|roundEnd|gameOver)$/)"
+        },
+
+        "currentRound": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20"
+        },
+
+        "totalRounds": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
+        },
+
+        "gameMode": {
+          ".validate": "newData.isString() && newData.val().matches(/^(urban|geo)$/)"
+        },
+
+        "timeLimit": {
+          ".validate": "newData.isNumber() && newData.val() >= 30 && newData.val() <= 300"
+        },
+
+        "moveLimit": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10"
+        },
+
+        "currentLocation": {
+          ".validate": "!newData.exists() || (newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0)"
+        },
+
+        "currentPanoPackageId": {
+          ".validate": "!newData.exists() || newData.isString()"
+        },
+
+        "currentPanoPackage": {
+          ".validate": "!newData.exists() || (newData.hasChild('id') && newData.hasChild('pano0') && newData.hasChild('locationName'))"
+        },
+
+        "currentLocationName": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
+        },
+
+        "roundResults": {
+          ".validate": "!newData.exists() || newData.hasChildren()"
+        },
+
+        "roundStartTime": {
+          ".validate": "!newData.exists() || newData.isNumber()"
+        },
+
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+
+        "lastActivityAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now"
+        },
+
+        "players": {
+          "$playerId": {
+            ".validate": "$playerId.matches(/^[a-z0-9]{10,20}$/)",
+            ".read": true,
+            ".write": true,
+
+            "id": {
+              ".validate": "newData.isString() && newData.val() == $playerId"
+            },
+
+            "name": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 20"
+            },
+
+            "isHost": {
+              ".validate": "newData.isBoolean()"
+            },
+
+            "totalScore": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50000"
+            },
+
+            "currentGuess": {
+              ".validate": "!newData.exists() || (newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0)"
+            },
+
+            "hasGuessed": {
+              ".validate": "newData.isBoolean()"
+            },
+
+            "roundScores": {
+              ".validate": "!newData.exists() || newData.hasChildren()"
+            },
+
+            "lastActiveAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+
+            "joinedAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            }
+          }
+        }
+      }
+    }
+  }
+}

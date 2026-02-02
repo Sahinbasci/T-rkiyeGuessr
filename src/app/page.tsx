@@ -33,6 +33,10 @@ import {
   RotateCcw,
   Footprints,
   Home,
+  AlertTriangle,
+  UserMinus,
+  UserPlus,
+  X,
 } from "lucide-react";
 
 const PLAYER_COLORS = [
@@ -67,6 +71,8 @@ export default function HomePage() {
     players,
     error,
     isLoading,
+    notifications,
+    dismissNotification,
     createRoom,
     joinRoom,
     setGameMode,
@@ -94,6 +100,7 @@ export default function HomePage() {
     movesRemaining,
     movesUsed,
     isMovementLocked,
+    showBudgetWarning,
     returnToStart,
     usedDirections,
   } = useStreetView();
@@ -1037,7 +1044,65 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* Toast mesajı */}
         {showToast && <div className="toast">{showToast}</div>}
+
+        {/* Oyuncu bildirimleri */}
+        {notifications.length > 0 && (
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 max-w-md w-full px-4">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`glass rounded-xl p-3 flex items-center gap-3 animate-slideDown ${
+                  notification.type === "player_left"
+                    ? "border-red-500/50 bg-red-500/10"
+                    : notification.type === "player_joined"
+                    ? "border-green-500/50 bg-green-500/10"
+                    : notification.type === "host_changed"
+                    ? "border-yellow-500/50 bg-yellow-500/10"
+                    : "border-gray-500/50"
+                }`}
+              >
+                {notification.type === "player_left" && (
+                  <UserMinus size={18} className="text-red-400 flex-shrink-0" />
+                )}
+                {notification.type === "player_joined" && (
+                  <UserPlus size={18} className="text-green-400 flex-shrink-0" />
+                )}
+                {notification.type === "host_changed" && (
+                  <Crown size={18} className="text-yellow-400 flex-shrink-0" />
+                )}
+                <span className="text-sm flex-1">{notification.message}</span>
+                <button
+                  onClick={() => dismissNotification(notification.id)}
+                  className="text-gray-400 hover:text-white transition p-1"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Hareket bütçesi uyarısı */}
+        {showBudgetWarning && !isRoundEnd && !isGameOver && (
+          <div className="fixed bottom-32 sm:bottom-auto sm:top-20 left-1/2 -translate-x-1/2 z-40">
+            <div className="glass rounded-xl px-4 py-2 flex items-center gap-2 bg-orange-500/20 border-orange-500/50 animate-pulse">
+              <AlertTriangle size={16} className="text-orange-400" />
+              <span className="text-sm text-orange-300">Son hareket hakkın!</span>
+            </div>
+          </div>
+        )}
+
+        {/* Hareket kilitlendi uyarısı */}
+        {isMovementLocked && !isRoundEnd && !isGameOver && (
+          <div className="fixed bottom-32 sm:bottom-auto sm:top-20 left-1/2 -translate-x-1/2 z-40">
+            <div className="glass rounded-xl px-4 py-2 flex items-center gap-2 bg-red-500/20 border-red-500/50">
+              <AlertTriangle size={16} className="text-red-400" />
+              <span className="text-sm text-red-300">Hareket hakkın bitti!</span>
+            </div>
+          </div>
+        )}
       </main>
     );
   }
@@ -1045,4 +1110,4 @@ export default function HomePage() {
   // Fallback
   return null;
 }
-// trigger deploy
+

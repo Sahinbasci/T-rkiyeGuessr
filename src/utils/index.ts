@@ -1,5 +1,10 @@
 import { Coordinates, TURKEY_BOUNDS, SCORING } from "@/types";
 
+// Re-export production utilities
+export * from "./rateLimiter";
+export * from "./apiCostMonitor";
+export * from "./errorHandler";
+
 // Haversine Formula
 export function calculateDistance(coord1: Coordinates, coord2: Coordinates): number {
   const R = 6371;

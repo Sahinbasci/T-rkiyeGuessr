@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * useGuessMap Hook
+ * Tahmin haritası yönetimi - Pin yerleştirme ve sonuç gösterimi
+ *
+ * FIX: Round 1+ pin placement bug - non-host oyuncularda pin görünmüyordu
+ * Sorun: initializeMap erken return yapıyordu, listener kaybediliyordu
+ */
+
 import { useState, useCallback, useRef } from "react";
 import { Coordinates } from "@/types";
 import { MAPS_CONFIG, TURKEY_MAP_RESTRICTION } from "@/config/maps";
@@ -15,46 +23,70 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const onLocationSelectRef = useRef(onLocationSelect);
+  const isInitializedRef = useRef(false);
 
-  // Callback'i ref'te tut, böylece listener her zaman güncel fonksiyonu çağırır
+  // Callback'i ref'te tut - listener her zaman güncel fonksiyonu çağırır
   onLocationSelectRef.current = onLocationSelect;
 
+  /**
+   * Click handler - ayrı fonksiyon olarak tanımla (listener rebind için)
+   */
+  const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (!e.latLng || !mapRef.current) return;
+
+    const coord: Coordinates = {
+      lat: e.latLng.lat(),
+      lng: e.latLng.lng(),
+    };
+
+    setSelectedLocation(coord);
+    onLocationSelectRef.current(coord);
+
+    // Marker güncelle veya oluştur
+    if (markerRef.current) {
+      markerRef.current.setPosition(e.latLng);
+      markerRef.current.setMap(mapRef.current);
+    } else {
+      markerRef.current = new google.maps.Marker({
+        position: e.latLng,
+        map: mapRef.current,
+        icon: {
+          path: MAPS_CONFIG.markers.guess.path,
+          fillColor: MAPS_CONFIG.markers.guess.fillColor,
+          fillOpacity: MAPS_CONFIG.markers.guess.fillOpacity,
+          strokeColor: MAPS_CONFIG.markers.guess.strokeColor,
+          strokeWeight: MAPS_CONFIG.markers.guess.strokeWeight,
+          scale: MAPS_CONFIG.markers.guess.scale,
+          anchor: new google.maps.Point(12, 24),
+        },
+        animation: google.maps.Animation.DROP,
+      });
+    }
+  }, []);
+
+  /**
+   * Harita başlat - HER ROUND'DA ÇAĞRILMALI
+   * FIX: Artık listener her zaman yeniden bağlanıyor
+   */
   const initializeMap = useCallback(() => {
     if (!guessMapRef.current) return;
 
-    // Google Maps API'nin tam olarak yüklendiğinden emin ol
-    if (
-      typeof google === "undefined" ||
-      !google.maps ||
-      !google.maps.Map
-    ) {
+    // Google Maps API kontrolü
+    if (typeof google === "undefined" || !google.maps || !google.maps.Map) {
+      console.warn("Google Maps API henüz yüklenmedi");
       return;
-    }
-
-    // Mevcut map'in bağlı olduğu div kontrol et
-    if (mapRef.current) {
-      const currentDiv = mapRef.current.getDiv();
-      if (currentDiv === guessMapRef.current) {
-        // Map zaten doğru div'e bağlı, listener varsa dokunma
-        if (clickListenerRef.current) {
-          return; // Zaten hazır, hiçbir şey yapma
-        }
-        // Listener yoksa sadece listener ekle (aşağıda)
-      } else {
-        // Div değişmiş, eski map'i temizle
-        if (clickListenerRef.current) {
-          google.maps.event.removeListener(clickListenerRef.current);
-          clickListenerRef.current = null;
-        }
-        mapRef.current = null;
-        markerRef.current = null;
-      }
     }
 
     const center = getTurkeyCenter();
 
-    // Map yoksa oluştur
-    if (!mapRef.current) {
+    // Map yoksa veya div değişmişse yeniden oluştur
+    if (!mapRef.current || mapRef.current.getDiv() !== guessMapRef.current) {
+      // Eski listener'ı temizle
+      if (clickListenerRef.current) {
+        google.maps.event.removeListener(clickListenerRef.current);
+        clickListenerRef.current = null;
+      }
+
       mapRef.current = new google.maps.Map(guessMapRef.current, {
         ...MAPS_CONFIG.guessMapOptions,
         center: { lat: center.lat, lng: center.lng },
@@ -65,54 +97,34 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
           strictBounds: false,
         },
       });
+
+      isInitializedRef.current = true;
     }
 
-    // Listener yoksa ekle
-    if (!clickListenerRef.current) {
-      clickListenerRef.current = mapRef.current.addListener("click", (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng) return;
-
-        const coord: Coordinates = {
-          lat: e.latLng.lat(),
-          lng: e.latLng.lng(),
-        };
-
-        setSelectedLocation(coord);
-        onLocationSelectRef.current(coord);
-
-        // Marker'ı güncelle veya oluştur
-        if (markerRef.current) {
-          markerRef.current.setPosition(e.latLng);
-          markerRef.current.setMap(mapRef.current);
-        } else {
-          markerRef.current = new google.maps.Marker({
-            position: e.latLng,
-            map: mapRef.current,
-            icon: {
-              path: MAPS_CONFIG.markers.guess.path,
-              fillColor: MAPS_CONFIG.markers.guess.fillColor,
-              fillOpacity: MAPS_CONFIG.markers.guess.fillOpacity,
-              strokeColor: MAPS_CONFIG.markers.guess.strokeColor,
-              strokeWeight: MAPS_CONFIG.markers.guess.strokeWeight,
-              scale: MAPS_CONFIG.markers.guess.scale,
-              anchor: new google.maps.Point(12, 24),
-            },
-            animation: google.maps.Animation.DROP,
-          });
-        }
-      });
+    // KRITIK FIX: Listener'ı HER ZAMAN yeniden bağla
+    // Bu, yeni round'da non-host oyuncuların pin yerleştirebilmesini sağlar
+    if (clickListenerRef.current) {
+      google.maps.event.removeListener(clickListenerRef.current);
     }
-  }, []);
 
+    clickListenerRef.current = mapRef.current.addListener("click", handleMapClick);
+  }, [handleMapClick]);
+
+  /**
+   * Harita sıfırla - Yeni round için
+   * Marker'ları temizle, merkeze al, listener'ı koru
+   */
   const resetMap = useCallback(() => {
     // Tahmin marker'ını temizle
     if (markerRef.current) {
       markerRef.current.setMap(null);
       markerRef.current = null;
     }
+
     // Sonuç marker'larını temizle
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
+
     // Polyline'ları temizle
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
@@ -126,8 +138,11 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
       mapRef.current.setZoom(getTurkeyZoom());
     }
 
+    // State sıfırla
     setSelectedLocation(null);
     onLocationSelectRef.current(null);
+
+    // NOT: Click listener'ı KORUYORUZ - initializeMap'te yeniden bağlanacak
   }, []);
 
   const showResults = useCallback((
