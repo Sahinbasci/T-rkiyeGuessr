@@ -675,37 +675,39 @@ export default function HomePage() {
 
     return (
       <main className="relative w-screen h-screen overflow-hidden">
-        {/* Header */}
-        <header className="absolute top-0 left-0 right-0 z-30 game-header">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
+        {/* Header - Mobile Optimized */}
+        <header className="absolute top-0 left-0 right-0 z-30 game-header safe-top">
+          <div className="flex items-center justify-between gap-2">
+            {/* Logo - Compact on mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               <div className="bg-red-600 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
-                <MapPin size={16} className="sm:w-5 sm:h-5 text-white" />
+                <MapPin size={14} className="sm:w-5 sm:h-5 text-white" />
               </div>
               <span
-                className="text-base sm:text-xl font-bold hidden sm:block"
+                className="text-sm sm:text-xl font-bold hidden sm:block"
                 style={{ fontFamily: "var(--font-display)" }}
               >
                 TürkiyeGuessr
               </span>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            {/* Stats - Scrollable on mobile if needed */}
+            <div className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto hide-scrollbar">
               {/* Timer */}
               {!isRoundEnd && !isGameOver && (
                 <div
-                  className={`glass rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 ${
-                    timeRemaining <= 10 ? "bg-red-500/30 border-red-500" : ""
+                  className={`stat-badge glass flex-shrink-0 ${
+                    timeRemaining <= 10 ? "bg-red-500/30 border-red-500 countdown-critical" : ""
                   }`}
                 >
                   <Timer
                     size={14}
-                    className={`sm:w-[18px] sm:h-[18px] ${
-                      timeRemaining <= 10 ? "text-red-400 animate-pulse" : "text-blue-400"
+                    className={`flex-shrink-0 ${
+                      timeRemaining <= 10 ? "text-red-400" : "text-blue-400"
                     }`}
                   />
                   <span
-                    className={`font-bold text-sm sm:text-base font-mono ${
+                    className={`font-bold font-mono ${
                       timeRemaining <= 10 ? "text-red-400" : ""
                     }`}
                   >
@@ -714,37 +716,37 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Tur */}
-              <div className="glass rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2">
-                <Target size={14} className="sm:w-[18px] sm:h-[18px] text-yellow-400" />
-                <span className="font-bold text-sm sm:text-base">
+              {/* Round */}
+              <div className="stat-badge glass flex-shrink-0">
+                <Target size={14} className="text-yellow-400 flex-shrink-0" />
+                <span className="font-bold">
                   {room.currentRound}/{room.totalRounds}
                 </span>
               </div>
 
-              {/* Skor */}
-              <div className="glass rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2">
-                <Trophy size={14} className="sm:w-[18px] sm:h-[18px] text-yellow-400" />
-                <span className="font-bold text-sm sm:text-base">
+              {/* Score */}
+              <div className="stat-badge glass flex-shrink-0">
+                <Trophy size={14} className="text-yellow-400 flex-shrink-0" />
+                <span className="font-bold">
                   {currentPlayer?.totalScore || 0}
                 </span>
               </div>
 
-              {/* Hareket Hakkı */}
+              {/* Move Budget */}
               {!isRoundEnd && !isGameOver && (
                 <div
-                  className={`glass rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1.5 sm:gap-2 ${
+                  className={`stat-badge glass flex-shrink-0 ${
                     movesRemaining <= 1 ? "bg-orange-500/30 border-orange-500" : ""
                   }`}
                 >
                   <Footprints
                     size={14}
-                    className={`sm:w-[18px] sm:h-[18px] ${
+                    className={`flex-shrink-0 ${
                       movesRemaining <= 1 ? "text-orange-400" : "text-green-400"
                     }`}
                   />
                   <span
-                    className={`font-bold text-sm sm:text-base ${
+                    className={`font-bold ${
                       movesRemaining <= 1 ? "text-orange-400" : ""
                     }`}
                   >
@@ -773,30 +775,30 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Mobil: Başlangıca Dön - Sol Üst (header altı) */}
+        {/* Players Sidebar - Mobile optimized */}
         {!isRoundEnd && !isGameOver && (
-          <div className="absolute left-3 top-20 sm:top-auto sm:left-4 sm:bottom-6 z-20 flex flex-col gap-2">
-            {/* Başlangıca Dön Butonu */}
+          <div className="players-sidebar">
+            {/* Return to Start Button */}
             <button
               onClick={returnToStart}
-              className="glass rounded-xl p-2.5 sm:p-3 flex items-center gap-2 hover:bg-white/10 transition-all active:scale-95"
+              className="glass rounded-xl p-2.5 sm:p-3 flex items-center gap-2 hover:bg-white/10 transition-all active:scale-95 mb-2 touch-target"
               title="Başlangıca Dön"
             >
-              <Home size={18} className="text-blue-400" />
-              <span className="text-xs text-gray-300 sm:inline">Başlangıç</span>
+              <Home size={16} className="sm:w-[18px] sm:h-[18px] text-blue-400" />
+              <span className="text-xs text-gray-300 hidden sm:inline">Başlangıç</span>
             </button>
 
-            {/* Oyuncular - Mobilde kompakt */}
+            {/* Players - Compact on mobile */}
             <div className="glass rounded-xl p-2 sm:p-3">
-              <p className="text-gray-400 text-[10px] sm:text-xs mb-1">Oyuncular</p>
-              <div className="flex items-center gap-1">
+              <p className="text-gray-400 text-[10px] sm:text-xs mb-1.5">Oyuncular</p>
+              <div className="flex flex-wrap items-center gap-1">
                 {players.map((p, i) => (
                   <div
                     key={p.id}
-                    className={`player-badge w-7 h-7 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
+                    className={`player-badge w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
                       p.hasGuessed
                         ? "guessed ring-2 ring-green-400 ring-offset-1 ring-offset-[#12121a]"
-                        : "opacity-50"
+                        : "opacity-60"
                     }`}
                     style={{ backgroundColor: PLAYER_COLORS[i] }}
                     title={`${p.name}${p.hasGuessed ? " ✓" : ""}`}
@@ -890,10 +892,10 @@ export default function HomePage() {
         )}
 
 
-        {/* Round End Modal */}
+        {/* Round End Modal - Mobile optimized bottom sheet */}
         {isRoundEnd && (
-          <div className="absolute inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center">
-            <div className="glass rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md max-h-[85vh] overflow-y-auto safe-bottom">
+          <div className="modal-overlay">
+            <div className="modal-content glass p-5 sm:p-6 w-full sm:max-w-md">
               <h2
                 className="text-xl sm:text-2xl font-bold text-center mb-2"
                 style={{ fontFamily: "var(--font-display)" }}
@@ -961,10 +963,10 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Game Over Modal */}
+        {/* Game Over Modal - Mobile optimized bottom sheet */}
         {isGameOver && (
-          <div className="absolute inset-0 z-50 bg-black/85 flex items-end sm:items-center justify-center">
-            <div className="glass rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto safe-bottom">
+          <div className="modal-overlay">
+            <div className="modal-content glass p-5 sm:p-6 w-full sm:max-w-md">
               <div className="text-center mb-5">
                 <div className="text-5xl sm:text-6xl mb-3">🏆</div>
                 <h2
@@ -1046,9 +1048,9 @@ export default function HomePage() {
         {/* Toast mesajı */}
         {showToast && <div className="toast">{showToast}</div>}
 
-        {/* Oyuncu bildirimleri */}
+        {/* Player Notifications - positioned below header */}
         {notifications.length > 0 && (
-          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 max-w-md w-full px-4">
+          <div className="notification-badge flex flex-col gap-2">
             {notifications.map((notification) => (
               <div
                 key={notification.id}
@@ -1063,18 +1065,18 @@ export default function HomePage() {
                 }`}
               >
                 {notification.type === "player_left" && (
-                  <UserMinus size={18} className="text-red-400 flex-shrink-0" />
+                  <UserMinus size={16} className="text-red-400 flex-shrink-0" />
                 )}
                 {notification.type === "player_joined" && (
-                  <UserPlus size={18} className="text-green-400 flex-shrink-0" />
+                  <UserPlus size={16} className="text-green-400 flex-shrink-0" />
                 )}
                 {notification.type === "host_changed" && (
-                  <Crown size={18} className="text-yellow-400 flex-shrink-0" />
+                  <Crown size={16} className="text-yellow-400 flex-shrink-0" />
                 )}
                 <span className="text-sm flex-1">{notification.message}</span>
                 <button
                   onClick={() => dismissNotification(notification.id)}
-                  className="text-gray-400 hover:text-white transition p-1"
+                  className="text-gray-400 hover:text-white transition p-1.5 touch-target"
                 >
                   <X size={14} />
                 </button>
@@ -1083,22 +1085,22 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Hareket bütçesi uyarısı */}
+        {/* Budget Warning - positioned above map on mobile */}
         {showBudgetWarning && !isRoundEnd && !isGameOver && (
-          <div className="fixed bottom-32 sm:bottom-auto sm:top-20 left-1/2 -translate-x-1/2 z-40">
-            <div className="glass rounded-xl px-4 py-2 flex items-center gap-2 bg-orange-500/20 border-orange-500/50 animate-pulse">
-              <AlertTriangle size={16} className="text-orange-400" />
-              <span className="text-sm text-orange-300">Son hareket hakkın!</span>
+          <div className="warning-badge">
+            <div className="glass rounded-xl px-4 py-2.5 flex items-center gap-2 bg-orange-500/20 border-orange-500/50 budget-warning">
+              <AlertTriangle size={16} className="text-orange-400 flex-shrink-0" />
+              <span className="text-sm text-orange-300 font-medium">Son hareket hakkın!</span>
             </div>
           </div>
         )}
 
-        {/* Hareket kilitlendi uyarısı */}
-        {isMovementLocked && !isRoundEnd && !isGameOver && (
-          <div className="fixed bottom-32 sm:bottom-auto sm:top-20 left-1/2 -translate-x-1/2 z-40">
-            <div className="glass rounded-xl px-4 py-2 flex items-center gap-2 bg-red-500/20 border-red-500/50">
-              <AlertTriangle size={16} className="text-red-400" />
-              <span className="text-sm text-red-300">Hareket hakkın bitti!</span>
+        {/* Movement Locked Warning */}
+        {isMovementLocked && !isRoundEnd && !isGameOver && !showBudgetWarning && (
+          <div className="warning-badge">
+            <div className="glass rounded-xl px-4 py-2.5 flex items-center gap-2 bg-red-500/20 border-red-500/50">
+              <AlertTriangle size={16} className="text-red-400 flex-shrink-0" />
+              <span className="text-sm text-red-300 font-medium">Hareket hakkın bitti!</span>
             </div>
           </div>
         )}
