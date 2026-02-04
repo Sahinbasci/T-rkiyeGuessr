@@ -57,6 +57,10 @@ export function useStreetView() {
   // PANO CACHE - Ziyaret edilen pano ID'leri (API maliyet azaltma için kritik)
   const visitedPanosRef = useRef<Set<string>>(new Set());
 
+  // KAMERA GÖĞE BAKMA BUG FIX: Pano değişimi sırasında aktif drag'i takip et
+  const isPanoChangingRef = useRef<boolean>(false);
+  const pendingPitchResetRef = useRef<boolean>(false);
+
   const initializeGoogleMaps = useCallback(async () => {
     if (isLoaded) return;
 
@@ -105,14 +109,22 @@ export function useStreetView() {
    */
   const returnToStart = useCallback(() => {
     if (panoramaRef.current && startPanoIdRef.current) {
+      // Pano değişimi flag'ini set et - pitch drift'i önlemek için
+      isPanoChangingRef.current = true;
+
       // Doğrudan setPano kullan - API çağrısı YAPMAZ
       panoramaRef.current.setPano(startPanoIdRef.current);
       panoramaRef.current.setPov({
         heading: startHeadingRef.current,
-        pitch: 0,
+        pitch: 0, // ZORLA 0
       });
       lastPanoIdRef.current = startPanoIdRef.current;
       lastHeadingRef.current = startHeadingRef.current;
+
+      // Flag'i resetle
+      setTimeout(() => {
+        isPanoChangingRef.current = false;
+      }, 100);
       // NOT: Başlangıca dönünce hareket hakları SIFIRLANMAZ
       // Kullanıcı toplam 3 hak kullanabilir, başlangıca dönse bile
     }
@@ -173,6 +185,13 @@ export function useStreetView() {
         streetViewOptions
       );
 
+      // ============================================
+      // KAMERA GÖĞE BAKMA BUG FIX
+      // ============================================
+      // Problem: Pano değişirken pitch rastgele değerlere kayıyor
+      // Çözüm: Her pano değişiminde pitch'i 0'a zorla resetle
+      // ============================================
+
       // Hareket dinleyicisi - TOPLAM HAREKET SAYISI (yön fark etmez)
       panoramaRef.current.addListener("pano_changed", () => {
         if (!panoramaRef.current) return;
@@ -186,10 +205,37 @@ export function useStreetView() {
           return;
         }
 
+        // ============================================
+        // KRİTİK FIX: Pano değiştiğinde PITCH'i ZORLA RESETLE
+        // ============================================
+        // Bu, "göğe bakma" bug'ını çözer
+        // Heading korunur, sadece pitch 0'a alınır
+        isPanoChangingRef.current = true;
+        pendingPitchResetRef.current = true;
+
+        // Pitch'i 0'a resetle - heading'i koru
+        const safeHeading = currentPov.heading || lastHeadingRef.current || 0;
+
+        // requestAnimationFrame ile bir sonraki frame'de resetle
+        // Bu, Google Maps'in kendi POV güncellemesini bekler
+        requestAnimationFrame(() => {
+          if (panoramaRef.current && pendingPitchResetRef.current) {
+            panoramaRef.current.setPov({
+              heading: safeHeading,
+              pitch: 0, // ZORLA 0'a al
+            });
+            pendingPitchResetRef.current = false;
+          }
+          // Kısa bir gecikme sonra flag'i kapat
+          setTimeout(() => {
+            isPanoChangingRef.current = false;
+          }, 100);
+        });
+
         // Başlangıca dönüş - her zaman serbest, bütçe tüketmez
         if (currentPanoId === startPanoIdRef.current) {
           lastPanoIdRef.current = currentPanoId;
-          lastHeadingRef.current = currentPov.heading || 0;
+          lastHeadingRef.current = safeHeading;
           return;
         }
 
@@ -199,7 +245,7 @@ export function useStreetView() {
         if (isPanoVisited) {
           // Daha önce görülmüş pano - BÜTÇE TÜKETMEZ
           lastPanoIdRef.current = currentPanoId;
-          lastHeadingRef.current = currentPov.heading || 0;
+          lastHeadingRef.current = safeHeading;
           return;
         }
 
@@ -211,7 +257,15 @@ export function useStreetView() {
         if (currentMoves >= limit) {
           console.log("Hareket limiti aşıldı - geri dönülüyor");
           if (panoramaRef.current && lastPanoIdRef.current) {
+            isPanoChangingRef.current = true;
             panoramaRef.current.setPano(lastPanoIdRef.current);
+            panoramaRef.current.setPov({
+              heading: lastHeadingRef.current,
+              pitch: 0,
+            });
+            setTimeout(() => {
+              isPanoChangingRef.current = false;
+            }, 100);
           }
           setIsMovementLocked(true);
           return;
@@ -227,7 +281,7 @@ export function useStreetView() {
 
         // Pozisyonu güncelle
         lastPanoIdRef.current = currentPanoId;
-        lastHeadingRef.current = currentPov.heading || 0;
+        lastHeadingRef.current = safeHeading;
 
         // Uyarı kontrolü
         if (limit - newMoveCount <= BUDGET_WARNING_THRESHOLD) {
@@ -239,6 +293,26 @@ export function useStreetView() {
         }
 
         console.log(`Hareket: ${newMoveCount}/${limit}`);
+      });
+
+      // ============================================
+      // POV DEĞİŞİM DİNLEYİCİSİ - Pitch drift'i önle
+      // ============================================
+      // Pano değişimi sırasında dışarıdan gelen pitch değişikliklerini engelle
+      panoramaRef.current.addListener("pov_changed", () => {
+        if (!panoramaRef.current) return;
+
+        // Pano değişimi sırasında pitch drift'ini önle
+        if (isPanoChangingRef.current) {
+          const currentPov = panoramaRef.current.getPov();
+          // Pitch çok fazla sapmışsa (göğe bakma) düzelt
+          if (Math.abs(currentPov.pitch) > 45) {
+            panoramaRef.current.setPov({
+              heading: currentPov.heading,
+              pitch: 0,
+            });
+          }
+        }
       });
     },
     [initializeGoogleMaps]
