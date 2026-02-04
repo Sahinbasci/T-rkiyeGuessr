@@ -69,6 +69,10 @@ export function useRoom() {
   const notifiedLeftRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
 
+  // RACE CONDITION FIX: Round hesaplaması sırasında kilitle
+  const isProcessingRoundRef = useRef<boolean>(false);
+  const processingRoundIdRef = useRef<number | null>(null);
+
   // Bildirim ekle
   const addNotification = useCallback((
     type: GameNotification["type"],
@@ -233,51 +237,90 @@ export function useRoom() {
         setRoom(roomData);
 
         // === OTOMATİK TAHMİN KONTROLÜ (sadece host) ===
+        // RACE CONDITION FIX: İşlem zaten devam ediyorsa yeni işlem başlatma
         if (playerId === roomData.hostId && roomData.status === "playing" && roomData.players) {
           const playerList = Object.values(roomData.players);
           const allGuessed = playerList.length > 0 && playerList.every((p) => p.hasGuessed);
 
-          if (allGuessed && roomData.currentLocation) {
+          if (allGuessed && roomData.currentLocation && !isProcessingRoundRef.current) {
+            // Round işlemini kilitle
+            isProcessingRoundRef.current = true;
+            const currentRoundId = roomData.currentRound;
+            processingRoundIdRef.current = currentRoundId;
+
+            // SNAPSHOT AL: Bu noktadaki oyuncu listesini sakla
+            // Sonraki değişiklikler bu hesaplamayı etkilemeyecek
+            const snapshotPlayerIds = Object.keys(roomData.players);
+            const snapshotPlayers = { ...roomData.players };
+            const snapshotLocation = { ...roomData.currentLocation };
+
             // Kısa bir gecikme ile sonuçları hesapla
             setTimeout(async () => {
-              const freshSnap = await get(ref(database, `rooms/${roomData.id}`));
-              const freshRoom = freshSnap.val() as Room | null;
+              try {
+                // Round hala aynı mı kontrol et (başka bir işlem devreye girmiş olabilir)
+                if (processingRoundIdRef.current !== currentRoundId) {
+                  console.log("Round değişti, hesaplama iptal edildi");
+                  return;
+                }
 
-              if (freshRoom && freshRoom.status === "playing") {
-                const freshPlayers = Object.values(freshRoom.players || {});
-                const results = freshPlayers
-                  .filter((player) => player && player.id && player.name)
-                  .map((player) => {
-                    const distance = player.currentGuess
-                      ? calculateDistance(freshRoom.currentLocation!, player.currentGuess)
-                      : 9999;
-                    const score = calculateScore(distance);
+                const freshSnap = await get(ref(database, `rooms/${roomData.id}`));
+                const freshRoom = freshSnap.val() as Room | null;
 
-                    return {
-                      odlayerId: player.id,
-                      playerName: player.name || "Oyuncu",
-                      guess: player.currentGuess || { lat: 0, lng: 0 },
-                      distance,
-                      score,
+                // Durum hala playing mi VE aynı round mu kontrol et
+                if (freshRoom && freshRoom.status === "playing" && freshRoom.currentRound === currentRoundId) {
+                  // SNAPSHOT'TAKİ OYUNCULARI KULLAN, yeni katılanları dahil etme
+                  const playersToProcess = snapshotPlayerIds
+                    .map(id => freshRoom.players?.[id])
+                    .filter((p): p is Player => p !== undefined && p !== null);
+
+                  const results = playersToProcess
+                    .filter((player) => player && player.id && player.name)
+                    .map((player) => {
+                      const distance = player.currentGuess
+                        ? calculateDistance(snapshotLocation, player.currentGuess)
+                        : 9999;
+                      const score = calculateScore(distance);
+
+                      return {
+                        odlayerId: player.id,
+                        playerName: player.name || "Oyuncu",
+                        guess: player.currentGuess || { lat: 0, lng: 0 },
+                        distance,
+                        score,
+                      };
+                    });
+
+                  // Sadece snapshot'taki oyuncuları güncelle
+                  const updatedPlayers: { [key: string]: Player } = {};
+
+                  // Önce TÜM mevcut oyuncuları koru (yeni katılanlar dahil)
+                  Object.values(freshRoom.players || {}).forEach((player) => {
+                    updatedPlayers[player.id] = player;
+                  });
+
+                  // Sonra sadece snapshot'takilerin skorlarını güncelle
+                  playersToProcess.forEach((player) => {
+                    const result = results.find((r) => r.odlayerId === player.id);
+                    const currentRoundScores = player.roundScores || [];
+                    updatedPlayers[player.id] = {
+                      ...player,
+                      totalScore: (player.totalScore || 0) + (result?.score || 0),
+                      roundScores: [...currentRoundScores, result?.score || 0],
                     };
                   });
 
-                const updatedPlayers: { [key: string]: Player } = {};
-                freshPlayers.forEach((player) => {
-                  const result = results.find((r) => r.odlayerId === player.id);
-                  const currentRoundScores = player.roundScores || [];
-                  updatedPlayers[player.id] = {
-                    ...player,
-                    totalScore: (player.totalScore || 0) + (result?.score || 0),
-                    roundScores: [...currentRoundScores, result?.score || 0],
-                  };
-                });
-
-                await update(ref(database, `rooms/${freshRoom.id}`), {
-                  status: "roundEnd",
-                  roundResults: results,
-                  players: updatedPlayers,
-                });
+                  await update(ref(database, `rooms/${freshRoom.id}`), {
+                    status: "roundEnd",
+                    roundResults: results,
+                    players: updatedPlayers,
+                  });
+                }
+              } catch (err) {
+                console.error("Round hesaplama hatası:", err);
+              } finally {
+                // Kilidi aç
+                isProcessingRoundRef.current = false;
+                processingRoundIdRef.current = null;
               }
             }, 500);
           }
@@ -766,44 +809,52 @@ export function useRoom() {
       }
 
       // Oyun sırasında ayrılan oyuncu için round kontrolü
-      if (room.status === "playing") {
+      // RACE CONDITION FIX: İşlem devam ediyorsa bekle
+      if (room.status === "playing" && !isProcessingRoundRef.current) {
         const remainingPlayers = playerList.filter((p) => p.id !== playerId);
         const allRemainingGuessed =
           remainingPlayers.length > 0 &&
           remainingPlayers.every((p) => p.hasGuessed);
 
         if (allRemainingGuessed && room.currentLocation) {
-          const results = remainingPlayers.map((player) => {
-            const distance = player.currentGuess
-              ? calculateDistance(room.currentLocation!, player.currentGuess)
-              : 9999;
-            const score = calculateScore(distance);
+          // Kilitle
+          isProcessingRoundRef.current = true;
 
-            return {
-              odlayerId: player.id,
-              playerName: player.name || "Oyuncu",
-              guess: player.currentGuess || { lat: 0, lng: 0 },
-              distance,
-              score,
-            };
-          }).filter((r) => r.odlayerId);
+          try {
+            const results = remainingPlayers.map((player) => {
+              const distance = player.currentGuess
+                ? calculateDistance(room.currentLocation!, player.currentGuess)
+                : 9999;
+              const score = calculateScore(distance);
 
-          const updatedPlayers: { [key: string]: Player } = {};
-          remainingPlayers.forEach((player) => {
-            const result = results.find((r) => r.odlayerId === player.id);
-            const currentRoundScores = player.roundScores || [];
-            updatedPlayers[player.id] = {
-              ...player,
-              totalScore: (player.totalScore || 0) + (result?.score || 0),
-              roundScores: [...currentRoundScores, result?.score || 0],
-            };
-          });
+              return {
+                odlayerId: player.id,
+                playerName: player.name || "Oyuncu",
+                guess: player.currentGuess || { lat: 0, lng: 0 },
+                distance,
+                score,
+              };
+            }).filter((r) => r.odlayerId);
 
-          await update(ref(database, `rooms/${room.id}`), {
-            status: "roundEnd",
-            roundResults: results,
-            players: updatedPlayers,
-          });
+            const updatedPlayers: { [key: string]: Player } = {};
+            remainingPlayers.forEach((player) => {
+              const result = results.find((r) => r.odlayerId === player.id);
+              const currentRoundScores = player.roundScores || [];
+              updatedPlayers[player.id] = {
+                ...player,
+                totalScore: (player.totalScore || 0) + (result?.score || 0),
+                roundScores: [...currentRoundScores, result?.score || 0],
+              };
+            });
+
+            await update(ref(database, `rooms/${room.id}`), {
+              status: "roundEnd",
+              roundResults: results,
+              players: updatedPlayers,
+            });
+          } finally {
+            isProcessingRoundRef.current = false;
+          }
         }
       }
     }
