@@ -161,8 +161,6 @@ export function useStreetView() {
         clickToGo: true,
         disableDefaultUI: false,
         scrollwheel: true,
-        // Mobil gesture kontrolü
-        gestureHandling: isMobile ? "greedy" : "auto",
       };
 
       // Mevcut panorama varsa temizle
