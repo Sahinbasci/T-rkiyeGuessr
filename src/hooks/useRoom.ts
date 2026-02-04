@@ -73,6 +73,9 @@ export function useRoom() {
   const isProcessingRoundRef = useRef<boolean>(false);
   const processingRoundIdRef = useRef<number | null>(null);
 
+  // TIMER SPAM FIX: Status geçişlerinde bildirim gösterme
+  const lastStatusRef = useRef<string | null>(null);
+
   // Bildirim ekle
   const addNotification = useCallback((
     type: GameNotification["type"],
@@ -156,8 +159,14 @@ export function useRoom() {
         );
 
         // === OYUNCU AYRILDI/KATILDI KONTROLÜ ===
-        // İlk yüklemede bildirim gösterme (spam önleme)
-        if (!isFirstLoadRef.current && previousPlayersRef.current.length > 0) {
+        // TIMER SPAM FIX: Status geçişlerinde (playing -> roundEnd) bildirim gösterme
+        // Bu, timer bitiminde sahte "katıldı/ayrıldı" mesajlarını önler
+        const isStatusTransition = lastStatusRef.current !== null &&
+          lastStatusRef.current !== roomData.status;
+        lastStatusRef.current = roomData.status;
+
+        // İlk yüklemede veya status geçişinde bildirim gösterme (spam önleme)
+        if (!isFirstLoadRef.current && previousPlayersRef.current.length > 0 && !isStatusTransition) {
           const leftPlayers = previousPlayersRef.current.filter(
             id => !currentPlayerIds.includes(id)
           );
@@ -665,48 +674,84 @@ export function useRoom() {
   }, [room, playerId]);
 
   // Süre doldu - otomatik tahmin gönder
+  // TIMER SPAM FIX: handleTimeUp için idempotent guard
+  const hasHandledTimeUpRef = useRef<number | null>(null);
+
   const handleTimeUp = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
-    const latestSnap = await get(ref(database, `rooms/${room.id}`));
-    const latestRoom = latestSnap.val() as Room | null;
+    // IDEMPOTENT GUARD: Bu round için zaten işlem yapıldıysa çık
+    if (hasHandledTimeUpRef.current === room.currentRound) {
+      console.log("handleTimeUp: Bu round için zaten işlem yapıldı, atlanıyor");
+      return;
+    }
 
-    if (!latestRoom?.players || latestRoom.status !== "playing") return;
+    // RACE CONDITION GUARD: Round hesaplaması zaten devam ediyorsa bekle
+    if (isProcessingRoundRef.current) {
+      console.log("handleTimeUp: İşlem devam ediyor, atlanıyor");
+      return;
+    }
 
-    const playerList = Object.values(latestRoom.players);
+    // İşlemi kilitle
+    isProcessingRoundRef.current = true;
+    hasHandledTimeUpRef.current = room.currentRound;
 
-    const results = playerList.map((player) => {
-      const distance = player.currentGuess
-        ? calculateDistance(latestRoom.currentLocation!, player.currentGuess)
-        : 9999;
-      const score = player.hasGuessed ? calculateScore(distance) : 0;
+    try {
+      const latestSnap = await get(ref(database, `rooms/${room.id}`));
+      const latestRoom = latestSnap.val() as Room | null;
 
-      return {
-        odlayerId: player.id,
-        playerName: player.name || "Oyuncu",
-        guess: player.currentGuess || { lat: 0, lng: 0 },
-        distance: player.hasGuessed ? distance : 9999,
-        score,
-      };
-    }).filter((r) => r.odlayerId);
+      // Durum kontrolü - playing değilse veya round değiştiyse çık
+      if (!latestRoom?.players || latestRoom.status !== "playing") {
+        console.log("handleTimeUp: Room status playing değil, atlanıyor");
+        return;
+      }
 
-    const updatedPlayers: { [key: string]: Player } = {};
-    playerList.forEach((player) => {
-      const result = results.find((r) => r.odlayerId === player.id);
-      const currentRoundScores = player.roundScores || [];
-      updatedPlayers[player.id] = {
-        ...player,
-        totalScore: (player.totalScore || 0) + (result?.score || 0),
-        roundScores: [...currentRoundScores, result?.score || 0],
-        hasGuessed: true,
-      };
-    });
+      // Round eşleşmesi kontrolü
+      if (latestRoom.currentRound !== room.currentRound) {
+        console.log("handleTimeUp: Round değişti, atlanıyor");
+        return;
+      }
 
-    await update(ref(database, `rooms/${latestRoom.id}`), {
-      status: "roundEnd",
-      roundResults: results,
-      players: updatedPlayers,
-    });
+      const playerList = Object.values(latestRoom.players);
+
+      const results = playerList.map((player) => {
+        const distance = player.currentGuess
+          ? calculateDistance(latestRoom.currentLocation!, player.currentGuess)
+          : 9999;
+        const score = player.hasGuessed ? calculateScore(distance) : 0;
+
+        return {
+          odlayerId: player.id,
+          playerName: player.name || "Oyuncu",
+          guess: player.currentGuess || { lat: 0, lng: 0 },
+          distance: player.hasGuessed ? distance : 9999,
+          score,
+        };
+      }).filter((r) => r.odlayerId);
+
+      const updatedPlayers: { [key: string]: Player } = {};
+      playerList.forEach((player) => {
+        const result = results.find((r) => r.odlayerId === player.id);
+        const currentRoundScores = player.roundScores || [];
+        updatedPlayers[player.id] = {
+          ...player,
+          totalScore: (player.totalScore || 0) + (result?.score || 0),
+          roundScores: [...currentRoundScores, result?.score || 0],
+          hasGuessed: true,
+        };
+      });
+
+      await update(ref(database, `rooms/${latestRoom.id}`), {
+        status: "roundEnd",
+        roundResults: results,
+        players: updatedPlayers,
+      });
+    } catch (err) {
+      console.error("handleTimeUp hatası:", err);
+    } finally {
+      // Kilidi aç
+      isProcessingRoundRef.current = false;
+    }
   }, [room, playerId]);
 
   // Sonraki tura geç - Pano paketi ile

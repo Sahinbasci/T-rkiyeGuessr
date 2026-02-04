@@ -38,24 +38,31 @@ export function useTimer({
     onTimeUpRef.current = onTimeUp;
   }, [onTimeUp]);
 
-  // Timer effect
+  // Timer effect - KRİTİK FIX: timeRemaining dependency kaldırıldı
+  // Bu, her saniye yeni interval oluşturulmasını önler
   useEffect(() => {
-    if (!isRunning || timeRemaining <= 0) return;
+    if (!isRunning) return;
 
     const interval = setInterval(() => {
       setTimeRemaining((prev) => {
+        // Zaten 0 veya negatifse işlem yapma
+        if (prev <= 0) {
+          return 0;
+        }
+
         const newTime = prev - 1;
 
         if (newTime <= 0) {
           setIsRunning(false);
           setIsTimeUp(true);
 
-          // Sadece bir kez çağır
+          // Sadece bir kez çağır - çift tetikleme önleme
           if (!hasCalledTimeUp.current) {
             hasCalledTimeUp.current = true;
-            setTimeout(() => {
+            // setTimeout yerine queueMicrotask kullan (daha güvenilir)
+            queueMicrotask(() => {
               onTimeUpRef.current();
-            }, 0);
+            });
           }
 
           return 0;
@@ -65,8 +72,10 @@ export function useTimer({
       });
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isRunning, timeRemaining]);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isRunning]); // KRİTİK: timeRemaining kaldırıldı!
 
   // Formatlanmış zaman (MM:SS)
   const formattedTime = `${Math.floor(timeRemaining / 60)

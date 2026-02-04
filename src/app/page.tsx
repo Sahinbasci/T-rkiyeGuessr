@@ -5,7 +5,7 @@
  * Yeni kurgu: Mod seçimi, dal bazlı gezme, timer
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRoom, useStreetView, useGuessMap, useTimer } from "@/hooks";
 import {
   Coordinates,
@@ -175,8 +175,13 @@ export default function HomePage() {
   }, [screen, room?.status, room?.currentRound]);
 
   // Round değiştiğinde state'leri sıfırla (PIN BUG FIX)
+  // KRİTİK: Sadece currentRound değişikliğinde tetiklenmeli, status değişikliğinde DEĞİL
+  const prevRoundRef = useRef<number | null>(null);
   useEffect(() => {
-    if (room?.status === "playing") {
+    // Sadece "playing" durumunda ve round gerçekten değiştiyse çalış
+    if (room?.status === "playing" && room.currentRound !== prevRoundRef.current) {
+      prevRoundRef.current = room.currentRound;
+
       // Yeni round başladığında
       setGuessLocation(null);
       resetMap();
@@ -186,6 +191,11 @@ export default function HomePage() {
       startTimer();
       // Haritayı küçült
       setMapExpanded(false);
+    }
+
+    // Status "waiting" olduğunda ref'i sıfırla (yeni oyun için)
+    if (room?.status === "waiting") {
+      prevRoundRef.current = null;
     }
   }, [room?.currentRound, room?.status]);
 
