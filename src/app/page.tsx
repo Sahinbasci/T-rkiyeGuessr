@@ -198,6 +198,18 @@ export default function HomePage() {
     }
   }, [room?.status, screen]);
 
+  // Game ekranı için body class yönetimi (mobil scroll kontrolü)
+  useEffect(() => {
+    if (screen === "game") {
+      document.body.classList.add("game-active");
+    } else {
+      document.body.classList.remove("game-active");
+    }
+    return () => {
+      document.body.classList.remove("game-active");
+    };
+  }, [screen]);
+
   // Oda silindiğinde veya error durumunda ana menüye dön
   useEffect(() => {
     if (screen !== "menu" && !room && !isLoading) {
@@ -362,8 +374,8 @@ export default function HomePage() {
   // ==================== MENU SCREEN ====================
   if (screen === "menu") {
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
-        <div className="w-full max-w-md">
+      <main className="min-h-screen overflow-y-auto py-8 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
+        <div className="w-full max-w-md mx-auto">
           {/* Logo */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 mb-4 shadow-lg shadow-red-600/30">
@@ -505,8 +517,8 @@ export default function HomePage() {
     const modeConfig = GAME_MODE_CONFIG[room.gameMode || "urban"];
 
     return (
-      <main className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
-        <div className="w-full max-w-lg">
+      <main className="min-h-screen overflow-y-auto py-6 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
+        <div className="w-full max-w-lg mx-auto">
           <div className="glass rounded-2xl p-5 sm:p-6">
             {/* Room Code */}
             <div

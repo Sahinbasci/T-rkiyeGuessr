@@ -139,6 +139,11 @@ export function useStreetView() {
       // Başlangıç pano'sunu cache'e ekle
       visitedPanosRef.current.add(panoId);
 
+      // Mobil cihaz tespiti
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+
       const streetViewOptions: google.maps.StreetViewPanoramaOptions = {
         pano: panoId,
         pov: { heading, pitch: 0 },
@@ -147,13 +152,17 @@ export function useStreetView() {
         enableCloseButton: false,
         showRoadLabels: false,
         zoomControl: true,
-        panControl: false,
+        panControl: isMobile, // Mobilde pan kontrolü göster
         linksControl: true,
+        // MOBİL İÇİN KRİTİK: Motion tracking KAPALI olmalı
+        // Bu özellik açık olduğunda cihaz gyroscope ile hareket ediyor
         motionTracking: false,
         motionTrackingControl: false,
         clickToGo: true,
         disableDefaultUI: false,
         scrollwheel: true,
+        // Mobil gesture kontrolü
+        gestureHandling: isMobile ? "greedy" : "auto",
       };
 
       // Mevcut panorama varsa temizle
