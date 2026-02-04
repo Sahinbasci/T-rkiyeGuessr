@@ -79,6 +79,11 @@ export function generateRoomCode(): string {
 }
 
 export function generatePlayerId(): string {
+  // crypto.randomUUID() daha güvenli - tahmin edilemez ID üretir
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID().replace(/-/g, "").substring(0, 15);
+  }
+  // Fallback: eski yöntem
   return Math.random().toString(36).substring(2, 15);
 }
 

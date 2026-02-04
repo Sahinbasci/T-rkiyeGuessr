@@ -5,7 +5,7 @@
  * Yeni kurgu: Mod seçimi, dal bazlı gezme, timer
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRoom, useStreetView, useGuessMap, useTimer } from "@/hooks";
 import {
   Coordinates,
@@ -712,11 +712,18 @@ export default function HomePage() {
     const waitingCount = players.filter((p) => !p.hasGuessed).length;
     const guessedCount = players.filter((p) => p.hasGuessed).length;
 
-    const sortedResults = room.roundResults
-      ? [...room.roundResults].sort((a, b) => a.distance - b.distance)
-      : [];
+    // useMemo ile gereksiz re-render önleme
+    const sortedResults = useMemo(() =>
+      room.roundResults
+        ? [...room.roundResults].sort((a, b) => a.distance - b.distance)
+        : [],
+      [room.roundResults]
+    );
 
-    const finalRankings = [...players].sort((a, b) => b.totalScore - a.totalScore);
+    const finalRankings = useMemo(() =>
+      [...players].sort((a, b) => b.totalScore - a.totalScore),
+      [players]
+    );
 
     return (
       <main className="relative w-screen h-screen overflow-hidden bg-[#0a0a0f]">
