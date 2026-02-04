@@ -64,6 +64,10 @@ export function useRoom() {
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
   const previousPlayersRef = useRef<string[]>([]);
   const previousHostIdRef = useRef<string | null>(null);
+  // Son bildirilen oyuncu ID'leri (tekrar bildirim önleme)
+  const notifiedJoinedRef = useRef<Set<string>>(new Set());
+  const notifiedLeftRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
 
   // Bildirim ekle
   const addNotification = useCallback((
@@ -147,32 +151,43 @@ export function useRoom() {
           {} as Record<string, string>
         );
 
-        // === OYUNCU AYRILDI MI KONTROLÜ ===
-        if (previousPlayersRef.current.length > 0) {
+        // === OYUNCU AYRILDI/KATILDI KONTROLÜ ===
+        // İlk yüklemede bildirim gösterme (spam önleme)
+        if (!isFirstLoadRef.current && previousPlayersRef.current.length > 0) {
           const leftPlayers = previousPlayersRef.current.filter(
             id => !currentPlayerIds.includes(id)
           );
 
-          // Ayrılan oyuncular için bildirim
+          // Ayrılan oyuncular için bildirim (sadece 1 kez)
           leftPlayers.forEach(leftPlayerId => {
-            if (leftPlayerId !== playerId) {
-              // Sadece başkası ayrıldıysa bildirim göster
-              const leftPlayerName = room.players?.[leftPlayerId]?.name || "Bir oyuncu";
+            if (leftPlayerId !== playerId && !notifiedLeftRef.current.has(leftPlayerId)) {
+              const leftPlayerName = room?.players?.[leftPlayerId]?.name || "Bir oyuncu";
               addNotification("player_left", `${leftPlayerName} oyundan ayrıldı`, leftPlayerName);
+              notifiedLeftRef.current.add(leftPlayerId);
+              // 10 saniye sonra tekrar bildirim gösterilebilir
+              setTimeout(() => notifiedLeftRef.current.delete(leftPlayerId), 10000);
             }
           });
 
-          // Yeni katılan oyuncular için bildirim
+          // Yeni katılan oyuncular için bildirim (sadece 1 kez)
           const joinedPlayers = currentPlayerIds.filter(
             id => !previousPlayersRef.current.includes(id)
           );
 
           joinedPlayers.forEach(joinedPlayerId => {
-            if (joinedPlayerId !== playerId) {
+            if (joinedPlayerId !== playerId && !notifiedJoinedRef.current.has(joinedPlayerId)) {
               const joinedPlayerName = currentPlayerNames[joinedPlayerId] || "Bir oyuncu";
               addNotification("player_joined", `${joinedPlayerName} odaya katıldı`, joinedPlayerName);
+              notifiedJoinedRef.current.add(joinedPlayerId);
+              // 10 saniye sonra tekrar bildirim gösterilebilir
+              setTimeout(() => notifiedJoinedRef.current.delete(joinedPlayerId), 10000);
             }
           });
+        }
+
+        // İlk yükleme tamamlandı
+        if (isFirstLoadRef.current && previousPlayersRef.current.length > 0) {
+          isFirstLoadRef.current = false;
         }
 
         // === HOST AYRILDI MI KONTROLÜ ===
@@ -343,9 +358,12 @@ export function useRoom() {
       setPlayerName(name.trim());
       setRoom(newRoom);
 
-      // Referansları başlat
+      // Referansları başlat (bildirim spam önleme)
       previousPlayersRef.current = [odlayerId];
       previousHostIdRef.current = odlayerId;
+      isFirstLoadRef.current = true;
+      notifiedJoinedRef.current.clear();
+      notifiedLeftRef.current.clear();
 
       // Room lifecycle tracking
       setupRoomCleanup(newRoom);
@@ -433,9 +451,12 @@ export function useRoom() {
       setPlayerName(name.trim());
       setRoom({ ...roomData, id: normalizedRoomCode });
 
-      // Referansları başlat
+      // Referansları başlat (bildirim spam önleme)
       previousPlayersRef.current = [...Object.keys(roomData.players || {}), odlayerId];
       previousHostIdRef.current = roomData.hostId;
+      isFirstLoadRef.current = true;
+      notifiedJoinedRef.current.clear();
+      notifiedLeftRef.current.clear();
 
       // Player activity tracking
       recordPlayerActivity(normalizedRoomCode, odlayerId);
@@ -797,6 +818,9 @@ export function useRoom() {
     setNotifications([]);
     previousPlayersRef.current = [];
     previousHostIdRef.current = null;
+    isFirstLoadRef.current = true;
+    notifiedJoinedRef.current.clear();
+    notifiedLeftRef.current.clear();
   }, [room, playerId]);
 
   // Yeni oyun (sadece host)
