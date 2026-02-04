@@ -230,20 +230,22 @@ export function useRoom() {
 
               if (freshRoom && freshRoom.status === "playing") {
                 const freshPlayers = Object.values(freshRoom.players || {});
-                const results = freshPlayers.map((player) => {
-                  const distance = player.currentGuess
-                    ? calculateDistance(freshRoom.currentLocation!, player.currentGuess)
-                    : 9999;
-                  const score = calculateScore(distance);
+                const results = freshPlayers
+                  .filter((player) => player && player.id && player.name)
+                  .map((player) => {
+                    const distance = player.currentGuess
+                      ? calculateDistance(freshRoom.currentLocation!, player.currentGuess)
+                      : 9999;
+                    const score = calculateScore(distance);
 
-                  return {
-                    odlayerId: player.id,
-                    playerName: player.name,
-                    guess: player.currentGuess || { lat: 0, lng: 0 },
-                    distance,
-                    score,
-                  };
-                });
+                    return {
+                      odlayerId: player.id,
+                      playerName: player.name || "Oyuncu",
+                      guess: player.currentGuess || { lat: 0, lng: 0 },
+                      distance,
+                      score,
+                    };
+                  });
 
                 const updatedPlayers: { [key: string]: Player } = {};
                 freshPlayers.forEach((player) => {
@@ -572,12 +574,12 @@ export function useRoom() {
 
         return {
           odlayerId: player.id,
-          playerName: player.name,
+          playerName: player.name || "Oyuncu",
           guess: player.currentGuess || { lat: 0, lng: 0 },
           distance,
           score,
         };
-      });
+      }).filter((r) => r.odlayerId);
 
       const updatedPlayers: { [key: string]: Player } = {};
       playerList.forEach((player) => {
@@ -617,12 +619,12 @@ export function useRoom() {
 
       return {
         odlayerId: player.id,
-        playerName: player.name,
+        playerName: player.name || "Oyuncu",
         guess: player.currentGuess || { lat: 0, lng: 0 },
         distance: player.hasGuessed ? distance : 9999,
         score,
       };
-    });
+    }).filter((r) => r.odlayerId);
 
     const updatedPlayers: { [key: string]: Player } = {};
     playerList.forEach((player) => {
@@ -758,12 +760,12 @@ export function useRoom() {
 
             return {
               odlayerId: player.id,
-              playerName: player.name,
+              playerName: player.name || "Oyuncu",
               guess: player.currentGuess || { lat: 0, lng: 0 },
               distance,
               score,
             };
-          });
+          }).filter((r) => r.odlayerId);
 
           const updatedPlayers: { [key: string]: Player } = {};
           remainingPlayers.forEach((player) => {

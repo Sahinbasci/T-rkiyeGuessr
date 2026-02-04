@@ -599,10 +599,10 @@ export default function HomePage() {
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg"
                       style={{ backgroundColor: PLAYER_COLORS[i] }}
                     >
-                      {player.name.charAt(0).toUpperCase()}
+                      {(player.name || "?").charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1">
-                      <span className="font-medium">{player.name}</span>
+                      <span className="font-medium">{player.name || "Oyuncu"}</span>
                       {player.id === playerId && (
                         <span className="text-xs text-gray-400 ml-2">(Sen)</span>
                       )}
@@ -814,9 +814,9 @@ export default function HomePage() {
                         : "opacity-60"
                     }`}
                     style={{ backgroundColor: PLAYER_COLORS[i] }}
-                    title={`${p.name}${p.hasGuessed ? " ✓" : ""}`}
+                    title={`${p.name || "Oyuncu"}${p.hasGuessed ? " ✓" : ""}`}
                   >
-                    {p.name.charAt(0).toUpperCase()}
+                    {(p.name || "?").charAt(0).toUpperCase()}
                   </div>
                 ))}
               </div>
@@ -1021,11 +1021,11 @@ export default function HomePage() {
                         className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-bold shadow-lg"
                         style={{ backgroundColor: PLAYER_COLORS[playerIndex >= 0 ? playerIndex : 0] }}
                       >
-                        {player.name.charAt(0).toUpperCase()}
+                        {(player.name || "?").charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-base sm:text-lg truncate">
-                          {player.name}
+                          {player.name || "Oyuncu"}
                           {player.id === playerId && (
                             <span className="text-gray-400 text-xs ml-1">(Sen)</span>
                           )}
