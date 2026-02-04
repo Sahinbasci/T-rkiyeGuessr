@@ -34,6 +34,15 @@ import {
   getRoomCreateCooldown,
 } from "@/utils";
 import {
+  initTelemetry,
+  setTelemetryContext,
+  trackEvent,
+  trackDuplicateAttempt,
+  trackListener,
+  trackError,
+  cleanupTelemetry,
+} from "@/utils/telemetry";
+import {
   setupRoomCleanup,
   cleanupRoomData,
   recordPlayerActivity,
@@ -143,9 +152,20 @@ export function useRoom() {
     };
   }, [room?.id, playerId]);
 
+  // Telemetry başlat (component mount)
+  useEffect(() => {
+    initTelemetry();
+    return () => {
+      cleanupTelemetry();
+    };
+  }, []);
+
   // Odayı dinle ve otomatik tahmin kontrolü yap
   useEffect(() => {
     if (!room?.id) return;
+
+    // Telemetry listener tracking
+    trackListener("subscribe");
 
     const roomRef = ref(database, `rooms/${room.id}`);
     const unsubscribe = onValue(roomRef, async (snapshot) => {
@@ -323,9 +343,12 @@ export function useRoom() {
                     roundResults: results,
                     players: updatedPlayers,
                   });
+
+                  trackEvent("roundEnd", { roundId: currentRoundId, trigger: "allGuessed" });
                 }
               } catch (err) {
                 console.error("Round hesaplama hatası:", err);
+                trackError(err instanceof Error ? err : String(err), "autoRoundEnd");
               } finally {
                 // Kilidi aç
                 isProcessingRoundRef.current = false;
@@ -340,7 +363,10 @@ export function useRoom() {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      trackListener("unsubscribe");
+    };
   }, [room?.id, playerId, playerName, addNotification]);
 
   // Oda oluştur (Rate Limited)
@@ -410,6 +436,14 @@ export function useRoom() {
       setPlayerName(name.trim());
       setRoom(newRoom);
 
+      // Telemetry context ayarla
+      setTelemetryContext({
+        roomId: roomCode,
+        playerId: odlayerId,
+        playerName: name.trim(),
+      });
+      trackEvent("join", { action: "create", gameMode });
+
       // Referansları başlat (bildirim spam önleme)
       previousPlayersRef.current = [odlayerId];
       previousHostIdRef.current = odlayerId;
@@ -423,6 +457,7 @@ export function useRoom() {
       return roomCode;
     } catch (err) {
       console.error("Oda oluşturma hatası:", err);
+      trackError(err instanceof Error ? err : String(err), "createRoom");
       setError("Oda oluşturulamadı. Lütfen tekrar deneyin.");
       return null;
     } finally {
@@ -503,6 +538,14 @@ export function useRoom() {
       setPlayerName(name.trim());
       setRoom({ ...roomData, id: normalizedRoomCode });
 
+      // Telemetry context ayarla
+      setTelemetryContext({
+        roomId: normalizedRoomCode,
+        playerId: odlayerId,
+        playerName: name.trim(),
+      });
+      trackEvent("join", { action: "join" });
+
       // Referansları başlat (bildirim spam önleme)
       previousPlayersRef.current = [...Object.keys(roomData.players || {}), odlayerId];
       previousHostIdRef.current = roomData.hostId;
@@ -516,6 +559,7 @@ export function useRoom() {
       return true;
     } catch (err) {
       console.error("Odaya katılma hatası:", err);
+      trackError(err instanceof Error ? err : String(err), "joinRoom");
       setError("Odaya katılınamadı. Lütfen tekrar deneyin.");
       return false;
     } finally {
@@ -564,6 +608,8 @@ export function useRoom() {
         roundResults: null,
         roundStartTime: Date.now(),
       });
+
+      trackEvent("roundStart", { roundId: 1, panoPackageId: panoPackage.id });
     },
     [room, playerId]
   );
@@ -621,6 +667,8 @@ export function useRoom() {
         hasGuessed: true,
         lastActiveAt: Date.now(),
       });
+
+      trackEvent("submitGuess", { roundId: room.currentRound, lat: guess.lat, lng: guess.lng });
     },
     [room, playerId]
   );
@@ -683,14 +731,18 @@ export function useRoom() {
     // IDEMPOTENT GUARD: Bu round için zaten işlem yapıldıysa çık
     if (hasHandledTimeUpRef.current === room.currentRound) {
       console.log("handleTimeUp: Bu round için zaten işlem yapıldı, atlanıyor");
+      trackDuplicateAttempt("timeUp", room.currentRound);
       return;
     }
 
     // RACE CONDITION GUARD: Round hesaplaması zaten devam ediyorsa bekle
     if (isProcessingRoundRef.current) {
       console.log("handleTimeUp: İşlem devam ediyor, atlanıyor");
+      trackDuplicateAttempt("timeUp", room.currentRound);
       return;
     }
+
+    trackEvent("timeUp", { roundId: room.currentRound });
 
     // İşlemi kilitle
     isProcessingRoundRef.current = true;
@@ -746,8 +798,11 @@ export function useRoom() {
         roundResults: results,
         players: updatedPlayers,
       });
+
+      trackEvent("roundEnd", { roundId: latestRoom.currentRound, trigger: "timeUp" });
     } catch (err) {
       console.error("handleTimeUp hatası:", err);
+      trackError(err instanceof Error ? err : String(err), "handleTimeUp");
     } finally {
       // Kilidi aç
       isProcessingRoundRef.current = false;
@@ -765,6 +820,7 @@ export function useRoom() {
         await update(ref(database, `rooms/${room.id}`), {
           status: "gameOver",
         });
+        trackEvent("gameEnd", { totalRounds: room.totalRounds });
       } else {
         const updatedPlayers: { [key: string]: Player } = {};
         Object.values(room.players || {}).forEach((player) => {
@@ -786,6 +842,8 @@ export function useRoom() {
           roundResults: null,
           roundStartTime: Date.now(),
         });
+
+        trackEvent("roundStart", { roundId: room.currentRound + 1, panoPackageId: panoPackage.id });
       }
     },
     [room, playerId]
@@ -908,6 +966,8 @@ export function useRoom() {
     if (room?.id) {
       cleanupRoomData(room.id);
     }
+
+    trackEvent("leave", { roomId: room?.id });
 
     setRoom(null);
     setPlayerId("");

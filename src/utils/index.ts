@@ -4,6 +4,7 @@ import { Coordinates, TURKEY_BOUNDS, SCORING } from "@/types";
 export * from "./rateLimiter";
 export * from "./apiCostMonitor";
 export * from "./errorHandler";
+export * from "./telemetry";
 
 // Haversine Formula
 export function calculateDistance(coord1: Coordinates, coord2: Coordinates): number {
