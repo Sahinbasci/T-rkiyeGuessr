@@ -48,13 +48,13 @@ export function useTimer({
 
   // Server timestamp'a göre kalan süreyi hesapla
   const calculateRemainingTime = useCallback(() => {
-    if (!serverStartTime) return timeRemaining;
+    if (!serverStartTime) return initialTime; // timeRemaining yerine initialTime
 
     const now = Date.now();
     const elapsed = Math.floor((now - serverStartTime) / 1000);
     const remaining = Math.max(0, initialTime - elapsed);
     return remaining;
-  }, [serverStartTime, initialTime, timeRemaining]);
+  }, [serverStartTime, initialTime]); // timeRemaining kaldırıldı - dependency cycle önleme
 
   // Page Visibility API - arka plandan döndüğünde sync ol
   useEffect(() => {
@@ -84,13 +84,26 @@ export function useTimer({
     };
   }, [serverStartTime, isRunning, calculateRemainingTime]);
 
-  // serverStartTime değiştiğinde timer'ı sync et
+  // serverStartTime değiştiğinde timer'ı sync et ve YENİDEN BAŞLAT
+  // Bu effect yeni round başladığında timer'ı otomatik olarak başlatır
+  const prevServerStartTimeRef = useRef<number | null>(null);
+
   useEffect(() => {
-    if (serverStartTime && isRunning) {
+    // serverStartTime değiştiyse (yeni round başladı)
+    if (serverStartTime && serverStartTime !== prevServerStartTimeRef.current) {
+      prevServerStartTimeRef.current = serverStartTime;
+
+      // Timer'ı sıfırla ve yeniden başlat
+      hasCalledTimeUp.current = false;
+      setIsTimeUp(false);
+
       const remaining = calculateRemainingTime();
       setTimeRemaining(remaining);
 
-      if (remaining <= 0 && !hasCalledTimeUp.current) {
+      // Timer'ı başlat (eğer süre kaldıysa)
+      if (remaining > 0) {
+        setIsRunning(true);
+      } else if (!hasCalledTimeUp.current) {
         hasCalledTimeUp.current = true;
         setIsRunning(false);
         setIsTimeUp(true);
@@ -99,7 +112,7 @@ export function useTimer({
         });
       }
     }
-  }, [serverStartTime, isRunning, calculateRemainingTime]);
+  }, [serverStartTime, initialTime]); // calculateRemainingTime dependency kaldırıldı - sonsuz döngü önleme
 
   // Timer effect - her saniye güncelle
   useEffect(() => {
