@@ -103,6 +103,8 @@ export default function HomePage() {
     isMovementLocked,
     showBudgetWarning,
     returnToStart,
+    // Navigation feedback
+    navigationError,
   } = useStreetView();
 
   const { guessMapRef, initializeMap, resetMap } = useGuessMap(setGuessLocation);
@@ -838,6 +840,15 @@ export default function HomePage() {
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-gray-300">Konum yükleniyor...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Error Toast */}
+        {navigationError && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
+            <div className="bg-black/80 text-white px-4 py-2 rounded-lg text-sm animate-pulse">
+              {navigationError}
             </div>
           </div>
         )}

@@ -11,10 +11,10 @@
  * 4. Başlangıca dönüş her zaman serbesttir ve bütçe tüketmez
  * 5. Pano ID ile doğrudan gösterim API çağrısı yapmaz (setPano)
  *
- * Bu yaklaşım gerçek API kullanımını azaltır çünkü:
- * - Street View GÖRÜNTÜLEME ücretsizdir (pano ID ile)
- * - Sadece getPanorama() çağrıları ücretlidir (konum arama)
- * - Kullanıcı geri dönse bile yeni API çağrısı yapılmaz
+ * iOS CUSTOM NAVIGATION:
+ * - clickToGo: false - Google'ın pitch bug'lı native click handling'i kapalı
+ * - Custom click handler ile sadece pano değiştirme, pitch KORUNUYOR
+ * - Bu yaklaşım iPhone'da "ileri giderken gökyüzüne bakma" bug'ını tamamen çözer
  */
 
 import { useState, useCallback, useRef } from "react";
@@ -25,46 +25,50 @@ import { generateRandomCoordinates, isLikelyInTurkey, getLocationName } from "@/
 
 // Sabitler
 const MAX_ATTEMPTS = 50;
-const BUDGET_WARNING_THRESHOLD = 1; // Son 1 hareket kaldığında uyarı göster
+const BUDGET_WARNING_THRESHOLD = 1;
+
+// Custom Navigation Sabitleri
+const DRAG_THRESHOLD_PX = 10; // Bu kadar piksel hareket = drag, click değil
+const CLICK_COOLDOWN_MS = 300; // Double-fire önleme
+const HEADING_CONFIDENCE_THRESHOLD = 60; // Derece cinsinden - bu açıdan uzak link'lere gitme
 
 let globalLoader: Loader | null = null;
 let isLoaded = false;
 
+// Toast notification için basit state
+let toastCallback: ((message: string) => void) | null = null;
+
 export function useStreetView() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
 
-  // Hareket limiti sistemi - TOPLAM hareket sayısı (yön fark etmez)
+  // Hareket limiti sistemi
   const [movesUsed, setMovesUsed] = useState(0);
   const [moveLimit, setMoveLimitState] = useState(3);
   const [isMovementLocked, setIsMovementLocked] = useState(false);
   const [showBudgetWarning, setShowBudgetWarning] = useState(false);
 
-  // Hareket sayısını ref olarak da tut (listener içinde güncel değere erişim için)
+  // Ref'ler
   const movesUsedRef = useRef(0);
   const moveLimitRef = useRef(3);
-
   const streetViewRef = useRef<HTMLDivElement>(null);
   const panoramaRef = useRef<google.maps.StreetViewPanorama | null>(null);
   const streetViewServiceRef = useRef<google.maps.StreetViewService | null>(null);
 
-  // Başlangıç pozisyonu (geri dönüş için)
+  // Pozisyon tracking
   const startPanoIdRef = useRef<string | null>(null);
   const startHeadingRef = useRef<number>(0);
   const lastPanoIdRef = useRef<string | null>(null);
   const lastHeadingRef = useRef<number>(0);
 
-  // PANO CACHE - Ziyaret edilen pano ID'leri (API maliyet azaltma için kritik)
+  // Pano cache
   const visitedPanosRef = useRef<Set<string>>(new Set());
 
-  // KAMERA GÖĞE BAKMA BUG FIX: Pano değişimi sırasında aktif drag'i takip et
-  const isPanoChangingRef = useRef<boolean>(false);
-  const pendingPitchResetRef = useRef<boolean>(false);
-
-  // iPhone FIX: Touch event sırasında pitch kilitlenmesi
-  const isTouchActiveRef = useRef<boolean>(false);
-  const lastValidPitchRef = useRef<number>(0);
-  const pitchResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Custom navigation için ref'ler
+  const pendingPitchRef = useRef<number>(0); // Pano değişimi sonrası restore edilecek pitch
+  const lastClickTimeRef = useRef<number>(0); // Double-fire önleme
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null); // Drag detection
 
   const initializeGoogleMaps = useCallback(async () => {
     if (isLoaded) return;
@@ -82,9 +86,6 @@ export function useStreetView() {
     streetViewServiceRef.current = new google.maps.StreetViewService();
   }, []);
 
-  /**
-   * Hareket hakkı ayarla (yeni round başlangıcı)
-   */
   const setMoves = useCallback((limit: number) => {
     setMoveLimitState(limit);
     moveLimitRef.current = limit;
@@ -94,9 +95,6 @@ export function useStreetView() {
     setShowBudgetWarning(false);
   }, []);
 
-  /**
-   * Hareket sayısını ve cache'i sıfırla (yeni round)
-   */
   const resetMoves = useCallback(() => {
     setMovesUsed(0);
     movesUsedRef.current = 0;
@@ -104,39 +102,110 @@ export function useStreetView() {
     setShowBudgetWarning(false);
     startPanoIdRef.current = null;
     lastPanoIdRef.current = null;
-    // Cache'i temizle - yeni round için
     visitedPanosRef.current.clear();
   }, []);
 
-  /**
-   * Başlangıca dön
-   * NOT: Bu işlem hareket hakkı TÜKETMEZ ve cache'deki pano'ya gider
-   */
   const returnToStart = useCallback(() => {
     if (panoramaRef.current && startPanoIdRef.current) {
-      // Pano değişimi flag'ini set et - pitch drift'i önlemek için
-      isPanoChangingRef.current = true;
-
-      // Doğrudan setPano kullan - API çağrısı YAPMAZ
       panoramaRef.current.setPano(startPanoIdRef.current);
       panoramaRef.current.setPov({
         heading: startHeadingRef.current,
-        pitch: 0, // ZORLA 0
+        pitch: 0,
       });
       lastPanoIdRef.current = startPanoIdRef.current;
       lastHeadingRef.current = startHeadingRef.current;
-
-      // Flag'i resetle
-      setTimeout(() => {
-        isPanoChangingRef.current = false;
-      }, 100);
-      // NOT: Başlangıca dönünce hareket hakları SIFIRLANMAZ
-      // Kullanıcı toplam 3 hak kullanabilir, başlangıca dönse bile
     }
   }, []);
 
   /**
-   * Street View'ı göster - Hareket limiti ve pano caching ile
+   * Tıklama koordinatından heading hesapla
+   * Container'ın merkezinden tıklama noktasına olan açıyı hesaplar
+   */
+  const calculateClickHeading = useCallback((
+    clickX: number,
+    clickY: number,
+    container: HTMLElement,
+    currentHeading: number
+  ): number => {
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Normalize: merkeze göre koordinatlar
+    const relX = clickX - rect.left - centerX;
+    const relY = clickY - rect.top - centerY;
+
+    // Açı hesapla (yukarı = 0, saat yönünde pozitif)
+    // atan2 kullanarak x,y'den açı al
+    // Not: Street View'da yatay FOV yaklaşık 90-100 derece
+    const horizontalFOV = 90; // Yaklaşık değer
+    const angleFromCenter = (relX / centerX) * (horizontalFOV / 2);
+
+    // Mevcut heading'e ekle
+    let targetHeading = currentHeading + angleFromCenter;
+
+    // 0-360 arasına normalize et
+    while (targetHeading < 0) targetHeading += 360;
+    while (targetHeading >= 360) targetHeading -= 360;
+
+    return targetHeading;
+  }, []);
+
+  /**
+   * En yakın navigation link'i bul
+   * Tıklama heading'ine en yakın link'i döndürür
+   */
+  const findNearestLink = useCallback((
+    targetHeading: number,
+    links: (google.maps.StreetViewLink | null)[] | null
+  ): google.maps.StreetViewLink | null => {
+    if (!links || links.length === 0) return null;
+
+    let nearestLink: google.maps.StreetViewLink | null = null;
+    let minDiff = Infinity;
+
+    for (const link of links) {
+      // Null check
+      if (!link || !link.heading) continue;
+
+      // Açı farkını hesapla (0-180 arası)
+      let diff = Math.abs(targetHeading - link.heading);
+      if (diff > 180) diff = 360 - diff;
+
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearestLink = link;
+      }
+    }
+
+    // Confidence threshold kontrolü
+    if (minDiff > HEADING_CONFIDENCE_THRESHOLD) {
+      console.log(`No confident link found. Min diff: ${minDiff}°, threshold: ${HEADING_CONFIDENCE_THRESHOLD}°`);
+      return null;
+    }
+
+    return nearestLink;
+  }, []);
+
+  /**
+   * Custom navigation: Tıklama ile ileri gitme
+   * Google'ın clickToGo'su yerine kendi implementasyonumuz
+   * PITCH KORUNUYOR - bu iOS bug'ını tamamen çözer
+   */
+  const navigateToLink = useCallback((link: google.maps.StreetViewLink) => {
+    if (!panoramaRef.current || !link.pano) return;
+
+    // Mevcut pitch'i kaydet - pano değişimi sonrası restore edilecek
+    const currentPov = panoramaRef.current.getPov();
+    pendingPitchRef.current = currentPov.pitch || 0;
+
+    // Sadece pano'yu değiştir
+    // pano_changed event'i tetiklenecek ve orada pitch restore edilecek
+    panoramaRef.current.setPano(link.pano);
+  }, []);
+
+  /**
+   * Street View'ı göster
    */
   const showStreetView = useCallback(
     async (panoId: string, heading: number = 0) => {
@@ -152,6 +221,7 @@ export function useStreetView() {
       startHeadingRef.current = heading;
       lastPanoIdRef.current = panoId;
       lastHeadingRef.current = heading;
+      pendingPitchRef.current = 0;
 
       // Başlangıç pano'sunu cache'e ekle
       visitedPanosRef.current.add(panoId);
@@ -160,6 +230,7 @@ export function useStreetView() {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
       const streetViewOptions: google.maps.StreetViewPanoramaOptions = {
         pano: panoId,
@@ -169,13 +240,13 @@ export function useStreetView() {
         enableCloseButton: false,
         showRoadLabels: false,
         zoomControl: true,
-        panControl: isMobile, // Mobilde pan kontrolü göster
-        linksControl: true,
-        // MOBİL İÇİN KRİTİK: Motion tracking KAPALI olmalı
-        // Bu özellik açık olduğunda cihaz gyroscope ile hareket ediyor
+        panControl: isMobile,
+        linksControl: true, // Ok işaretleri görünsün
         motionTracking: false,
         motionTrackingControl: false,
-        clickToGo: true,
+        // KRİTİK: iOS'ta clickToGo kapalı - custom navigation kullanacağız
+        // Desktop'ta da kapalı tutuyoruz tutarlılık için
+        clickToGo: false,
         disableDefaultUI: false,
         scrollwheel: true,
       };
@@ -191,104 +262,77 @@ export function useStreetView() {
       );
 
       // ============================================
-      // KAMERA GÖĞE BAKMA BUG FIX
+      // PANO_CHANGED EVENT - Hareket limiti + Pitch restore
       // ============================================
-      // Problem: Pano değişirken pitch rastgele değerlere kayıyor
-      // Çözüm: Her pano değişiminde pitch'i 0'a zorla resetle
-      // ============================================
-
-      // Hareket dinleyicisi - TOPLAM HAREKET SAYISI (yön fark etmez)
       panoramaRef.current.addListener("pano_changed", () => {
         if (!panoramaRef.current) return;
 
         const currentPanoId = panoramaRef.current.getPano();
         const currentPov = panoramaRef.current.getPov();
 
-        // Aynı panoda kalınmışsa (sadece kamera döndürme)
+        // Aynı panoda kalınmışsa
         if (currentPanoId === lastPanoIdRef.current) {
           lastHeadingRef.current = currentPov.heading || 0;
           return;
         }
 
         // ============================================
-        // KRİTİK FIX: Pano değiştiğinde PITCH'i ZORLA RESETLE
+        // KRİTİK: Pitch'i RESTORE ET
+        // Custom navigation ile pano değiştiğinde pitch korunmalı
         // ============================================
-        // Bu, "göğe bakma" bug'ını çözer
-        // Heading korunur, sadece pitch 0'a alınır
-        isPanoChangingRef.current = true;
-        pendingPitchResetRef.current = true;
+        const targetHeading = currentPov.heading || lastHeadingRef.current || 0;
+        const targetPitch = pendingPitchRef.current;
 
-        // Pitch'i 0'a resetle - heading'i koru
-        const safeHeading = currentPov.heading || lastHeadingRef.current || 0;
-
-        // requestAnimationFrame ile bir sonraki frame'de resetle
-        // Bu, Google Maps'in kendi POV güncellemesini bekler
+        // Pitch'i geri yükle
         requestAnimationFrame(() => {
-          if (panoramaRef.current && pendingPitchResetRef.current) {
+          if (panoramaRef.current) {
             panoramaRef.current.setPov({
-              heading: safeHeading,
-              pitch: 0, // ZORLA 0'a al
+              heading: targetHeading,
+              pitch: targetPitch,
             });
-            pendingPitchResetRef.current = false;
           }
-          // Kısa bir gecikme sonra flag'i kapat
-          setTimeout(() => {
-            isPanoChangingRef.current = false;
-          }, 100);
         });
 
-        // Başlangıca dönüş - her zaman serbest, bütçe tüketmez
+        // Başlangıca dönüş kontrolü
         if (currentPanoId === startPanoIdRef.current) {
           lastPanoIdRef.current = currentPanoId;
-          lastHeadingRef.current = safeHeading;
+          lastHeadingRef.current = targetHeading;
           return;
         }
 
-        // CACHE KONTROLÜ: Bu pano daha önce ziyaret edilmiş mi?
+        // Cache kontrolü
         const isPanoVisited = visitedPanosRef.current.has(currentPanoId);
-
         if (isPanoVisited) {
-          // Daha önce görülmüş pano - BÜTÇE TÜKETMEZ
           lastPanoIdRef.current = currentPanoId;
-          lastHeadingRef.current = safeHeading;
+          lastHeadingRef.current = targetHeading;
           return;
         }
 
-        // YENİ PANO - Hareket limiti kontrolü yap (TOPLAM hareket)
+        // Hareket limiti kontrolü
         const currentMoves = movesUsedRef.current;
         const limit = moveLimitRef.current;
 
-        // Hareket limiti aşıldı mı?
         if (currentMoves >= limit) {
           console.log("Hareket limiti aşıldı - geri dönülüyor");
           if (panoramaRef.current && lastPanoIdRef.current) {
-            isPanoChangingRef.current = true;
             panoramaRef.current.setPano(lastPanoIdRef.current);
             panoramaRef.current.setPov({
               heading: lastHeadingRef.current,
-              pitch: 0,
+              pitch: targetPitch,
             });
-            setTimeout(() => {
-              isPanoChangingRef.current = false;
-            }, 100);
           }
           setIsMovementLocked(true);
           return;
         }
 
-        // YENİ HAREKET İZİN VERİLDİ
+        // Yeni hareket
         const newMoveCount = currentMoves + 1;
         movesUsedRef.current = newMoveCount;
         setMovesUsed(newMoveCount);
-
-        // Pano'yu cache'e ekle
         visitedPanosRef.current.add(currentPanoId);
-
-        // Pozisyonu güncelle
         lastPanoIdRef.current = currentPanoId;
-        lastHeadingRef.current = safeHeading;
+        lastHeadingRef.current = targetHeading;
 
-        // Uyarı kontrolü
         if (limit - newMoveCount <= BUDGET_WARNING_THRESHOLD) {
           setShowBudgetWarning(true);
         }
@@ -301,129 +345,90 @@ export function useStreetView() {
       });
 
       // ============================================
-      // POV DEĞİŞİM DİNLEYİCİSİ - iPhone pitch bug fix
+      // CUSTOM CLICK NAVIGATION
       // ============================================
-      // Problem: iPhone'da ekrana dokunulduğunda pitch aniden -90'a (gökyüzü) atlıyor
-      // Çözüm: Ani pitch değişimlerini tespit edip önceki değere geri al
-      panoramaRef.current.addListener("pov_changed", () => {
+      const container = streetViewRef.current;
+
+      // Pointer event handlers (touch ve mouse için birleşik)
+      const handlePointerDown = (e: PointerEvent) => {
+        pointerStartRef.current = { x: e.clientX, y: e.clientY };
+      };
+
+      const handlePointerUp = (e: PointerEvent) => {
+        // Drag threshold kontrolü
+        if (pointerStartRef.current) {
+          const dx = Math.abs(e.clientX - pointerStartRef.current.x);
+          const dy = Math.abs(e.clientY - pointerStartRef.current.y);
+          const moved = Math.sqrt(dx * dx + dy * dy);
+
+          if (moved > DRAG_THRESHOLD_PX) {
+            // Bu bir drag, click değil - navigation yapma
+            pointerStartRef.current = null;
+            return;
+          }
+        }
+
+        pointerStartRef.current = null;
+
+        // Double-fire önleme (cooldown)
+        const now = Date.now();
+        if (now - lastClickTimeRef.current < CLICK_COOLDOWN_MS) {
+          console.log("Click ignored - cooldown active");
+          return;
+        }
+        lastClickTimeRef.current = now;
+
+        // Hareket kilitliyse işlem yapma
+        if (isMovementLocked) {
+          console.log("Movement locked");
+          return;
+        }
+
+        // Panorama yoksa işlem yapma
         if (!panoramaRef.current) return;
 
+        // Mevcut POV ve link'leri al
         const currentPov = panoramaRef.current.getPov();
+        const links = panoramaRef.current.getLinks();
 
-        // Pano değişimi sırasında pitch drift'ini önle
-        if (isPanoChangingRef.current) {
-          if (Math.abs(currentPov.pitch) > 45) {
-            panoramaRef.current.setPov({
-              heading: currentPov.heading,
-              pitch: 0,
-            });
-          }
+        if (!links || links.length === 0) {
+          setNavigationError("Bu yönde gidilebilecek yol yok");
+          setTimeout(() => setNavigationError(null), 2000);
           return;
         }
 
-        // ============================================
-        // iPHONE BUG FIX: Ani pitch sıçramalarını tespit et ve düzelt
-        // Normal kullanımda pitch yavaş yavaş değişir (drag ile)
-        // Bug durumunda pitch aniden -90'a veya +90'a atlıyor
-        // ============================================
-        const pitchDelta = Math.abs(currentPov.pitch - lastValidPitchRef.current);
+        // Tıklama heading'ini hesapla
+        const clickHeading = calculateClickHeading(
+          e.clientX,
+          e.clientY,
+          container,
+          currentPov.heading || 0
+        );
 
-        // Ani sıçrama tespiti: 25+ derece ani değişim VE pitch çok yüksek/düşük = bug
-        const isAbnormalJump = pitchDelta > 25 && (currentPov.pitch < -70 || currentPov.pitch > 70);
+        // En yakın link'i bul
+        const nearestLink = findNearestLink(clickHeading, links);
 
-        if (isAbnormalJump) {
-          console.warn("iPhone pitch bug detected:", currentPov.pitch, "-> reverting to:", lastValidPitchRef.current);
-          panoramaRef.current.setPov({
-            heading: currentPov.heading,
-            pitch: lastValidPitchRef.current,
-          });
+        if (!nearestLink) {
+          setNavigationError("Bu yönde gidilebilecek yol yok");
+          setTimeout(() => setNavigationError(null), 2000);
           return;
         }
 
-        // Geçerli pitch'i kaydet
-        lastValidPitchRef.current = currentPov.pitch;
-      });
+        // Navigate!
+        console.log(`Navigating to link: heading=${nearestLink.heading}, pano=${nearestLink.pano}`);
+        navigateToLink(nearestLink);
+        setNavigationError(null);
+      };
 
-      // ============================================
-      // iPHONE TAP-TO-GO PITCH BUG FIX
-      // ============================================
-      // Problem: iPhone'da ileri gitmek için tıklayınca pitch de değişiyor
-      // Her tıklamada pitch biraz daha artıyor ve sonunda gökyüzüne bakıyor
-      // Çözüm: Kısa dokunuşlarda (tap) pitch değişimini tamamen engelle
-      const container = streetViewRef.current;
-      if (container) {
-        let touchStartPitch = 0;
-        let touchStartTime = 0;
-        let touchStartHeading = 0;
-        let isSingleTouch = false;
+      // Event listener'ları ekle
+      container.addEventListener("pointerdown", handlePointerDown);
+      container.addEventListener("pointerup", handlePointerUp);
 
-        const handleTouchStart = (e: TouchEvent) => {
-          isTouchActiveRef.current = true;
-          touchStartTime = Date.now();
-          isSingleTouch = e.touches.length === 1; // Tek parmak = tap veya pan
-
-          // Touch başında mevcut POV'u kaydet
-          if (panoramaRef.current) {
-            const pov = panoramaRef.current.getPov();
-            touchStartPitch = pov.pitch || 0;
-            touchStartHeading = pov.heading || 0;
-          }
-
-          // Önceki timeout'u temizle
-          if (pitchResetTimeoutRef.current) {
-            clearTimeout(pitchResetTimeoutRef.current);
-          }
-        };
-
-        const handleTouchEnd = (e: TouchEvent) => {
-          const touchDuration = Date.now() - touchStartTime;
-
-          // Touch bittikten hemen sonra kontrol et
-          pitchResetTimeoutRef.current = setTimeout(() => {
-            isTouchActiveRef.current = false;
-
-            if (panoramaRef.current && isSingleTouch) {
-              const currentPov = panoramaRef.current.getPov();
-              const pitchChange = Math.abs(currentPov.pitch - touchStartPitch);
-              const headingChange = Math.abs(currentPov.heading - touchStartHeading);
-
-              // KISA DOKUNUŞ (TAP) = ileri gitme amaçlı
-              // Tap sırasında pitch değişmemeli, sadece pano değişmeli
-              // 400ms altı = tap, heading de fazla değişmemiş = kullanıcı sürüklemedi
-              const isTap = touchDuration < 400 && headingChange < 30;
-
-              if (isTap && pitchChange > 5) {
-                // Tap sırasında pitch değişmiş = BUG!
-                // Pitch'i eski haline getir
-                console.log("iPhone tap bug fix: pitch changed during tap", currentPov.pitch, "->", touchStartPitch);
-                panoramaRef.current.setPov({
-                  heading: currentPov.heading, // Heading'i koru (pano değişmiş olabilir)
-                  pitch: touchStartPitch,      // Pitch'i eski haline getir
-                });
-                lastValidPitchRef.current = touchStartPitch;
-              }
-            }
-          }, 50);
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-          // Çoklu parmak = pinch/zoom, tek parmak değil
-          if (e.touches.length > 1) {
-            isSingleTouch = false;
-          }
-        };
-
-        container.addEventListener("touchstart", handleTouchStart, { passive: true });
-        container.addEventListener("touchmove", handleTouchMove, { passive: true });
-        container.addEventListener("touchend", handleTouchEnd, { passive: true });
-      }
+      // Cleanup için ref'e kaydet (opsiyonel - şimdilik yok)
     },
-    [initializeGoogleMaps]
+    [initializeGoogleMaps, calculateClickHeading, findNearestLink, navigateToLink, isMovementLocked]
   );
 
-  /**
-   * Pano paketinden başlangıç noktasını göster
-   */
   const showPanoPackage = useCallback(
     async (panoPackage: PanoPackage) => {
       setIsLoading(true);
@@ -439,10 +444,6 @@ export function useStreetView() {
     [showStreetView, resetMoves]
   );
 
-  /**
-   * Koordinattan Street View göster
-   * NOT: Bu fonksiyon getPanorama() API çağrısı yapar (ücretli)
-   */
   const showStreetViewFromCoords = useCallback(
     async (coords: Coordinates) => {
       await initializeGoogleMaps();
@@ -473,10 +474,6 @@ export function useStreetView() {
     [initializeGoogleMaps, showStreetView]
   );
 
-  /**
-   * Rastgele konum bul
-   * NOT: Her deneme için getPanorama() API çağrısı yapar (ücretli)
-   */
   const findRandomLocation = useCallback(async (): Promise<{
     coordinates: Coordinates;
     panoId: string;
@@ -566,6 +563,7 @@ export function useStreetView() {
   return {
     isLoading,
     error,
+    navigationError, // Toast için
     streetViewRef,
     panoramaRef,
     loadNewLocation,
@@ -582,7 +580,7 @@ export function useStreetView() {
     setMoves,
     resetMoves,
     returnToStart,
-    // Cache bilgisi (debug için)
+    // Cache bilgisi
     visitedPanoCount: visitedPanosRef.current.size,
   };
 }
