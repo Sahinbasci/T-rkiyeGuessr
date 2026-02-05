@@ -13,10 +13,11 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { database, ref, set, get, onValue, update, remove, onDisconnect } from "@/config/firebase";
+import { database, ref, set, get, onValue, update, remove, onDisconnect, runTransaction, serverTimestamp } from "@/config/firebase";
 import {
   Room,
   Player,
+  PlayerStatus,
   Coordinates,
   GameMode,
   PanoPackage,
@@ -32,6 +33,10 @@ import {
   canSubmitGuess,
   resetGuessLimit,
   getRoomCreateCooldown,
+  generateSessionToken,
+  saveSessionToken,
+  getSessionToken,
+  clearSessionToken,
 } from "@/utils";
 import {
   initTelemetry,
@@ -128,7 +133,7 @@ export function useRoom() {
       try {
         await update(playerRef, {
           lastSeen: Date.now(),
-          isOnline: true,
+          status: 'online' as PlayerStatus,
         });
         lastHeartbeatRef.current = Date.now();
       } catch (err) {
@@ -142,10 +147,11 @@ export function useRoom() {
     // Her 5 saniyede heartbeat gönder
     presenceIntervalRef.current = setInterval(updatePresence, 5000);
 
-    // onDisconnect: Oyuncuyu "offline" işaretle (silme, sadece işaretle)
+    // onDisconnect: Oyuncuyu "disconnected" işaretle (silme, sadece işaretle)
+    // NOT: serverTimestamp() burada kullanılamaz, Date.now() kullanıyoruz
     const disconnectHandler = onDisconnect(playerRef);
     disconnectHandler.update({
-      isOnline: false,
+      status: 'disconnected' as PlayerStatus,
       disconnectedAt: Date.now(),
     });
 
@@ -157,34 +163,57 @@ export function useRoom() {
     };
   }, [room?.id, playerId]);
 
-  // Offline oyuncuları temizle (sadece host yapar)
+  // Offline oyuncuları temizle ve round completion kontrolü (sadece host yapar)
   // NOT: isHost henüz tanımlanmadığı için doğrudan karşılaştırma kullanıyoruz
   useEffect(() => {
     const amIHost = playerId === room?.hostId;
     if (!room?.id || !amIHost || room.status === "waiting") return;
 
-    const checkOfflinePlayers = () => {
+    const checkOfflinePlayers = async () => {
       if (!room?.players) return;
 
       const now = Date.now();
-      Object.values(room.players).forEach(async (player) => {
-        // Kendi kendimizi silme
-        if (player.id === playerId) return;
+      let removedAny = false;
 
-        // isOnline false ve grace period geçmişse sil
-        const lastSeen = (player as { lastSeen?: number }).lastSeen || now;
-        const isPlayerOnline = (player as { isOnline?: boolean }).isOnline !== false;
+      for (const player of Object.values(room.players)) {
+        // Kendi kendimizi silme
+        if (player.id === playerId) continue;
+
+        // status='disconnected' ve grace period geçmişse sil
+        // Backward compat: status undefined = online (silme)
+        const lastSeen = player.lastSeen || now;
+        const isPlayerOnline = !player.status || player.status === 'online';
         const timeSinceLastSeen = now - lastSeen;
 
-        if (!isPlayerOnline && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
+        // Sadece açıkça 'disconnected' olan ve grace period geçmiş oyuncuları sil
+        if (player.status === 'disconnected' && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
           console.log(`Offline player removed: ${player.name} (${timeSinceLastSeen}ms)`);
           try {
             await remove(ref(database, `rooms/${room.id}/players/${player.id}`));
+            removedAny = true;
+
+            // Eğer oyun aktifse ve bu oyuncu guess yapmamışsa, expectedGuesses azalt
+            if (room.status === "playing" && !player.hasGuessed) {
+              const roomRef = ref(database, `rooms/${room.id}`);
+              await runTransaction(roomRef, (currentRoom) => {
+                if (!currentRoom) return currentRoom;
+                return {
+                  ...currentRoom,
+                  expectedGuesses: Math.max(0, (currentRoom.expectedGuesses || 0) - 1),
+                };
+              });
+            }
           } catch (err) {
             console.error("Failed to remove offline player:", err);
           }
         }
-      });
+      }
+
+      // Oyuncu silindiyse round completion kontrolü yap
+      if (removedAny && room.status === "playing") {
+        // Round completion'ı tetikle (allGuessed kontrolü otomatik listener'da)
+        console.log("Offline player removed, checking round completion...");
+      }
     };
 
     // Her 10 saniyede offline oyuncuları kontrol et
@@ -289,26 +318,49 @@ export function useRoom() {
         }
 
         // === HOST AYRILDI MI KONTROLÜ ===
-        // Host artık oyuncular arasında değilse, yeni host ata
-        const hostStillExists = currentPlayerIds.includes(roomData.hostId);
+        // Host artık oyuncular arasında değilse veya offline ise, yeni host ata
+        const currentHost = roomData.players?.[roomData.hostId];
+        const hostStillOnline = currentHost && currentHost.status === 'online';
 
-        if (!hostStillExists && currentPlayerIds.length > 0) {
-          // Host ayrılmış ve başka oyuncular var - yeni host ata
-          // İlk oyuncuyu yeni host yap (en eskisi)
-          const newHostId = currentPlayerIds[0];
+        if ((!hostStillOnline || !currentPlayerIds.includes(roomData.hostId)) && currentPlayerIds.length > 0) {
+          // Host ayrılmış/offline ve başka oyuncular var - yeni host ata
+          // Deterministic seçim: en düşük joinedAt (en eski online oyuncu)
+          const onlinePlayers = Object.values(roomData.players || {})
+            .filter((p) => (!p.status || p.status === 'online') && p.id !== roomData.hostId)
+            .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
 
-          // Sadece ilk algılayan oyuncu host ataması yapsın (race condition önleme)
-          // Bu oyuncu yeni host olacaksa, kendisi güncelleme yapsın
-          if (newHostId === playerId) {
-            console.log("Host ayrıldı, yeni host atanıyor:", newHostId);
+          const newHost = onlinePlayers[0];
 
-            // Firebase'de host güncelle
-            update(ref(database, `rooms/${roomData.id}`), {
-              hostId: newHostId,
-            });
-            update(ref(database, `rooms/${roomData.id}/players/${newHostId}`), {
-              isHost: true,
-            });
+          // Sadece yeni host olacak oyuncu güncelleme yapsın (race condition önleme)
+          if (newHost && newHost.id === playerId) {
+            console.log("Host ayrıldı/offline, yeni host atanıyor:", newHost.id);
+
+            // Transaction ile atomic host değişimi
+            const roomRefForMigration = ref(database, `rooms/${roomData.id}`);
+            try {
+              await runTransaction(roomRefForMigration, (currentRoom) => {
+                if (!currentRoom) return currentRoom;
+
+                // Host hala aynı mı kontrol et (başka biri zaten değiştirmiş olabilir)
+                if (currentRoom.hostId !== roomData.hostId) {
+                  return; // abort - başka biri zaten değiştirmiş
+                }
+
+                return {
+                  ...currentRoom,
+                  hostId: newHost.id,
+                  players: {
+                    ...currentRoom.players,
+                    [newHost.id]: { ...currentRoom.players[newHost.id], isHost: true },
+                    ...(currentRoom.players[roomData.hostId] ? {
+                      [roomData.hostId]: { ...currentRoom.players[roomData.hostId], isHost: false }
+                    } : {}),
+                  },
+                };
+              });
+            } catch (err) {
+              console.error("Host migration transaction failed:", err);
+            }
           }
         }
 
@@ -332,9 +384,13 @@ export function useRoom() {
 
         // === OTOMATİK TAHMİN KONTROLÜ (sadece host) ===
         // RACE CONDITION FIX: İşlem zaten devam ediyorsa yeni işlem başlatma
+        // DISCONNECT FIX: Sadece ONLINE oyuncuları say
         if (playerId === roomData.hostId && roomData.status === "playing" && roomData.players) {
           const playerList = Object.values(roomData.players);
-          const allGuessed = playerList.length > 0 && playerList.every((p) => p.hasGuessed);
+          // CRITICAL: Sadece online oyuncuları filtrele
+          // BACKWARD COMPAT: status undefined ise online kabul et (eski oyuncular)
+          const onlinePlayers = playerList.filter((p) => !p.status || p.status === 'online');
+          const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
 
           if (allGuessed && roomData.currentLocation && !isProcessingRoundRef.current) {
             // Round işlemini kilitle
@@ -405,6 +461,7 @@ export function useRoom() {
 
                   await update(ref(database, `rooms/${freshRoom.id}`), {
                     status: "roundEnd",
+                    roundState: 'ended',
                     roundResults: results,
                     players: updatedPlayers,
                   });
@@ -457,6 +514,7 @@ export function useRoom() {
     try {
       const roomCode = generateRoomCode();
       const odlayerId = generatePlayerId();
+      const sessionToken = generateSessionToken();
       const modeConfig = GAME_MODE_CONFIG[gameMode];
       const now = Date.now();
 
@@ -468,6 +526,12 @@ export function useRoom() {
         currentGuess: null,
         hasGuessed: false,
         roundScores: [],
+        // Yeni presence alanları
+        status: 'online' as PlayerStatus,
+        lastSeen: now,
+        disconnectedAt: null,
+        sessionToken: sessionToken,
+        joinedAt: now,
       };
 
       const newRoom: Room = {
@@ -486,6 +550,12 @@ export function useRoom() {
         currentLocationName: null,
         roundResults: null,
         roundStartTime: null,
+        // Round State Machine
+        roundState: 'waiting',
+        roundVersion: 0,
+        activePlayerCount: 0,
+        expectedGuesses: 0,
+        currentGuesses: 0,
       };
 
       // Timestamp'leri ekle (Firebase rules'da optional)
@@ -500,6 +570,9 @@ export function useRoom() {
       setPlayerId(odlayerId);
       setPlayerName(name.trim());
       setRoom(newRoom);
+
+      // Session token'ı localStorage'a kaydet (rejoin için)
+      saveSessionToken(roomCode, sessionToken);
 
       // Telemetry context ayarla
       setTelemetryContext({
@@ -530,7 +603,7 @@ export function useRoom() {
     }
   }, []);
 
-  // Odaya katıl (Rate Limited)
+  // Odaya katıl (Rate Limited) - Rejoin desteği ile
   const joinRoom = useCallback(async (roomCode: string, name: string) => {
     setIsLoading(true);
     setError(null);
@@ -550,7 +623,8 @@ export function useRoom() {
     }
 
     try {
-      const roomRef = ref(database, `rooms/${roomCode.toUpperCase()}`);
+      const normalizedRoomCode = roomCode.toUpperCase();
+      const roomRef = ref(database, `rooms/${normalizedRoomCode}`);
       const snapshot = await get(roomRef);
 
       if (!snapshot.exists()) {
@@ -560,6 +634,59 @@ export function useRoom() {
 
       const roomData = snapshot.val() as Room;
 
+      // === REJOIN KONTROLÜ ===
+      // localStorage'dan sessionToken al ve eşleşen oyuncu ara
+      const existingSessionToken = getSessionToken(normalizedRoomCode);
+      let rejoinedPlayer: Player | null = null;
+
+      if (existingSessionToken && roomData.players) {
+        // SessionToken ile eşleşen oyuncu bul
+        const matchingPlayer = Object.values(roomData.players).find(
+          (p) => p.sessionToken === existingSessionToken
+        );
+
+        if (matchingPlayer) {
+          // Rejoin: Oyuncuyu online yap, state'i koru
+          console.log(`Rejoin: ${matchingPlayer.name} geri döndü`);
+
+          const now = Date.now();
+          await update(ref(database, `rooms/${normalizedRoomCode}/players/${matchingPlayer.id}`), {
+            status: 'online' as PlayerStatus,
+            lastSeen: now,
+            disconnectedAt: null,
+            // İsim değişmişse güncelle
+            name: name.trim(),
+          });
+
+          setPlayerId(matchingPlayer.id);
+          setPlayerName(name.trim());
+          setRoom({ ...roomData, id: normalizedRoomCode });
+
+          // Telemetry
+          setTelemetryContext({
+            roomId: normalizedRoomCode,
+            playerId: matchingPlayer.id,
+            playerName: name.trim(),
+          });
+          trackEvent("join", { action: "rejoin" });
+
+          // Referansları başlat
+          previousPlayersRef.current = Object.keys(roomData.players || {});
+          previousHostIdRef.current = roomData.hostId;
+          isFirstLoadRef.current = true;
+          notifiedJoinedRef.current.clear();
+          notifiedLeftRef.current.clear();
+
+          // Activity tracking
+          recordPlayerActivity(normalizedRoomCode, matchingPlayer.id);
+
+          setIsLoading(false);
+          return true;
+        }
+      }
+
+      // === YENİ OYUNCU KATILIMI ===
+      // Oyun başlamışsa ve rejoin değilse, katılmayı engelle
       if (roomData.status !== "waiting") {
         setError(ERROR_MESSAGES.GAME_ALREADY_STARTED);
         return false;
@@ -572,7 +699,8 @@ export function useRoom() {
       }
 
       const odlayerId = generatePlayerId();
-      const normalizedRoomCode = roomCode.toUpperCase();
+      const sessionToken = generateSessionToken();
+      const now = Date.now();
 
       const newPlayer: Player = {
         id: odlayerId,
@@ -582,22 +710,25 @@ export function useRoom() {
         currentGuess: null,
         hasGuessed: false,
         roundScores: [],
-      };
-
-      // Timestamp ile kaydet
-      const playerWithTimestamp = {
-        ...newPlayer,
-        joinedAt: Date.now(),
+        // Yeni presence alanları
+        status: 'online' as PlayerStatus,
+        lastSeen: now,
+        disconnectedAt: null,
+        sessionToken: sessionToken,
+        joinedAt: now,
       };
 
       await update(ref(database, `rooms/${normalizedRoomCode}/players`), {
-        [odlayerId]: playerWithTimestamp,
+        [odlayerId]: newPlayer,
       });
 
       // Son aktivite güncelle
       await update(ref(database, `rooms/${normalizedRoomCode}`), {
-        lastActivityAt: Date.now(),
+        lastActivityAt: now,
       });
+
+      // Session token'ı localStorage'a kaydet
+      saveSessionToken(normalizedRoomCode, sessionToken);
 
       setPlayerId(odlayerId);
       setPlayerName(name.trim());
@@ -653,6 +784,12 @@ export function useRoom() {
     async (panoPackage: PanoPackage) => {
       if (!room || playerId !== room.hostId) return;
 
+      // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
+      const onlinePlayers = Object.values(room.players || {}).filter(
+        (p) => !p.status || p.status === 'online'
+      );
+      const onlinePlayerCount = onlinePlayers.length;
+
       const updatedPlayers: { [key: string]: Player } = {};
       Object.values(room.players || {}).forEach((player) => {
         updatedPlayers[player.id] = {
@@ -661,6 +798,8 @@ export function useRoom() {
           hasGuessed: false,
         };
       });
+
+      const now = Date.now();
 
       await update(ref(database, `rooms/${room.id}`), {
         status: "playing",
@@ -671,7 +810,13 @@ export function useRoom() {
         currentLocationName: panoPackage.locationName,
         players: updatedPlayers,
         roundResults: null,
-        roundStartTime: Date.now(),
+        roundStartTime: now,
+        // Round State Machine
+        roundState: 'active',
+        roundVersion: (room.roundVersion || 0) + 1,
+        activePlayerCount: onlinePlayerCount,
+        expectedGuesses: onlinePlayerCount,
+        currentGuesses: 0,
       });
 
       trackEvent("roundStart", { roundId: 1, panoPackageId: panoPackage.id });
@@ -684,6 +829,12 @@ export function useRoom() {
     async (location: Coordinates, panoId: string, locationName?: string) => {
       if (!room || playerId !== room.hostId) return;
 
+      // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
+      const onlinePlayers = Object.values(room.players || {}).filter(
+        (p) => !p.status || p.status === 'online'
+      );
+      const onlinePlayerCount = onlinePlayers.length;
+
       const updatedPlayers: { [key: string]: Player } = {};
       Object.values(room.players || {}).forEach((player) => {
         updatedPlayers[player.id] = {
@@ -693,6 +844,8 @@ export function useRoom() {
         };
       });
 
+      const now = Date.now();
+
       await update(ref(database, `rooms/${room.id}`), {
         status: "playing",
         currentRound: 1,
@@ -701,7 +854,13 @@ export function useRoom() {
         currentLocationName: locationName || null,
         players: updatedPlayers,
         roundResults: null,
-        roundStartTime: Date.now(),
+        roundStartTime: now,
+        // Round State Machine
+        roundState: 'active',
+        roundVersion: (room.roundVersion || 0) + 1,
+        activePlayerCount: onlinePlayerCount,
+        expectedGuesses: onlinePlayerCount,
+        currentGuesses: 0,
       });
     },
     [room, playerId]
@@ -711,6 +870,13 @@ export function useRoom() {
   const submitGuess = useCallback(
     async (guess: Coordinates) => {
       if (!room || !playerId) return;
+
+      // Zaten tahmin yaptıysa çık
+      const currentPlayer = room.players?.[playerId];
+      if (currentPlayer?.hasGuessed) {
+        console.log("submitGuess: Zaten tahmin yapılmış, atlanıyor");
+        return;
+      }
 
       // Rate limit kontrolü
       if (!canSubmitGuess(playerId, room.currentRound)) {
@@ -727,10 +893,21 @@ export function useRoom() {
       // Player activity güncelle
       recordPlayerActivity(room.id, playerId);
 
+      // Player güncelle
       await update(ref(database, `rooms/${room.id}/players/${playerId}`), {
         currentGuess: guess,
         hasGuessed: true,
         lastActiveAt: Date.now(),
+      });
+
+      // Atomic increment: currentGuesses++
+      const roomRef = ref(database, `rooms/${room.id}`);
+      await runTransaction(roomRef, (currentRoom) => {
+        if (!currentRoom) return currentRoom;
+        return {
+          ...currentRoom,
+          currentGuesses: (currentRoom.currentGuesses || 0) + 1,
+        };
       });
 
       trackEvent("submitGuess", { roundId: room.currentRound, lat: guess.lat, lng: guess.lng });
@@ -749,10 +926,13 @@ export function useRoom() {
     if (latestRoom.status !== "playing") return;
 
     const playerList = Object.values(latestRoom.players);
-    const allGuessed = playerList.length > 0 && playerList.every((p) => p.hasGuessed);
+    // DISCONNECT FIX: Sadece online oyuncuları say (backward compat: status undefined = online)
+    const onlinePlayers = playerList.filter((p) => !p.status || p.status === 'online');
+    const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
 
     if (allGuessed && latestRoom.currentLocation) {
-      const results = playerList.map((player) => {
+      // Sadece online oyuncuların sonuçlarını hesapla
+      const results = onlinePlayers.map((player) => {
         const distance = player.currentGuess
           ? calculateDistance(latestRoom.currentLocation!, player.currentGuess)
           : 9999;
@@ -767,19 +947,30 @@ export function useRoom() {
         };
       }).filter((r) => r.odlayerId);
 
+      // Tüm oyuncuları güncelle (disconnect olanlar dahil - skorlarını koru)
       const updatedPlayers: { [key: string]: Player } = {};
       playerList.forEach((player) => {
         const result = results.find((r) => r.odlayerId === player.id);
         const currentRoundScores = player.roundScores || [];
-        updatedPlayers[player.id] = {
-          ...player,
-          totalScore: (player.totalScore || 0) + (result?.score || 0),
-          roundScores: [...currentRoundScores, result?.score || 0],
-        };
+        // Sadece online oyuncuların skorlarını güncelle (backward compat: status undefined = online)
+        if (!player.status || player.status === 'online') {
+          updatedPlayers[player.id] = {
+            ...player,
+            totalScore: (player.totalScore || 0) + (result?.score || 0),
+            roundScores: [...currentRoundScores, result?.score || 0],
+          };
+        } else {
+          // Disconnect olan oyuncuların mevcut state'ini koru
+          updatedPlayers[player.id] = {
+            ...player,
+            roundScores: [...currentRoundScores, 0], // 0 puan
+          };
+        }
       });
 
       await update(ref(database, `rooms/${latestRoom.id}`), {
         status: "roundEnd",
+        roundState: 'ended',
         roundResults: results,
         players: updatedPlayers,
       });
@@ -860,6 +1051,7 @@ export function useRoom() {
 
       await update(ref(database, `rooms/${latestRoom.id}`), {
         status: "roundEnd",
+        roundState: 'ended',
         roundResults: results,
         players: updatedPlayers,
       });
@@ -884,9 +1076,16 @@ export function useRoom() {
       if (isGameOver) {
         await update(ref(database, `rooms/${room.id}`), {
           status: "gameOver",
+          roundState: 'ended',
         });
         trackEvent("gameEnd", { totalRounds: room.totalRounds });
       } else {
+        // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
+        const onlinePlayers = Object.values(room.players || {}).filter(
+          (p) => !p.status || p.status === 'online'
+        );
+        const onlinePlayerCount = onlinePlayers.length;
+
         const updatedPlayers: { [key: string]: Player } = {};
         Object.values(room.players || {}).forEach((player) => {
           updatedPlayers[player.id] = {
@@ -895,6 +1094,8 @@ export function useRoom() {
             hasGuessed: false,
           };
         });
+
+        const now = Date.now();
 
         await update(ref(database, `rooms/${room.id}`), {
           status: "playing",
@@ -905,7 +1106,13 @@ export function useRoom() {
           currentLocationName: panoPackage.locationName,
           players: updatedPlayers,
           roundResults: null,
-          roundStartTime: Date.now(),
+          roundStartTime: now,
+          // Round State Machine
+          roundState: 'active',
+          roundVersion: (room.roundVersion || 0) + 1,
+          activePlayerCount: onlinePlayerCount,
+          expectedGuesses: onlinePlayerCount,
+          currentGuesses: 0,
         });
 
         trackEvent("roundStart", { roundId: room.currentRound + 1, panoPackageId: panoPackage.id });
@@ -924,8 +1131,15 @@ export function useRoom() {
       if (isGameOver) {
         await update(ref(database, `rooms/${room.id}`), {
           status: "gameOver",
+          roundState: 'ended',
         });
       } else {
+        // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
+        const onlinePlayers = Object.values(room.players || {}).filter(
+          (p) => !p.status || p.status === 'online'
+        );
+        const onlinePlayerCount = onlinePlayers.length;
+
         const updatedPlayers: { [key: string]: Player } = {};
         Object.values(room.players || {}).forEach((player) => {
           updatedPlayers[player.id] = {
@@ -935,6 +1149,8 @@ export function useRoom() {
           };
         });
 
+        const now = Date.now();
+
         await update(ref(database, `rooms/${room.id}`), {
           status: "playing",
           currentRound: room.currentRound + 1,
@@ -943,7 +1159,13 @@ export function useRoom() {
           currentLocationName: locationName || null,
           players: updatedPlayers,
           roundResults: null,
-          roundStartTime: Date.now(),
+          roundStartTime: now,
+          // Round State Machine
+          roundState: 'active',
+          roundVersion: (room.roundVersion || 0) + 1,
+          activePlayerCount: onlinePlayerCount,
+          expectedGuesses: onlinePlayerCount,
+          currentGuesses: 0,
         });
       }
     },
@@ -978,18 +1200,21 @@ export function useRoom() {
 
       // Oyun sırasında ayrılan oyuncu için round kontrolü
       // RACE CONDITION FIX: İşlem devam ediyorsa bekle
+      // DISCONNECT FIX: Sadece online oyuncuları say
       if (room.status === "playing" && !isProcessingRoundRef.current) {
         const remainingPlayers = playerList.filter((p) => p.id !== playerId);
+        // Sadece online oyuncuları say (backward compat: status undefined = online)
+        const onlineRemainingPlayers = remainingPlayers.filter((p) => !p.status || p.status === 'online');
         const allRemainingGuessed =
-          remainingPlayers.length > 0 &&
-          remainingPlayers.every((p) => p.hasGuessed);
+          onlineRemainingPlayers.length > 0 &&
+          onlineRemainingPlayers.every((p) => p.hasGuessed);
 
         if (allRemainingGuessed && room.currentLocation) {
           // Kilitle
           isProcessingRoundRef.current = true;
 
           try {
-            const results = remainingPlayers.map((player) => {
+            const results = onlineRemainingPlayers.map((player) => {
               const distance = player.currentGuess
                 ? calculateDistance(room.currentLocation!, player.currentGuess)
                 : 9999;
@@ -1008,15 +1233,24 @@ export function useRoom() {
             remainingPlayers.forEach((player) => {
               const result = results.find((r) => r.odlayerId === player.id);
               const currentRoundScores = player.roundScores || [];
-              updatedPlayers[player.id] = {
-                ...player,
-                totalScore: (player.totalScore || 0) + (result?.score || 0),
-                roundScores: [...currentRoundScores, result?.score || 0],
-              };
+              // Backward compat: status undefined = online
+              if (!player.status || player.status === 'online') {
+                updatedPlayers[player.id] = {
+                  ...player,
+                  totalScore: (player.totalScore || 0) + (result?.score || 0),
+                  roundScores: [...currentRoundScores, result?.score || 0],
+                };
+              } else {
+                updatedPlayers[player.id] = {
+                  ...player,
+                  roundScores: [...currentRoundScores, 0],
+                };
+              }
             });
 
             await update(ref(database, `rooms/${room.id}`), {
               status: "roundEnd",
+              roundState: 'ended',
               roundResults: results,
               players: updatedPlayers,
             });
@@ -1030,6 +1264,8 @@ export function useRoom() {
     // Cleanup
     if (room?.id) {
       cleanupRoomData(room.id);
+      // Session token temizle (kalıcı ayrılma)
+      clearSessionToken(room.id);
     }
 
     trackEvent("leave", { roomId: room?.id });
@@ -1073,6 +1309,12 @@ export function useRoom() {
       roundStartTime: null,
       players: updatedPlayers,
       lastActivityAt: Date.now(),
+      // Round State Machine reset
+      roundState: 'waiting',
+      roundVersion: 0,
+      activePlayerCount: 0,
+      expectedGuesses: 0,
+      currentGuesses: 0,
     });
 
     // Room lifecycle reset

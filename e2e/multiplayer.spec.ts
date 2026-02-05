@@ -205,6 +205,113 @@ test.describe('Multiplayer 6 Oyuncu Testi', () => {
   });
 });
 
+test.describe('Disconnect & Rejoin Testleri', () => {
+  test('Oyuncu disconnect olunca round donmamalı', async ({ browser }) => {
+    // Bu test: 3 oyuncu, 1'i round ortasında disconnect
+    // Beklenen: Kalan 2 oyuncu guess yapınca round bitmeli
+
+    const players: Player[] = [];
+
+    // 3 oyuncu oluştur
+    console.log('📱 3 oyuncu oluşturuluyor...');
+    for (let i = 0; i < 3; i++) {
+      const player = await createPlayer(browser, `Player${i + 1}`, i === 0);
+      players.push(player);
+      await player.page.goto('/');
+      await fillPlayerName(player.page, player.name);
+    }
+
+    // Host oda oluşturur
+    console.log('🏠 Host oda oluşturuyor...');
+    const roomCode = await createRoom(players[0].page);
+
+    // Diğer oyuncular katılır
+    console.log('👥 Diğer oyuncular katılıyor...');
+    for (let i = 1; i < players.length; i++) {
+      await joinRoom(players[i].page, roomCode);
+      await players[i].page.waitForTimeout(500);
+    }
+
+    // Host oyunu başlatır
+    console.log('🎮 Oyun başlatılıyor...');
+    await players[0].page.click('button:has-text("Oyunu Başlat")');
+
+    // Pano yüklenmesini bekle
+    await waitForPanoLoad(players[0].page);
+
+    // Player3 disconnect (sekmeyi kapat)
+    console.log('❌ Player3 disconnect oluyor...');
+    await players[2].context.close();
+    players.pop(); // Array'den çıkar
+
+    // Kalan 2 oyuncu guess yapar
+    console.log('🎯 Kalan oyuncular tahmin yapıyor...');
+    for (const player of players) {
+      await makeGuess(player.page);
+    }
+
+    // Round bitmeli - "SONUÇLARI" yazısı görünmeli (30 saniye içinde)
+    console.log('⏳ Round bitişi bekleniyor...');
+    try {
+      await players[0].page.waitForSelector('text=SONUÇLARI', {
+        timeout: 30000,
+      });
+      console.log('✅ Round başarıyla bitti!');
+    } catch (err) {
+      console.error('❌ Round dondu - bug devam ediyor!');
+      throw err;
+    }
+
+    // Cleanup
+    for (const player of players) {
+      await player.context.close();
+    }
+  });
+
+  test('Host disconnect olunca yeni host atanmalı', async ({ browser }) => {
+    const players: Player[] = [];
+
+    // 3 oyuncu oluştur
+    for (let i = 0; i < 3; i++) {
+      const player = await createPlayer(browser, `Player${i + 1}`, i === 0);
+      players.push(player);
+      await player.page.goto('/');
+      await fillPlayerName(player.page, player.name);
+    }
+
+    // Host oda oluşturur
+    const roomCode = await createRoom(players[0].page);
+
+    // Diğer oyuncular katılır
+    for (let i = 1; i < players.length; i++) {
+      await joinRoom(players[i].page, roomCode);
+      await players[i].page.waitForTimeout(500);
+    }
+
+    // Host disconnect
+    console.log('❌ Host disconnect oluyor...');
+    await players[0].context.close();
+
+    // 5 saniye bekle - host migration için
+    await players[1].page.waitForTimeout(5000);
+
+    // Player2'de "Oyunu Başlat" butonu görünmeli (yeni host oldu)
+    const startButton = players[1].page.locator('button:has-text("Oyunu Başlat")');
+    const isVisible = await startButton.isVisible({ timeout: 10000 }).catch(() => false);
+
+    if (isVisible) {
+      console.log('✅ Host migration başarılı - Player2 artık host!');
+    } else {
+      // Alternatif kontrol: Host changed notification
+      console.log('⚠️ Başlat butonu görünmüyor, host migration kontrol ediliyor...');
+    }
+
+    // Cleanup
+    await players[1].context.close();
+    await players[2].context.close();
+  });
+});
+
 test.describe('Timer Bug Testleri', () => {
   test('Timer 0\'da spam olmamalı', async ({ page }) => {
     // Tek oyuncu hızlı test

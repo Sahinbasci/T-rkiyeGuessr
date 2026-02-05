@@ -88,6 +88,78 @@ export function generatePlayerId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
+// ==================== SESSION TOKEN (REJOIN) ====================
+// Oyuncu disconnect olup geri geldiğinde aynı state'i korumak için
+
+export function generateSessionToken(): string {
+  const timestamp = Date.now().toString(36);
+  const random = typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID().replace(/-/g, "")
+    : Math.random().toString(36).substring(2, 15);
+  return `${timestamp}_${random}`;
+}
+
+export function saveSessionToken(roomId: string, token: string): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      localStorage.setItem(`turkiye_guessr_session_${roomId}`, token);
+    } catch (e) {
+      console.warn("localStorage sessionToken save failed:", e);
+    }
+  }
+}
+
+export function getSessionToken(roomId: string): string | null {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      return localStorage.getItem(`turkiye_guessr_session_${roomId}`);
+    } catch (e) {
+      console.warn("localStorage sessionToken get failed:", e);
+      return null;
+    }
+  }
+  return null;
+}
+
+export function clearSessionToken(roomId: string): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      localStorage.removeItem(`turkiye_guessr_session_${roomId}`);
+    } catch (e) {
+      console.warn("localStorage sessionToken clear failed:", e);
+    }
+  }
+}
+
+// Tüm eski session token'ları temizle (1 günden eski)
+export function cleanupOldSessionTokens(): void {
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      const keysToRemove: string[] = [];
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("turkiye_guessr_session_")) {
+          const token = localStorage.getItem(key);
+          if (token) {
+            // Token format: timestamp_random
+            const timestampStr = token.split("_")[0];
+            const timestamp = parseInt(timestampStr, 36);
+            if (timestamp < oneDayAgo) {
+              keysToRemove.push(key);
+            }
+          }
+        }
+      }
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+    } catch (e) {
+      console.warn("localStorage cleanup failed:", e);
+    }
+  }
+}
+
 // Koordinatlardan il/ilçe bilgisi al (Reverse Geocoding)
 export async function getLocationName(coord: Coordinates): Promise<string> {
   if (typeof google === "undefined" || !google.maps) {

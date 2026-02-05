@@ -76,6 +76,8 @@ export const PANO_TO_BRANCH: Record<"pano1" | "pano2" | "pano3", BranchKey> = {
 };
 
 // ==================== PLAYER ====================
+export type PlayerStatus = 'online' | 'offline' | 'disconnected';
+
 export interface Player {
   id: string;
   name: string;
@@ -84,9 +86,17 @@ export interface Player {
   currentGuess: Coordinates | null;
   hasGuessed: boolean;
   roundScores: number[];
+  // Presence & Rejoin için yeni alanlar
+  status: PlayerStatus;
+  lastSeen: number;              // Server timestamp - son heartbeat
+  disconnectedAt: number | null; // Disconnect zamanı (rejoin için)
+  sessionToken: string;          // Stable identity - rejoin için
+  joinedAt: number;              // Host migration için (en eski = yeni host)
 }
 
 // ==================== ROOM ====================
+export type RoundState = 'waiting' | 'active' | 'ending' | 'ended';
+
 export interface Room {
   id: string;
   hostId: string;
@@ -111,6 +121,13 @@ export interface Room {
 
   // Timer
   roundStartTime: number | null; // timestamp
+
+  // Round State Machine - Disconnect handling için
+  roundState: RoundState;           // waiting → active → ending → ended
+  roundVersion: number;             // Optimistic concurrency control
+  activePlayerCount: number;        // Round başında snapshot
+  expectedGuesses: number;          // Round başında online oyuncu sayısı
+  currentGuesses: number;           // Atomic counter - kaç kişi guess yaptı
 }
 
 export interface RoundResult {
