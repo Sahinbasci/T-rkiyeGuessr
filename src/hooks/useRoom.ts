@@ -112,21 +112,84 @@ export function useRoom() {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   }, []);
 
-  // Firebase onDisconnect kurulumu - kullanıcı sekmeyi kapatınca otomatik çıkış
+  // Firebase Presence sistemi - Bağlantı yönetimi
+  // GRACE PERIOD: Kısa süreli kopmalar için oyuncuyu hemen silme
+  const DISCONNECT_GRACE_PERIOD = 15000; // 15 saniye grace period
+  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastHeartbeatRef = useRef<number>(Date.now());
+
   useEffect(() => {
     if (!room?.id || !playerId) return;
 
     const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
+
+    // Heartbeat: Her 5 saniyede bir lastSeen güncelle
+    const updatePresence = async () => {
+      try {
+        await update(playerRef, {
+          lastSeen: Date.now(),
+          isOnline: true,
+        });
+        lastHeartbeatRef.current = Date.now();
+      } catch (err) {
+        console.warn("Presence update failed:", err);
+      }
+    };
+
+    // Hemen bir kez güncelle
+    updatePresence();
+
+    // Her 5 saniyede heartbeat gönder
+    presenceIntervalRef.current = setInterval(updatePresence, 5000);
+
+    // onDisconnect: Oyuncuyu "offline" işaretle (silme, sadece işaretle)
     const disconnectHandler = onDisconnect(playerRef);
+    disconnectHandler.update({
+      isOnline: false,
+      disconnectedAt: Date.now(),
+    });
 
-    // Bağlantı koptuğunda oyuncuyu sil
-    disconnectHandler.remove();
-
-    // Cleanup - component unmount olduğunda disconnect handler'ı iptal et
     return () => {
+      if (presenceIntervalRef.current) {
+        clearInterval(presenceIntervalRef.current);
+      }
       disconnectHandler.cancel();
     };
   }, [room?.id, playerId]);
+
+  // Offline oyuncuları temizle (sadece host yapar)
+  useEffect(() => {
+    if (!room?.id || !isHost || room.status === "waiting") return;
+
+    const checkOfflinePlayers = () => {
+      if (!room?.players) return;
+
+      const now = Date.now();
+      Object.values(room.players).forEach(async (player) => {
+        // Kendi kendimizi silme
+        if (player.id === playerId) return;
+
+        // isOnline false ve grace period geçmişse sil
+        const lastSeen = (player as { lastSeen?: number }).lastSeen || now;
+        const isOnline = (player as { isOnline?: boolean }).isOnline !== false;
+        const timeSinceLastSeen = now - lastSeen;
+
+        if (!isOnline && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
+          console.log(`Offline player removed: ${player.name} (${timeSinceLastSeen}ms)`);
+          try {
+            await remove(ref(database, `rooms/${room.id}/players/${player.id}`));
+          } catch (err) {
+            console.error("Failed to remove offline player:", err);
+          }
+        }
+      });
+    };
+
+    // Her 10 saniyede offline oyuncuları kontrol et
+    const cleanupInterval = setInterval(checkOfflinePlayers, 10000);
+
+    return () => clearInterval(cleanupInterval);
+  }, [room?.id, room?.players, room?.status, isHost, playerId]);
 
   // beforeunload event - sekme kapatılmadan önce cleanup
   useEffect(() => {
@@ -283,7 +346,7 @@ export function useRoom() {
             const snapshotPlayers = { ...roomData.players };
             const snapshotLocation = { ...roomData.currentLocation };
 
-            // Kısa bir gecikme ile sonuçları hesapla
+            // HIZLI SONUÇ: Gecikmeyi 100ms'e düşür (eskiden 500ms)
             setTimeout(async () => {
               try {
                 // Round hala aynı mı kontrol et (başka bir işlem devreye girmiş olabilir)
@@ -354,7 +417,7 @@ export function useRoom() {
                 isProcessingRoundRef.current = false;
                 processingRoundIdRef.current = null;
               }
-            }, 500);
+            }, 100); // 500ms -> 100ms (hızlı sonuç)
           }
         }
       } else {

@@ -61,6 +61,11 @@ export function useStreetView() {
   const isPanoChangingRef = useRef<boolean>(false);
   const pendingPitchResetRef = useRef<boolean>(false);
 
+  // iPhone FIX: Touch event sırasında pitch kilitlenmesi
+  const isTouchActiveRef = useRef<boolean>(false);
+  const lastValidPitchRef = useRef<number>(0);
+  const pitchResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const initializeGoogleMaps = useCallback(async () => {
     if (isLoaded) return;
 
@@ -302,9 +307,10 @@ export function useStreetView() {
       panoramaRef.current.addListener("pov_changed", () => {
         if (!panoramaRef.current) return;
 
+        const currentPov = panoramaRef.current.getPov();
+
         // Pano değişimi sırasında pitch drift'ini önle
         if (isPanoChangingRef.current) {
-          const currentPov = panoramaRef.current.getPov();
           // Pitch çok fazla sapmışsa (göğe bakma) düzelt
           if (Math.abs(currentPov.pitch) > 45) {
             panoramaRef.current.setPov({
@@ -312,8 +318,88 @@ export function useStreetView() {
               pitch: 0,
             });
           }
+          return;
         }
+
+        // ============================================
+        // iPHONE 14 PRO MAX FIX: Pitch'i -60 ile +30 arası sınırla
+        // iOS'ta bazen pitch aniden -90'a (gökyüzü) atlıyor
+        // ============================================
+        const MAX_PITCH_UP = 30;    // Yukarı bakma limiti
+        const MAX_PITCH_DOWN = -60; // Aşağı bakma limiti
+
+        if (currentPov.pitch > MAX_PITCH_UP) {
+          panoramaRef.current.setPov({
+            heading: currentPov.heading,
+            pitch: MAX_PITCH_UP,
+          });
+          return;
+        }
+
+        if (currentPov.pitch < MAX_PITCH_DOWN) {
+          panoramaRef.current.setPov({
+            heading: currentPov.heading,
+            pitch: MAX_PITCH_DOWN,
+          });
+          return;
+        }
+
+        // Geçerli pitch'i kaydet (ani sıçramaları tespit için)
+        const pitchDelta = Math.abs(currentPov.pitch - lastValidPitchRef.current);
+
+        // Ani sıçrama tespiti: 40 dereceden fazla ani değişim = bug
+        if (pitchDelta > 40 && !isTouchActiveRef.current) {
+          console.warn("Pitch jump detected, resetting:", currentPov.pitch, "->", lastValidPitchRef.current);
+          panoramaRef.current.setPov({
+            heading: currentPov.heading,
+            pitch: lastValidPitchRef.current,
+          });
+          return;
+        }
+
+        lastValidPitchRef.current = currentPov.pitch;
       });
+
+      // ============================================
+      // iPHONE TOUCH EVENT FIX
+      // ============================================
+      // Touch başlangıç ve bitiş olaylarını dinle
+      const container = streetViewRef.current;
+      if (container) {
+        const handleTouchStart = () => {
+          isTouchActiveRef.current = true;
+          // Önceki timeout'u temizle
+          if (pitchResetTimeoutRef.current) {
+            clearTimeout(pitchResetTimeoutRef.current);
+          }
+        };
+
+        const handleTouchEnd = () => {
+          // Touch bittikten 200ms sonra kontrolü aç
+          pitchResetTimeoutRef.current = setTimeout(() => {
+            isTouchActiveRef.current = false;
+
+            // Touch sonrası pitch'i kontrol et ve gerekirse düzelt
+            if (panoramaRef.current) {
+              const currentPov = panoramaRef.current.getPov();
+              if (Math.abs(currentPov.pitch) > 60) {
+                console.log("Post-touch pitch fix:", currentPov.pitch, "-> 0");
+                panoramaRef.current.setPov({
+                  heading: currentPov.heading,
+                  pitch: 0,
+                });
+                lastValidPitchRef.current = 0;
+              }
+            }
+          }, 200);
+        };
+
+        container.addEventListener("touchstart", handleTouchStart, { passive: true });
+        container.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+        // Cleanup için event listener'ları kaldır
+        // Not: Bu cleanup panorama destroy edildiğinde çalışacak
+      }
     },
     [initializeGoogleMaps]
   );

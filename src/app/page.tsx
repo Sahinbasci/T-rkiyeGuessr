@@ -125,6 +125,12 @@ export default function HomePage() {
     },
   });
 
+  // ==================== REFS ====================
+  // Round ve timer tracking (effects'lerden önce tanımlanmalı)
+  const prevRoundRef = useRef<number | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+  const timerStartedForRoundRef = useRef<number | null>(null);
+
   // ==================== EFFECTS ====================
 
   // Oyun ekranına geçince Street View ve haritayı hazırla
@@ -157,9 +163,13 @@ export default function HomePage() {
         // Hareket hakkını ayarla (oda ayarlarından)
         setMoves(room.moveLimit || 3);
         await showPanoPackage(room.currentPanoPackage);
-        // Timer'ı başlat (sadece host değil, herkes için)
-        resetTimer(room.timeLimit);
-        startTimer();
+        // Timer başlatma round effect'inde yapılıyor (duplicate önleme)
+        // Sadece timer henüz başlatılmamışsa burada başlat
+        if (timerStartedForRoundRef.current !== room.currentRound) {
+          timerStartedForRoundRef.current = room.currentRound;
+          resetTimer(room.timeLimit);
+          startTimer();
+        }
       } else if (room.currentPanoPackageId) {
         // Eski sistem (geriye uyumluluk)
         setMoves(room.moveLimit || 3);
@@ -176,28 +186,50 @@ export default function HomePage() {
 
   // Round değiştiğinde state'leri sıfırla (PIN BUG FIX)
   // KRİTİK: Sadece currentRound değişikliğinde tetiklenmeli, status değişikliğinde DEĞİL
-  const prevRoundRef = useRef<number | null>(null);
   useEffect(() => {
     // Sadece "playing" durumunda ve round gerçekten değiştiyse çalış
     if (room?.status === "playing" && room.currentRound !== prevRoundRef.current) {
+      const isNewRound = prevRoundRef.current !== null; // İlk round değilse
+      const wasRoundEnd = prevStatusRef.current === "roundEnd";
+
       prevRoundRef.current = room.currentRound;
+      prevStatusRef.current = room.status;
 
       // Yeni round başladığında
       setGuessLocation(null);
       resetMap();
       resetMoves();
       setMoves(room.moveLimit || 3); // Oda ayarlarından hareket hakkı
-      resetTimer(room.timeLimit);
-      startTimer();
+
+      // TIMER FIX: Timer'ı sadece bir kez başlat (duplicate önleme)
+      if (timerStartedForRoundRef.current !== room.currentRound) {
+        timerStartedForRoundRef.current = room.currentRound;
+
+        // Timer'ı reset et ve başlat - sıralı çağrı garantisi
+        resetTimer(room.timeLimit);
+
+        // Küçük gecikme ile timer'ı başlat (reset'in tamamlanmasını bekle)
+        requestAnimationFrame(() => {
+          startTimer();
+          console.log(`Timer started for round ${room.currentRound}`);
+        });
+      }
+
       // Haritayı küçült
       setMapExpanded(false);
     }
 
-    // Status "waiting" olduğunda ref'i sıfırla (yeni oyun için)
+    // Status değişikliğini takip et
+    if (room?.status) {
+      prevStatusRef.current = room.status;
+    }
+
+    // Status "waiting" olduğunda ref'leri sıfırla (yeni oyun için)
     if (room?.status === "waiting") {
       prevRoundRef.current = null;
+      timerStartedForRoundRef.current = null;
     }
-  }, [room?.currentRound, room?.status]);
+  }, [room?.currentRound, room?.status, room?.timeLimit, room?.moveLimit, resetTimer, startTimer, resetMap, resetMoves, setMoves]);
 
   // Lobby'ye git (oyun başladıysa)
   useEffect(() => {
