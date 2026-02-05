@@ -345,22 +345,28 @@ export function useStreetView() {
       });
 
       // ============================================
-      // iPHONE TOUCH EVENT FIX
+      // iPHONE TAP-TO-GO PITCH BUG FIX
       // ============================================
-      // iPhone'da touch event sırasında pitch bug'ı oluşuyor
-      // Touch başında mevcut pitch'i kaydet, touch sonunda kontrol et
+      // Problem: iPhone'da ileri gitmek için tıklayınca pitch de değişiyor
+      // Her tıklamada pitch biraz daha artıyor ve sonunda gökyüzüne bakıyor
+      // Çözüm: Kısa dokunuşlarda (tap) pitch değişimini tamamen engelle
       const container = streetViewRef.current;
       if (container) {
         let touchStartPitch = 0;
         let touchStartTime = 0;
+        let touchStartHeading = 0;
+        let isSingleTouch = false;
 
         const handleTouchStart = (e: TouchEvent) => {
           isTouchActiveRef.current = true;
           touchStartTime = Date.now();
+          isSingleTouch = e.touches.length === 1; // Tek parmak = tap veya pan
 
-          // Touch başında mevcut pitch'i kaydet
+          // Touch başında mevcut POV'u kaydet
           if (panoramaRef.current) {
-            touchStartPitch = panoramaRef.current.getPov().pitch || 0;
+            const pov = panoramaRef.current.getPov();
+            touchStartPitch = pov.pitch || 0;
+            touchStartHeading = pov.heading || 0;
           }
 
           // Önceki timeout'u temizle
@@ -372,38 +378,43 @@ export function useStreetView() {
         const handleTouchEnd = (e: TouchEvent) => {
           const touchDuration = Date.now() - touchStartTime;
 
-          // Touch bittikten 100ms sonra kontrol et
+          // Touch bittikten hemen sonra kontrol et
           pitchResetTimeoutRef.current = setTimeout(() => {
             isTouchActiveRef.current = false;
 
-            if (panoramaRef.current) {
+            if (panoramaRef.current && isSingleTouch) {
               const currentPov = panoramaRef.current.getPov();
               const pitchChange = Math.abs(currentPov.pitch - touchStartPitch);
+              const headingChange = Math.abs(currentPov.heading - touchStartHeading);
 
-              // Kısa dokunuş (<300ms) + büyük pitch değişimi (>50°) = bug
-              // Normal drag ile bu kadar hızlı pitch değişimi olmaz
-              if (touchDuration < 300 && pitchChange > 50) {
-                console.log("iPhone touch bug fix: rapid pitch change detected", currentPov.pitch, "->", touchStartPitch);
+              // KISA DOKUNUŞ (TAP) = ileri gitme amaçlı
+              // Tap sırasında pitch değişmemeli, sadece pano değişmeli
+              // 400ms altı = tap, heading de fazla değişmemiş = kullanıcı sürüklemedi
+              const isTap = touchDuration < 400 && headingChange < 30;
+
+              if (isTap && pitchChange > 5) {
+                // Tap sırasında pitch değişmiş = BUG!
+                // Pitch'i eski haline getir
+                console.log("iPhone tap bug fix: pitch changed during tap", currentPov.pitch, "->", touchStartPitch);
                 panoramaRef.current.setPov({
-                  heading: currentPov.heading,
-                  pitch: touchStartPitch,
+                  heading: currentPov.heading, // Heading'i koru (pano değişmiş olabilir)
+                  pitch: touchStartPitch,      // Pitch'i eski haline getir
                 });
                 lastValidPitchRef.current = touchStartPitch;
               }
-              // Uzun dokunuş ama aşırı pitch değeri = bug
-              else if (Math.abs(currentPov.pitch) > 80) {
-                console.log("iPhone touch bug fix: extreme pitch detected", currentPov.pitch, "-> 0");
-                panoramaRef.current.setPov({
-                  heading: currentPov.heading,
-                  pitch: 0,
-                });
-                lastValidPitchRef.current = 0;
-              }
             }
-          }, 100);
+          }, 50);
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+          // Çoklu parmak = pinch/zoom, tek parmak değil
+          if (e.touches.length > 1) {
+            isSingleTouch = false;
+          }
         };
 
         container.addEventListener("touchstart", handleTouchStart, { passive: true });
+        container.addEventListener("touchmove", handleTouchMove, { passive: true });
         container.addEventListener("touchend", handleTouchEnd, { passive: true });
       }
     },
