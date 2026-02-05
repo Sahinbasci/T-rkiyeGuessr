@@ -1,6 +1,11 @@
 /**
  * useTimer Hook
  * Round bazlı geri sayım timer'ı
+ *
+ * SERVER TIMESTAMP TABANLI:
+ * - Tab arka planda olsa bile doğru süreyi hesaplar
+ * - roundStartTime (server timestamp) + timeLimit'e göre kalan süreyi hesaplar
+ * - Page Visibility API ile arka plandan döndüğünde sync olur
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -9,6 +14,8 @@ interface UseTimerProps {
   initialTime: number; // saniye
   onTimeUp: () => void;
   autoStart?: boolean;
+  // YENİ: Server timestamp tabanlı timer için
+  serverStartTime?: number | null; // Firebase roundStartTime (ms)
 }
 
 interface UseTimerReturn {
@@ -26,6 +33,7 @@ export function useTimer({
   initialTime,
   onTimeUp,
   autoStart = false,
+  serverStartTime = null,
 }: UseTimerProps): UseTimerReturn {
   const [timeRemaining, setTimeRemaining] = useState(initialTime);
   const [isRunning, setIsRunning] = useState(autoStart);
@@ -38,44 +46,109 @@ export function useTimer({
     onTimeUpRef.current = onTimeUp;
   }, [onTimeUp]);
 
-  // Timer effect - KRİTİK FIX: timeRemaining dependency kaldırıldı
-  // Bu, her saniye yeni interval oluşturulmasını önler
+  // Server timestamp'a göre kalan süreyi hesapla
+  const calculateRemainingTime = useCallback(() => {
+    if (!serverStartTime) return timeRemaining;
+
+    const now = Date.now();
+    const elapsed = Math.floor((now - serverStartTime) / 1000);
+    const remaining = Math.max(0, initialTime - elapsed);
+    return remaining;
+  }, [serverStartTime, initialTime, timeRemaining]);
+
+  // Page Visibility API - arka plandan döndüğünde sync ol
+  useEffect(() => {
+    if (!serverStartTime || !isRunning) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Arka plandan döndük - server timestamp'a göre sync ol
+        const remaining = calculateRemainingTime();
+        setTimeRemaining(remaining);
+
+        // Süre bittiyse onTimeUp çağır
+        if (remaining <= 0 && !hasCalledTimeUp.current) {
+          hasCalledTimeUp.current = true;
+          setIsRunning(false);
+          setIsTimeUp(true);
+          queueMicrotask(() => {
+            onTimeUpRef.current();
+          });
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [serverStartTime, isRunning, calculateRemainingTime]);
+
+  // serverStartTime değiştiğinde timer'ı sync et
+  useEffect(() => {
+    if (serverStartTime && isRunning) {
+      const remaining = calculateRemainingTime();
+      setTimeRemaining(remaining);
+
+      if (remaining <= 0 && !hasCalledTimeUp.current) {
+        hasCalledTimeUp.current = true;
+        setIsRunning(false);
+        setIsTimeUp(true);
+        queueMicrotask(() => {
+          onTimeUpRef.current();
+        });
+      }
+    }
+  }, [serverStartTime, isRunning, calculateRemainingTime]);
+
+  // Timer effect - her saniye güncelle
   useEffect(() => {
     if (!isRunning) return;
 
     const interval = setInterval(() => {
-      setTimeRemaining((prev) => {
-        // Zaten 0 veya negatifse işlem yapma
-        if (prev <= 0) {
-          return 0;
-        }
+      // Server timestamp varsa ona göre hesapla, yoksa local countdown
+      if (serverStartTime) {
+        const remaining = calculateRemainingTime();
+        setTimeRemaining(remaining);
 
-        const newTime = prev - 1;
-
-        if (newTime <= 0) {
+        if (remaining <= 0 && !hasCalledTimeUp.current) {
+          hasCalledTimeUp.current = true;
           setIsRunning(false);
           setIsTimeUp(true);
+          queueMicrotask(() => {
+            onTimeUpRef.current();
+          });
+        }
+      } else {
+        // Fallback: local countdown (eski davranış)
+        setTimeRemaining((prev) => {
+          if (prev <= 0) return 0;
 
-          // Sadece bir kez çağır - çift tetikleme önleme
-          if (!hasCalledTimeUp.current) {
-            hasCalledTimeUp.current = true;
-            // setTimeout yerine queueMicrotask kullan (daha güvenilir)
-            queueMicrotask(() => {
-              onTimeUpRef.current();
-            });
+          const newTime = prev - 1;
+
+          if (newTime <= 0) {
+            setIsRunning(false);
+            setIsTimeUp(true);
+
+            if (!hasCalledTimeUp.current) {
+              hasCalledTimeUp.current = true;
+              queueMicrotask(() => {
+                onTimeUpRef.current();
+              });
+            }
+
+            return 0;
           }
 
-          return 0;
-        }
-
-        return newTime;
-      });
+          return newTime;
+        });
+      }
     }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [isRunning]); // KRİTİK: timeRemaining kaldırıldı!
+  }, [isRunning, serverStartTime, calculateRemainingTime]);
 
   // Formatlanmış zaman (MM:SS)
   const formattedTime = `${Math.floor(timeRemaining / 60)

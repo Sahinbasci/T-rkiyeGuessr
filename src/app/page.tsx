@@ -125,6 +125,8 @@ export default function HomePage() {
         handleTimeUp();
       }
     },
+    // Server timestamp tabanlı timer - arka planda bile doğru süreyi hesaplar
+    serverStartTime: room?.roundStartTime || null,
   });
 
   // ==================== REFS ====================
