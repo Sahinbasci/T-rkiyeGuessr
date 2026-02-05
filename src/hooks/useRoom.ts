@@ -158,8 +158,10 @@ export function useRoom() {
   }, [room?.id, playerId]);
 
   // Offline oyuncuları temizle (sadece host yapar)
+  // NOT: isHost henüz tanımlanmadığı için doğrudan karşılaştırma kullanıyoruz
   useEffect(() => {
-    if (!room?.id || !isHost || room.status === "waiting") return;
+    const amIHost = playerId === room?.hostId;
+    if (!room?.id || !amIHost || room.status === "waiting") return;
 
     const checkOfflinePlayers = () => {
       if (!room?.players) return;
@@ -171,10 +173,10 @@ export function useRoom() {
 
         // isOnline false ve grace period geçmişse sil
         const lastSeen = (player as { lastSeen?: number }).lastSeen || now;
-        const isOnline = (player as { isOnline?: boolean }).isOnline !== false;
+        const isPlayerOnline = (player as { isOnline?: boolean }).isOnline !== false;
         const timeSinceLastSeen = now - lastSeen;
 
-        if (!isOnline && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
+        if (!isPlayerOnline && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
           console.log(`Offline player removed: ${player.name} (${timeSinceLastSeen}ms)`);
           try {
             await remove(ref(database, `rooms/${room.id}/players/${player.id}`));
@@ -189,7 +191,7 @@ export function useRoom() {
     const cleanupInterval = setInterval(checkOfflinePlayers, 10000);
 
     return () => clearInterval(cleanupInterval);
-  }, [room?.id, room?.players, room?.status, isHost, playerId]);
+  }, [room?.id, room?.hostId, room?.players, room?.status, playerId]);
 
   // beforeunload event - sekme kapatılmadan önce cleanup
   useEffect(() => {
