@@ -301,9 +301,10 @@ export function useStreetView() {
       });
 
       // ============================================
-      // POV DEĞİŞİM DİNLEYİCİSİ - Pitch drift'i önle
+      // POV DEĞİŞİM DİNLEYİCİSİ - iPhone pitch bug fix
       // ============================================
-      // Pano değişimi sırasında dışarıdan gelen pitch değişikliklerini engelle
+      // Problem: iPhone'da ekrana dokunulduğunda pitch aniden -90'a (gökyüzü) atlıyor
+      // Çözüm: Ani pitch değişimlerini tespit edip önceki değere geri al
       panoramaRef.current.addListener("pov_changed", () => {
         if (!panoramaRef.current) return;
 
@@ -311,7 +312,6 @@ export function useStreetView() {
 
         // Pano değişimi sırasında pitch drift'ini önle
         if (isPanoChangingRef.current) {
-          // Pitch çok fazla sapmışsa (göğe bakma) düzelt
           if (Math.abs(currentPov.pitch) > 45) {
             panoramaRef.current.setPov({
               heading: currentPov.heading,
@@ -322,34 +322,17 @@ export function useStreetView() {
         }
 
         // ============================================
-        // iPHONE 14 PRO MAX FIX: Pitch'i -60 ile +30 arası sınırla
-        // iOS'ta bazen pitch aniden -90'a (gökyüzü) atlıyor
+        // iPHONE BUG FIX: Ani pitch sıçramalarını tespit et ve düzelt
+        // Normal kullanımda pitch yavaş yavaş değişir (drag ile)
+        // Bug durumunda pitch aniden -90'a veya +90'a atlıyor
         // ============================================
-        const MAX_PITCH_UP = 30;    // Yukarı bakma limiti
-        const MAX_PITCH_DOWN = -60; // Aşağı bakma limiti
-
-        if (currentPov.pitch > MAX_PITCH_UP) {
-          panoramaRef.current.setPov({
-            heading: currentPov.heading,
-            pitch: MAX_PITCH_UP,
-          });
-          return;
-        }
-
-        if (currentPov.pitch < MAX_PITCH_DOWN) {
-          panoramaRef.current.setPov({
-            heading: currentPov.heading,
-            pitch: MAX_PITCH_DOWN,
-          });
-          return;
-        }
-
-        // Geçerli pitch'i kaydet (ani sıçramaları tespit için)
         const pitchDelta = Math.abs(currentPov.pitch - lastValidPitchRef.current);
 
-        // Ani sıçrama tespiti: 40 dereceden fazla ani değişim = bug
-        if (pitchDelta > 40 && !isTouchActiveRef.current) {
-          console.warn("Pitch jump detected, resetting:", currentPov.pitch, "->", lastValidPitchRef.current);
+        // Ani sıçrama tespiti: 25+ derece ani değişim VE pitch çok yüksek/düşük = bug
+        const isAbnormalJump = pitchDelta > 25 && (currentPov.pitch < -70 || currentPov.pitch > 70);
+
+        if (isAbnormalJump) {
+          console.warn("iPhone pitch bug detected:", currentPov.pitch, "-> reverting to:", lastValidPitchRef.current);
           panoramaRef.current.setPov({
             heading: currentPov.heading,
             pitch: lastValidPitchRef.current,
@@ -357,33 +340,59 @@ export function useStreetView() {
           return;
         }
 
+        // Geçerli pitch'i kaydet
         lastValidPitchRef.current = currentPov.pitch;
       });
 
       // ============================================
       // iPHONE TOUCH EVENT FIX
       // ============================================
-      // Touch başlangıç ve bitiş olaylarını dinle
+      // iPhone'da touch event sırasında pitch bug'ı oluşuyor
+      // Touch başında mevcut pitch'i kaydet, touch sonunda kontrol et
       const container = streetViewRef.current;
       if (container) {
-        const handleTouchStart = () => {
+        let touchStartPitch = 0;
+        let touchStartTime = 0;
+
+        const handleTouchStart = (e: TouchEvent) => {
           isTouchActiveRef.current = true;
+          touchStartTime = Date.now();
+
+          // Touch başında mevcut pitch'i kaydet
+          if (panoramaRef.current) {
+            touchStartPitch = panoramaRef.current.getPov().pitch || 0;
+          }
+
           // Önceki timeout'u temizle
           if (pitchResetTimeoutRef.current) {
             clearTimeout(pitchResetTimeoutRef.current);
           }
         };
 
-        const handleTouchEnd = () => {
-          // Touch bittikten 200ms sonra kontrolü aç
+        const handleTouchEnd = (e: TouchEvent) => {
+          const touchDuration = Date.now() - touchStartTime;
+
+          // Touch bittikten 100ms sonra kontrol et
           pitchResetTimeoutRef.current = setTimeout(() => {
             isTouchActiveRef.current = false;
 
-            // Touch sonrası pitch'i kontrol et ve gerekirse düzelt
             if (panoramaRef.current) {
               const currentPov = panoramaRef.current.getPov();
-              if (Math.abs(currentPov.pitch) > 60) {
-                console.log("Post-touch pitch fix:", currentPov.pitch, "-> 0");
+              const pitchChange = Math.abs(currentPov.pitch - touchStartPitch);
+
+              // Kısa dokunuş (<300ms) + büyük pitch değişimi (>50°) = bug
+              // Normal drag ile bu kadar hızlı pitch değişimi olmaz
+              if (touchDuration < 300 && pitchChange > 50) {
+                console.log("iPhone touch bug fix: rapid pitch change detected", currentPov.pitch, "->", touchStartPitch);
+                panoramaRef.current.setPov({
+                  heading: currentPov.heading,
+                  pitch: touchStartPitch,
+                });
+                lastValidPitchRef.current = touchStartPitch;
+              }
+              // Uzun dokunuş ama aşırı pitch değeri = bug
+              else if (Math.abs(currentPov.pitch) > 80) {
+                console.log("iPhone touch bug fix: extreme pitch detected", currentPov.pitch, "-> 0");
                 panoramaRef.current.setPov({
                   heading: currentPov.heading,
                   pitch: 0,
@@ -391,14 +400,11 @@ export function useStreetView() {
                 lastValidPitchRef.current = 0;
               }
             }
-          }, 200);
+          }, 100);
         };
 
         container.addEventListener("touchstart", handleTouchStart, { passive: true });
         container.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-        // Cleanup için event listener'ları kaldır
-        // Not: Bu cleanup panorama destroy edildiğinde çalışacak
       }
     },
     [initializeGoogleMaps]
