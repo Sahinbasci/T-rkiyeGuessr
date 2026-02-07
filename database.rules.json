@@ -66,11 +66,39 @@
         },
 
         "createdAt": {
-          ".validate": "newData.isNumber() && newData.val() <= now"
+          ".validate": "newData.isNumber()"
         },
 
         "lastActivityAt": {
-          ".validate": "newData.isNumber() && newData.val() <= now"
+          ".validate": "newData.isNumber()"
+        },
+
+        "lastActiveAt": {
+          ".validate": "!newData.exists() || newData.isNumber()"
+        },
+
+        "roundState": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^(waiting|active|ended)$/))"
+        },
+
+        "roundVersion": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)"
+        },
+
+        "activePlayerCount": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)"
+        },
+
+        "expectedGuesses": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)"
+        },
+
+        "currentGuesses": {
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)"
+        },
+
+        "$other": {
+          ".validate": false
         },
 
         "players": {
@@ -132,7 +160,11 @@
             },
 
             "movesUsed": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= root.child('rooms').child($roomId).child('moveLimit').val() && ((!data.exists() && newData.val() <= 1) || (newData.val() === data.val() + 1) || (newData.val() === 0))"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10"
+            },
+
+            "$other": {
+              ".validate": false
             }
           }
         }
