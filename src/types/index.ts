@@ -86,6 +86,9 @@ export interface Player {
   currentGuess: Coordinates | null;
   hasGuessed: boolean;
   roundScores: number[];
+  // Server-side move enforcement
+  movesUsed: number;             // Round başına kullanılan hareket (Firebase transaction ile artırılır)
+
   // Presence & Rejoin için yeni alanlar
   status: PlayerStatus;
   lastSeen: number;              // Server timestamp - son heartbeat

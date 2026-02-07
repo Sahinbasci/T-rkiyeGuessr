@@ -12,7 +12,15 @@ export type TelemetryEvent =
   | "submitGuess"
   | "timeUp"
   | "gameEnd"
-  | "error";
+  | "error"
+  | "move"
+  | "ghostClickSuppressed"
+  | "moveRejected"
+  | "desyncDetected"
+  | "serverMoveAccepted"
+  | "serverMoveRejected"
+  | "rateLimitTriggered"
+  | "duplicatePanoPrevented";
 
 // Event data structure
 interface TelemetryEventData {
@@ -76,6 +84,14 @@ export function initTelemetry(): void {
       timeUp: 0,
       gameEnd: 0,
       error: 0,
+      move: 0,
+      ghostClickSuppressed: 0,
+      moveRejected: 0,
+      desyncDetected: 0,
+      serverMoveAccepted: 0,
+      serverMoveRejected: 0,
+      rateLimitTriggered: 0,
+      duplicatePanoPrevented: 0,
     },
     duplicateAttempts: {
       roundEnd: [],
@@ -88,7 +104,7 @@ export function initTelemetry(): void {
     errors: [],
   };
 
-  console.log(`[Telemetry] Session started: ${session.sessionId}`);
+  console.log(`[Telemetry] Session started: ${session!.sessionId}`);
 
   // Setup global error handler
   if (typeof window !== "undefined") {
@@ -319,6 +335,14 @@ function getLogStyle(event: TelemetryEvent): string {
     timeUp: "background: #ec4899; color: white; padding: 2px 6px; border-radius: 3px;",
     gameEnd: "background: #14b8a6; color: white; padding: 2px 6px; border-radius: 3px;",
     error: "background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;",
+    move: "background: #6366f1; color: white; padding: 2px 6px; border-radius: 3px;",
+    ghostClickSuppressed: "background: #f97316; color: white; padding: 2px 6px; border-radius: 3px;",
+    moveRejected: "background: #ef4444; color: white; padding: 2px 6px; border-radius: 3px;",
+    desyncDetected: "background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;",
+    serverMoveAccepted: "background: #22c55e; color: white; padding: 2px 6px; border-radius: 3px;",
+    serverMoveRejected: "background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;",
+    rateLimitTriggered: "background: #f97316; color: white; padding: 2px 6px; border-radius: 3px;",
+    duplicatePanoPrevented: "background: #a855f7; color: white; padding: 2px 6px; border-radius: 3px;",
   };
   return styles[event];
 }

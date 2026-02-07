@@ -19,6 +19,10 @@ export const RATE_LIMITS = {
 
   // API çağrısı: Oyuncu başına dakikada max
   API_CALLS_PER_MINUTE: 30,
+
+  // Hareket rate limit (maliyet koruması)
+  MOVE_PER_SECOND: 1,
+  MOVE_PER_10_SECONDS: 3,
 } as const;
 
 // ==================== ROOM LIFECYCLE ====================
@@ -77,8 +81,8 @@ export const API_COST_CONTROL = {
   // Pano cache süresi (ms)
   PANO_CACHE_TTL_MS: 24 * 60 * 60 * 1000, // 24 saat
 
-  // Dinamik pano üretimi denemesi
-  MAX_PANO_GENERATION_ATTEMPTS: 10,
+  // Dinamik pano üretimi denemesi (maliyet kontrolü: 2 deneme × 5 API call = max 10)
+  MAX_PANO_GENERATION_ATTEMPTS: 2,
 } as const;
 
 // ==================== SECURITY ====================
@@ -182,7 +186,10 @@ export function isValidPlayerId(id: string): boolean {
 export function isValidPlayerName(name: string): boolean {
   const { NAME_MIN_LENGTH, NAME_MAX_LENGTH } = SECURITY;
   const trimmed = name.trim();
-  return trimmed.length >= NAME_MIN_LENGTH && trimmed.length <= NAME_MAX_LENGTH;
+  if (trimmed.length < NAME_MIN_LENGTH || trimmed.length > NAME_MAX_LENGTH) return false;
+  // HTML/script injection karakterlerini engelle
+  if (/[<>"'&]/.test(trimmed)) return false;
+  return true;
 }
 
 /**

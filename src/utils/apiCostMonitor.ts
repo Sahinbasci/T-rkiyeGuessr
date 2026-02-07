@@ -182,7 +182,7 @@ class ApiCostMonitor {
 // Singleton instance
 export const apiCostMonitor = new ApiCostMonitor();
 
-// Debug fonksiyonu (console'dan erişim için)
-if (typeof window !== "undefined") {
+// Debug fonksiyonu — sadece development'ta console'dan erişim
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   (window as unknown as Record<string, unknown>).__apiCostMonitor = apiCostMonitor;
 }

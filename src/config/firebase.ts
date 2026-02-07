@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, get, onValue, update, remove, push, onDisconnect, runTransaction, serverTimestamp } from "firebase/database";
+import { getAuth, signInAnonymously, onAuthStateChanged, type User } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,5 +14,39 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const auth = getAuth(app);
 
-export { database, ref, set, get, onValue, update, remove, push, onDisconnect, runTransaction, serverTimestamp };
+// Anonymous Auth: Uygulama başladığında otomatik giriş yap
+let authReady: Promise<User>;
+const authReadyPromise = new Promise<User>((resolve) => {
+  authReady = signInAnonymously(auth).then((cred) => {
+    return cred.user;
+  }).catch((err) => {
+    console.error("[Auth] Anonymous sign-in failed:", err);
+    throw err;
+  });
+  // Eğer zaten giriş yapılmışsa onAuthStateChanged ile yakala
+  const unsub = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      resolve(user);
+      unsub();
+    }
+  });
+});
+
+/**
+ * Auth UID'yi al — auth hazır olana kadar bekler
+ */
+export async function getAuthUid(): Promise<string> {
+  const user = await authReadyPromise;
+  return user.uid;
+}
+
+/**
+ * Senkron auth UID — sadece auth hazır olduktan sonra kullan
+ */
+export function getAuthUidSync(): string | null {
+  return auth.currentUser?.uid || null;
+}
+
+export { database, ref, set, get, onValue, update, remove, push, onDisconnect, runTransaction, serverTimestamp, auth };

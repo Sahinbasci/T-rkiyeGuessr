@@ -6,7 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Tek worker - multiplayer senkronizasyonu için
-  reporter: 'html',
+  reporter: process.env.CI ? 'github' : 'html',
   timeout: 120000, // 2 dakika timeout
 
   use: {
@@ -25,18 +25,37 @@ export default defineConfig({
   },
 
   projects: [
-    // Mobil cihazlar - 6 kişilik multiplayer testi
+    // =========================================================
+    // Navigation Engine Tests - Mobile Emulation
+    // =========================================================
+    {
+      name: 'Navigation - iPhone 14',
+      testMatch: 'navigation.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
+    {
+      name: 'Navigation - Pixel 7',
+      testMatch: 'navigation.spec.ts',
+      use: { ...devices['Pixel 7'] },
+    },
+
+    // =========================================================
+    // Multiplayer & General Tests
+    // =========================================================
     {
       name: 'Mobile Safari (iPhone 14)',
+      testMatch: 'multiplayer.spec.ts',
       use: { ...devices['iPhone 14'] },
     },
     {
       name: 'Mobile Chrome (Pixel 7)',
+      testMatch: 'multiplayer.spec.ts',
       use: { ...devices['Pixel 7'] },
     },
     // Desktop test
     {
       name: 'Desktop Chrome',
+      testMatch: 'multiplayer.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
   ],

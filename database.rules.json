@@ -6,15 +6,15 @@
 
       "$roomId": {
         ".validate": "$roomId.matches(/^[A-Z0-9]{6}$/)",
-        ".read": true,
-        ".write": "!data.exists() || data.exists()",
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('hostId').val() == auth.uid || data.child('players').child(auth.uid).exists())",
 
         "id": {
           ".validate": "newData.isString() && newData.val() == $roomId"
         },
 
         "hostId": {
-          ".validate": "newData.isString() && newData.val().length >= 10 && newData.val().length <= 20"
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 128"
         },
 
         "status": {
@@ -75,9 +75,9 @@
 
         "players": {
           "$playerId": {
-            ".validate": "$playerId.matches(/^[a-z0-9]{10,20}$/)",
-            ".read": true,
-            ".write": true,
+            ".validate": "$playerId.matches(/^.{1,128}$/)",
+            ".read": "auth != null",
+            ".write": "auth != null && (auth.uid == $playerId || root.child('rooms').child($roomId).child('hostId').val() == auth.uid)",
 
             "id": {
               ".validate": "newData.isString() && newData.val() == $playerId"
@@ -113,6 +113,26 @@
 
             "joinedAt": {
               ".validate": "!newData.exists() || newData.isNumber()"
+            },
+
+            "status": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^(online|offline|disconnected)$/))"
+            },
+
+            "lastSeen": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+
+            "disconnectedAt": {
+              ".validate": "!newData.exists() || newData.isNumber()"
+            },
+
+            "sessionToken": {
+              ".validate": "!newData.exists() || (newData.isString() && newData.val().length >= 10)"
+            },
+
+            "movesUsed": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= root.child('rooms').child($roomId).child('moveLimit').val() && ((!data.exists() && newData.val() <= 1) || (newData.val() === data.val() + 1) || (newData.val() === 0))"
             }
           }
         }

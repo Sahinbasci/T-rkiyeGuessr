@@ -52,4 +52,7 @@ vi.mock('@/config/firebase', () => ({
   update: vi.fn(),
   remove: vi.fn(),
   onDisconnect: vi.fn(() => ({ remove: vi.fn(), cancel: vi.fn() })),
+  runTransaction: vi.fn(() => Promise.resolve({ committed: true, snapshot: { val: () => 1 } })),
+  serverTimestamp: vi.fn(() => ({ '.sv': 'timestamp' })),
+  push: vi.fn(),
 }));

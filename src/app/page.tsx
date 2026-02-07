@@ -105,7 +105,7 @@ export default function HomePage() {
     returnToStart,
     // Navigation feedback
     navigationError,
-  } = useStreetView();
+  } = useStreetView(room?.id, playerId);
 
   const { guessMapRef, initializeMap, resetMap } = useGuessMap(setGuessLocation);
 

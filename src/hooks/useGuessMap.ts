@@ -211,6 +211,5 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
     initializeMap,
     resetMap,
     showResults,
-    map: mapRef.current,
   };
 }

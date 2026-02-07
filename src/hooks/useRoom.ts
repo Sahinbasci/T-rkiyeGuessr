@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { database, ref, set, get, onValue, update, remove, onDisconnect, runTransaction, serverTimestamp } from "@/config/firebase";
+import { database, ref, set, get, onValue, update, remove, onDisconnect, runTransaction, serverTimestamp, getAuthUid } from "@/config/firebase";
 import {
   Room,
   Player,
@@ -25,7 +25,6 @@ import {
 } from "@/types";
 import {
   generateRoomCode,
-  generatePlayerId,
   calculateDistance,
   calculateScore,
   canCreateRoom,
@@ -513,7 +512,7 @@ export function useRoom() {
 
     try {
       const roomCode = generateRoomCode();
-      const odlayerId = generatePlayerId();
+      const odlayerId = await getAuthUid();
       const sessionToken = generateSessionToken();
       const modeConfig = GAME_MODE_CONFIG[gameMode];
       const now = Date.now();
@@ -525,6 +524,7 @@ export function useRoom() {
         totalScore: 0,
         currentGuess: null,
         hasGuessed: false,
+        movesUsed: 0,
         roundScores: [],
         // Yeni presence alanları
         status: 'online' as PlayerStatus,
@@ -698,7 +698,7 @@ export function useRoom() {
         return false;
       }
 
-      const odlayerId = generatePlayerId();
+      const odlayerId = await getAuthUid();
       const sessionToken = generateSessionToken();
       const now = Date.now();
 
@@ -709,6 +709,7 @@ export function useRoom() {
         totalScore: 0,
         currentGuess: null,
         hasGuessed: false,
+        movesUsed: 0,
         roundScores: [],
         // Yeni presence alanları
         status: 'online' as PlayerStatus,
@@ -796,6 +797,7 @@ export function useRoom() {
           ...player,
           currentGuess: null,
           hasGuessed: false,
+        movesUsed: 0,
         };
       });
 
@@ -841,6 +843,7 @@ export function useRoom() {
           ...player,
           currentGuess: null,
           hasGuessed: false,
+        movesUsed: 0,
         };
       });
 
@@ -1092,6 +1095,7 @@ export function useRoom() {
             ...player,
             currentGuess: null,
             hasGuessed: false,
+        movesUsed: 0,
           };
         });
 
@@ -1146,6 +1150,7 @@ export function useRoom() {
             ...player,
             currentGuess: null,
             hasGuessed: false,
+        movesUsed: 0,
           };
         });
 
@@ -1291,6 +1296,7 @@ export function useRoom() {
         totalScore: 0,
         currentGuess: null,
         hasGuessed: false,
+        movesUsed: 0,
         roundScores: [],
       };
 
