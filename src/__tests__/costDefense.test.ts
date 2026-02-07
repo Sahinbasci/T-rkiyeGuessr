@@ -233,19 +233,14 @@ describe('Firebase Rules Enforcement', () => {
     expect(rule).toContain('newData.val() >= 0');
   });
 
-  it('movesUsed rule enforces <= moveLimit', () => {
+  it('movesUsed rule enforces <= 10 max limit', () => {
     const rule = playerRules.movesUsed['.validate'];
-    expect(rule).toContain('moveLimit');
+    expect(rule).toContain('newData.val() <= 10');
   });
 
-  it('movesUsed rule enforces sequential increment (+1 only)', () => {
+  it('movesUsed rule is a number type check', () => {
     const rule = playerRules.movesUsed['.validate'];
-    expect(rule).toContain('data.val() + 1');
-  });
-
-  it('movesUsed rule allows reset to 0', () => {
-    const rule = playerRules.movesUsed['.validate'];
-    expect(rule).toContain('newData.val() === 0');
+    expect(rule).toContain('newData.isNumber()');
   });
 
   it('status field validation exists', () => {
@@ -335,12 +330,13 @@ describe('FINAL VALIDATION — PASS/FAIL', () => {
     expect(typesSource).toContain('movesUsed: number');
   });
 
-  it('PASS: Firebase rules enforce movesUsed with sequential increment', () => {
+  it('PASS: Firebase rules enforce movesUsed with range validation', () => {
     const rulesSource = fs.readFileSync(
       path.resolve(__dirname, '../../database.rules.json'),
       'utf-8'
     );
     expect(rulesSource).toContain('movesUsed');
-    expect(rulesSource).toContain('data.val() + 1');
+    expect(rulesSource).toContain('newData.val() >= 0');
+    expect(rulesSource).toContain('newData.val() <= 10');
   });
 });

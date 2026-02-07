@@ -114,8 +114,6 @@ export default function HomePage() {
     timeRemaining,
     formattedTime,
     isRunning: timerRunning,
-    start: startTimer,
-    reset: resetTimer,
     percentRemaining,
   } = useTimer({
     initialTime: room?.timeLimit || 90,
@@ -133,7 +131,7 @@ export default function HomePage() {
   // Round ve timer tracking (effects'lerden önce tanımlanmalı)
   const prevRoundRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
-  const timerStartedForRoundRef = useRef<number | null>(null);
+  // timerStartedForRoundRef kaldırıldı — timer yönetimi useTimer hook'a devredildi
 
   // ==================== EFFECTS ====================
 
@@ -167,13 +165,8 @@ export default function HomePage() {
         // Hareket hakkını ayarla (oda ayarlarından)
         setMoves(room.moveLimit || 3);
         await showPanoPackage(room.currentPanoPackage);
-        // Timer başlatma round effect'inde yapılıyor (duplicate önleme)
-        // Sadece timer henüz başlatılmamışsa burada başlat
-        if (timerStartedForRoundRef.current !== room.currentRound) {
-          timerStartedForRoundRef.current = room.currentRound;
-          resetTimer(room.timeLimit);
-          startTimer();
-        }
+        // Timer yönetimi useTimer hook'una bırakıldı (serverStartTime tabanlı)
+        // Manuel resetTimer/startTimer çağrılmaz — çift çağrı race condition yaratıyordu
       } else if (room.currentPanoPackageId) {
         // Eski sistem (geriye uyumluluk)
         setMoves(room.moveLimit || 3);
@@ -205,19 +198,10 @@ export default function HomePage() {
       resetMoves();
       setMoves(room.moveLimit || 3); // Oda ayarlarından hareket hakkı
 
-      // TIMER FIX: Timer'ı sadece bir kez başlat (duplicate önleme)
-      if (timerStartedForRoundRef.current !== room.currentRound) {
-        timerStartedForRoundRef.current = room.currentRound;
-
-        // Timer'ı reset et ve başlat - sıralı çağrı garantisi
-        resetTimer(room.timeLimit);
-
-        // Küçük gecikme ile timer'ı başlat (reset'in tamamlanmasını bekle)
-        requestAnimationFrame(() => {
-          startTimer();
-          console.log(`Timer started for round ${room.currentRound}`);
-        });
-      }
+      // Timer yönetimi useTimer hook'una bırakıldı (serverStartTime tabanlı)
+      // useTimer, room.roundStartTime değiştiğinde otomatik olarak timer'ı başlatır
+      // Manuel resetTimer/startTimer çağrılmaz — çift çağrı race condition yaratıyordu
+      console.log(`Round ${room.currentRound} state reset done, timer managed by useTimer hook`);
 
       // Haritayı küçült
       setMapExpanded(false);
@@ -231,9 +215,9 @@ export default function HomePage() {
     // Status "waiting" olduğunda ref'leri sıfırla (yeni oyun için)
     if (room?.status === "waiting") {
       prevRoundRef.current = null;
-      timerStartedForRoundRef.current = null;
+      // Timer ref'leri useTimer hook'a devredildi
     }
-  }, [room?.currentRound, room?.status, room?.timeLimit, room?.moveLimit, resetTimer, startTimer, resetMap, resetMoves, setMoves]);
+  }, [room?.currentRound, room?.status, room?.timeLimit, room?.moveLimit, resetMap, resetMoves, setMoves]);
 
   // Lobby'ye git (oyun başladıysa)
   useEffect(() => {
