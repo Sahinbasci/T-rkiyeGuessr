@@ -677,15 +677,69 @@ export function useStreetView(roomId?: string, playerId?: string) {
     async (panoPackage: PanoPackage) => {
       setIsLoading(true);
       try {
+        await initializeGoogleMaps();
         resetMoves();
-        await showStreetView(panoPackage.pano0.panoId, panoPackage.pano0.heading);
+
+        // Google pano ID'leri zamanla expire olabilir.
+        // Önce ID'yi doğrula, geçersizse koordinatlardan taze ID al.
+        let resolvedPanoId = panoPackage.pano0.panoId;
+        let resolvedHeading = panoPackage.pano0.heading;
+
+        if (!streetViewServiceRef.current) {
+          streetViewServiceRef.current = new google.maps.StreetViewService();
+        }
+
+        // 1) Mevcut pano ID'sini doğrula
+        const idValid = await new Promise<boolean>((resolve) => {
+          streetViewServiceRef.current!.getPanorama(
+            { pano: resolvedPanoId },
+            (_data, status) => {
+              resolve(status === google.maps.StreetViewStatus.OK);
+            }
+          );
+        });
+
+        if (!idValid) {
+          // 2) Pano ID expire olmuş — koordinatlardan taze ID al
+          console.warn(`[Nav] Pano ID expired, resolving from coords: ${panoPackage.locationName}`);
+          const freshResult = await new Promise<{ panoId: string; heading: number } | null>((resolve) => {
+            streetViewServiceRef.current!.getPanorama(
+              {
+                location: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
+                radius: 1000,
+                preference: google.maps.StreetViewPreference.NEAREST,
+                source: google.maps.StreetViewSource.OUTDOOR,
+              },
+              (data, status) => {
+                if (status === google.maps.StreetViewStatus.OK && data?.location?.pano) {
+                  resolve({ panoId: data.location.pano, heading: resolvedHeading });
+                } else {
+                  resolve(null);
+                }
+              }
+            );
+          });
+
+          if (freshResult) {
+            resolvedPanoId = freshResult.panoId;
+            resolvedHeading = freshResult.heading;
+            console.log(`[Nav] Fresh pano resolved: ${resolvedPanoId.substring(0, 20)}...`);
+          } else {
+            console.error(`[Nav] Could not resolve pano from coords for ${panoPackage.locationName}`);
+            setError("Konum yüklenemedi");
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        await showStreetView(resolvedPanoId, resolvedHeading);
         setIsLoading(false);
       } catch (err) {
         setError("Konum yüklenemedi");
         setIsLoading(false);
       }
     },
-    [showStreetView, resetMoves]
+    [initializeGoogleMaps, showStreetView, resetMoves]
   );
 
   const showStreetViewFromCoords = useCallback(
