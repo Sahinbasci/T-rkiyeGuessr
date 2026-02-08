@@ -8,6 +8,7 @@
  */
 
 import { PanoPackage, GameMode, PanoData } from "@/types";
+import { selectStaticPackage, resetLocationEngine, getEnrichmentReport } from "./locationEngine";
 
 // ==================== TÜRKİYE BÖLGE VERİLERİ ====================
 // Her bölge için koordinat sınırları ve ağırlıklar
@@ -588,41 +589,10 @@ let staticUsedIds: Set<string> = new Set();
 
 /**
  * Statik havuzdan benzersiz pano seç (fallback)
- * Urban mod: Province bag'dan gelen ilin paketini tercih eder (stratified)
- * Geo mod: Mevcut rastgele seçim
+ * Delegated to LocationEngine for difficulty-aware, anti-repeat selection.
  */
 export function getStaticPanoPackage(mode: GameMode, preferredProvince?: string): PanoPackage | null {
-  const packages = mode === "urban" ? URBAN_PACKAGES : GEO_PACKAGES;
-
-  // Kullanılmamış paketleri bul
-  const available = packages.filter(p => !staticUsedIds.has(p.id) && !p.blacklist);
-
-  if (available.length === 0) {
-    // Tüm paketler kullanılmış, havuzu sıfırla
-    staticUsedIds.clear();
-    console.log("Statik pano havuzu sıfırlandı");
-    // Province-aware fallback bile olsa sıfırlama sonrası tüm havuzdan seç
-    return packages[Math.floor(Math.random() * packages.length)];
-  }
-
-  // Urban mode + preferred province: İl bazlı filtreleme
-  if (mode === "urban" && preferredProvince) {
-    const provincePackages = available.filter(p =>
-      p.locationName.includes(preferredProvince)
-    );
-    if (provincePackages.length > 0) {
-      const selected = provincePackages[Math.floor(Math.random() * provincePackages.length)];
-      staticUsedIds.add(selected.id);
-      console.log(`[Static] Province-matched: ${selected.locationName} (${preferredProvince})`);
-      return selected;
-    }
-    // Bu il için statik paket yok — genel havuzdan seç
-    console.log(`[Static] No package for province: ${preferredProvince}, using random`);
-  }
-
-  const selected = available[Math.floor(Math.random() * available.length)];
-  staticUsedIds.add(selected.id);
-  return selected;
+  return selectStaticPackage(mode, preferredProvince);
 }
 
 /**
@@ -696,5 +666,8 @@ export function onNewGameStart(): void {
   resetUsedLocations();
   resetStaticUsage();
   resetProvinceBag();
+  resetLocationEngine();
+  // Generate enrichment report on first game (lazy)
+  getEnrichmentReport();
   console.log("Yeni oyun: Tüm pano kullanımları ve province bag sıfırlandı");
 }
