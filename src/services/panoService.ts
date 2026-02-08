@@ -14,11 +14,12 @@ import {
   initStreetViewService,
   getUsedLocationCount,
   resetUsedLocations,
+  resetProvinceBag,
 } from "./dynamicPanoService";
 import { URBAN_PACKAGES, GEO_PACKAGES, getRandomPanoPackageFromData } from "@/data/panoPackages";
 
 // Re-export dinamik servis fonksiyonları
-export { initStreetViewService, onNewGameStart, getUsedLocationCount, resetUsedLocations };
+export { initStreetViewService, onNewGameStart, getUsedLocationCount, resetUsedLocations, resetProvinceBag };
 
 /**
  * Belirli bir mod için benzersiz pano paketi getir

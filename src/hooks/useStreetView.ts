@@ -587,12 +587,6 @@ export function useStreetView(roomId?: string, playerId?: string) {
         }
         lastClickTimeRef.current = now;
 
-        // FIX #4: Use ref instead of stale state closure
-        if (isMovementLockedRef.current) {
-          navigationMetrics.moveRejectedCount++;
-          return;
-        }
-
         if (!panoramaRef.current) return;
 
         const currentPov = panoramaRef.current.getPov();
@@ -617,6 +611,26 @@ export function useStreetView(roomId?: string, playerId?: string) {
           setNavigationError("Bu yönde gidilebilecek yol yok");
           setTimeout(() => setNavigationError(null), 2000);
           return;
+        }
+
+        // NAV-001 FIX: Movement lock check AFTER link resolution.
+        // When locked, allow navigation ONLY to already-visited panos or start pano.
+        // Previously this check was BEFORE link resolution, which blocked ALL navigation
+        // including revisits to cached panos — breaking return-to-start backtracking.
+        // The pano_changed handler already correctly skips budget consumption for cached panos.
+        // No infinite traversal risk: only pre-visited nodes are reachable when locked.
+        if (isMovementLockedRef.current) {
+          const targetPanoId = nearestLink.pano;
+          const isTargetCached = targetPanoId &&
+            (visitedPanosRef.current.has(targetPanoId) || targetPanoId === startPanoIdRef.current);
+
+          if (!isTargetCached) {
+            navigationMetrics.moveRejectedCount++;
+            setNavigationError("Hareket hakkın bitti!");
+            setTimeout(() => setNavigationError(null), 2000);
+            return;
+          }
+          // Target is cached — allow navigation (no budget consumed, enforced by pano_changed)
         }
 
         console.log(`[Nav] Click navigate: heading=${nearestLink.heading?.toFixed(0)}°, pano=${nearestLink.pano?.substring(0, 8)}...`);

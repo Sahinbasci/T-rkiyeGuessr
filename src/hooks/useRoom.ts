@@ -458,11 +458,22 @@ export function useRoom() {
                     };
                   });
 
-                  await update(ref(database, `rooms/${freshRoom.id}`), {
-                    status: "roundEnd",
-                    roundState: 'ended',
-                    roundResults: results,
-                    players: updatedPlayers,
+                  // MP-001 FIX: Use runTransaction for atomic round end.
+                  // Prevents race where two rapid onValue callbacks both write roundEnd.
+                  // Transaction checks status is still "playing" before transitioning.
+                  const roomRefForRoundEnd = ref(database, `rooms/${freshRoom.id}`);
+                  await runTransaction(roomRefForRoundEnd, (currentRoom) => {
+                    if (!currentRoom) return currentRoom;
+                    // GUARD: Only transition if still playing (another process may have already transitioned)
+                    if (currentRoom.status !== "playing") return; // abort
+                    if (currentRoom.currentRound !== currentRoundId) return; // abort — round changed
+                    return {
+                      ...currentRoom,
+                      status: "roundEnd",
+                      roundState: 'ended',
+                      roundResults: results,
+                      players: updatedPlayers,
+                    };
                   });
 
                   trackEvent("roundEnd", { roundId: currentRoundId, trigger: "allGuessed" });
@@ -1052,11 +1063,18 @@ export function useRoom() {
         };
       });
 
-      await update(ref(database, `rooms/${latestRoom.id}`), {
-        status: "roundEnd",
-        roundState: 'ended',
-        roundResults: results,
-        players: updatedPlayers,
+      // MP-001 FIX: Atomic transition via runTransaction (same pattern as allGuessed)
+      const roomRefForTimeUp = ref(database, `rooms/${latestRoom.id}`);
+      await runTransaction(roomRefForTimeUp, (currentRoom) => {
+        if (!currentRoom) return currentRoom;
+        if (currentRoom.status !== "playing") return; // abort — already transitioned
+        return {
+          ...currentRoom,
+          status: "roundEnd",
+          roundState: 'ended',
+          roundResults: results,
+          players: updatedPlayers,
+        };
       });
 
       trackEvent("roundEnd", { roundId: latestRoom.currentRound, trigger: "timeUp" });
@@ -1253,11 +1271,18 @@ export function useRoom() {
               }
             });
 
-            await update(ref(database, `rooms/${room.id}`), {
-              status: "roundEnd",
-              roundState: 'ended',
-              roundResults: results,
-              players: updatedPlayers,
+            // MP-001 FIX: Atomic transition via runTransaction
+            const roomRefForLeave = ref(database, `rooms/${room.id}`);
+            await runTransaction(roomRefForLeave, (currentRoom) => {
+              if (!currentRoom) return currentRoom;
+              if (currentRoom.status !== "playing") return; // abort
+              return {
+                ...currentRoom,
+                status: "roundEnd",
+                roundState: 'ended',
+                roundResults: results,
+                players: updatedPlayers,
+              };
             });
           } finally {
             isProcessingRoundRef.current = false;

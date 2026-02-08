@@ -50,7 +50,11 @@ export const MAPS_CONFIG = {
     showRoadLabels: false,
     zoomControl: false,
     panControl: false,
-    linksControl: true,
+    // CRITICAL: linksControl must be false — Google's native arrow overlays bypass
+    // the custom navigation system in useStreetView.ts (move budget, rate limiting, etc.)
+    // The actual StreetView is initialized in useStreetView.ts with its own options object.
+    // This config serves as reference documentation only.
+    linksControl: false,
     motionTracking: false,
     motionTrackingControl: false,
   },

@@ -180,34 +180,87 @@ function getRandomCoordinateNearCity(city: CityData, mode: GameMode): { lat: num
   };
 }
 
+// ==================== PROVINCE BAG (HYBRID D1 MODEL) ====================
+// Stratified sampling: shuffled bag of ALL provinces, no repetition within session.
+// Each round pops next province. Ensures uniform geographic distribution.
+
+let provinceBag: CityData[] = [];
+let usedProvincesInSession: Set<string> = new Set();
+
 /**
- * Ağırlıklı rastgele şehir seç
+ * Fisher-Yates shuffle (in-place, unbiased)
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Province bag'i oluştur veya yenile
+ * Tüm 81 ili karıştırıp sıralı çekme havuzu yapar
+ */
+function ensureProvinceBag(mode: GameMode): void {
+  if (provinceBag.length > 0) return; // Hala çekilecek il var
+
+  // Bag boşalmış — tüm 81 ili yeniden doldur
+  // Urban mod: tüm iller dahil (her ilin şehir merkezi var)
+  // Geo mod: tüm iller dahil
+  provinceBag = shuffleArray([...TURKEY_CITIES]);
+  console.log(`[ProvinceBag] Bag refilled with ${provinceBag.length} provinces (mode=${mode})`);
+}
+
+/**
+ * Province bag'dan sonraki ili çek
+ * Session içinde tekrar etmez
+ */
+function popNextProvince(mode: GameMode): CityData {
+  ensureProvinceBag(mode);
+
+  // Session'da kullanılmamış bir il bul
+  while (provinceBag.length > 0) {
+    const city = provinceBag.pop()!;
+    if (!usedProvincesInSession.has(city.name)) {
+      usedProvincesInSession.add(city.name);
+      return city;
+    }
+  }
+
+  // Bag bitti ve tüm iller kullanılmış — session tracker'ı sıfırla
+  usedProvincesInSession.clear();
+  ensureProvinceBag(mode);
+  const city = provinceBag.pop()!;
+  usedProvincesInSession.add(city.name);
+  return city;
+}
+
+/**
+ * Province bag ve session tracker'ı sıfırla
+ */
+export function resetProvinceBag(): void {
+  provinceBag = [];
+  usedProvincesInSession.clear();
+}
+
+/**
+ * Şehir seç — HYBRID D1 MODEL
+ * Urban mod: Province bag'dan stratified çekim (tüm 81 il eşit şanslı)
+ * Geo mod: Mevcut ağırlıklı sistemi korur (doğa/kırsal odaklı)
  */
 function selectWeightedCity(mode: GameMode): CityData {
-  // Mod'a göre şehirleri filtrele ve ağırlıklandır
-  let weightedCities: { city: CityData; weight: number }[] = [];
-
   if (mode === "urban") {
-    // Urban mod: Sadece büyükşehirlere ağırlık ver
-    weightedCities = TURKEY_CITIES
-      .filter(city => city.isUrban) // Sadece büyükşehirler
-      .map(city => ({
-        city,
-        weight: city.population
-      }));
-  } else {
-    // Geo mod: Kırsal bölgelere ve doğa alanlarına ağırlık
-    // Büyükşehirleri hariç tut veya çok düşük ağırlık ver
-    weightedCities = TURKEY_CITIES.map(city => ({
-      city,
-      weight: city.isUrban ? city.population * 0.1 : city.population * 2 // Kırsal 20x daha fazla şans
-    }));
+    // HYBRID D1: Stratified province selection
+    return popNextProvince(mode);
   }
 
-  // Boş liste kontrolü
-  if (weightedCities.length === 0) {
-    weightedCities = TURKEY_CITIES.map(city => ({ city, weight: city.population }));
-  }
+  // Geo mod: Kırsal bölgelere ve doğa alanlarına ağırlık (mevcut davranış korunuyor)
+  let weightedCities: { city: CityData; weight: number }[] = TURKEY_CITIES.map(city => ({
+    city,
+    weight: city.isUrban ? city.population * 0.1 : city.population * 2
+  }));
 
   const totalWeight = weightedCities.reduce((sum, wc) => sum + wc.weight, 0);
   let random = Math.random() * totalWeight;
@@ -535,8 +588,10 @@ let staticUsedIds: Set<string> = new Set();
 
 /**
  * Statik havuzdan benzersiz pano seç (fallback)
+ * Urban mod: Province bag'dan gelen ilin paketini tercih eder (stratified)
+ * Geo mod: Mevcut rastgele seçim
  */
-export function getStaticPanoPackage(mode: GameMode): PanoPackage | null {
+export function getStaticPanoPackage(mode: GameMode, preferredProvince?: string): PanoPackage | null {
   const packages = mode === "urban" ? URBAN_PACKAGES : GEO_PACKAGES;
 
   // Kullanılmamış paketleri bul
@@ -546,7 +601,23 @@ export function getStaticPanoPackage(mode: GameMode): PanoPackage | null {
     // Tüm paketler kullanılmış, havuzu sıfırla
     staticUsedIds.clear();
     console.log("Statik pano havuzu sıfırlandı");
+    // Province-aware fallback bile olsa sıfırlama sonrası tüm havuzdan seç
     return packages[Math.floor(Math.random() * packages.length)];
+  }
+
+  // Urban mode + preferred province: İl bazlı filtreleme
+  if (mode === "urban" && preferredProvince) {
+    const provincePackages = available.filter(p =>
+      p.locationName.includes(preferredProvince)
+    );
+    if (provincePackages.length > 0) {
+      const selected = provincePackages[Math.floor(Math.random() * provincePackages.length)];
+      staticUsedIds.add(selected.id);
+      console.log(`[Static] Province-matched: ${selected.locationName} (${preferredProvince})`);
+      return selected;
+    }
+    // Bu il için statik paket yok — genel havuzdan seç
+    console.log(`[Static] No package for province: ${preferredProvince}, using random`);
   }
 
   const selected = available[Math.floor(Math.random() * available.length)];
@@ -564,27 +635,56 @@ export function resetStaticUsage(): void {
 // ==================== ENTEGRE SERVİS ====================
 
 /**
- * Ana pano getirme fonksiyonu
- * Önce dinamik üretimi dener, başarısız olursa statik havuzu kullanır
+ * Ana pano getirme fonksiyonu — HYBRID D1 MODEL
+ *
+ * Urban mod akışı:
+ * 1. Province bag'dan sonraki ili çek (stratified, no repetition)
+ * 2. Önce statik havuzda bu ilin paketi var mı bak
+ * 3. Yoksa dinamik üretimi dene (il merkezinde)
+ * 4. O da başarısızsa statik havuzdan rastgele seç
+ *
+ * Geo mod: Mevcut akış korunuyor (dinamik → statik fallback)
  */
 export async function getNextPanoPackage(mode: GameMode): Promise<PanoPackage> {
-  // Dinamik üretimi dene
-  const dynamicPano = await generateDynamicPanoPackage(mode);
+  if (mode === "urban") {
+    // PHASE 1: Province bag'dan il seç
+    const targetCity = popNextProvince(mode);
+    const provinceName = targetCity.name;
+    console.log(`[Urban D1] Target province: ${provinceName}`);
 
-  if (dynamicPano) {
-    return dynamicPano;
+    // PHASE 2: Statik havuzda bu il var mı?
+    const staticMatch = getStaticPanoPackage(mode, provinceName);
+    if (staticMatch && staticMatch.locationName.includes(provinceName)) {
+      console.log(`[Urban D1] Static match found: ${staticMatch.locationName}`);
+      return staticMatch;
+    }
+
+    // PHASE 3: Dinamik üretim (il merkezinde)
+    const dynamicPano = await generateDynamicPanoPackage(mode);
+    if (dynamicPano) {
+      return dynamicPano;
+    }
+
+    // PHASE 4: Statik fallback (rastgele)
+    if (staticMatch) {
+      console.log(`[Urban D1] Using static fallback: ${staticMatch.locationName}`);
+      return staticMatch;
+    }
+
+    const fallback = URBAN_PACKAGES[0];
+    console.warn("[Urban D1] Last resort fallback:", fallback.id);
+    return fallback;
   }
 
-  // Dinamik başarısız, statik havuzdan al
+  // GEO MOD: Mevcut akış
+  const dynamicPano = await generateDynamicPanoPackage(mode);
+  if (dynamicPano) return dynamicPano;
+
   console.log("Dinamik pano üretilemedi, statik havuz kullanılıyor");
   const staticPano = getStaticPanoPackage(mode);
+  if (staticPano) return staticPano;
 
-  if (staticPano) {
-    return staticPano;
-  }
-
-  // En son çare: ilk paketi döndür
-  const fallback = mode === "urban" ? URBAN_PACKAGES[0] : GEO_PACKAGES[0];
+  const fallback = GEO_PACKAGES[0];
   console.warn("Fallback pano kullanılıyor:", fallback.id);
   return fallback;
 }
@@ -595,5 +695,6 @@ export async function getNextPanoPackage(mode: GameMode): Promise<PanoPackage> {
 export function onNewGameStart(): void {
   resetUsedLocations();
   resetStaticUsage();
-  console.log("Yeni oyun: Tüm pano kullanımları sıfırlandı");
+  resetProvinceBag();
+  console.log("Yeni oyun: Tüm pano kullanımları ve province bag sıfırlandı");
 }
