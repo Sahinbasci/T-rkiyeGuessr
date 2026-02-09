@@ -8,7 +8,22 @@
  */
 
 import { PanoPackage, GameMode, PanoData } from "@/types";
-import { selectStaticPackage, resetLocationEngine, getEnrichmentReport } from "./locationEngine";
+import {
+  selectStaticPackage,
+  resetLocationEngine,
+  getEnrichmentReport,
+  getNextProvince,
+  shouldAttemptDynamic,
+  recordDynamicSelection,
+  getLastProvince,
+  incrementRoundCount,
+} from "./locationEngine";
+import {
+  mintDynamicPackage,
+  initDynamicGenerator,
+  isDynamicGeneratorReady,
+} from "./dynamicUrbanGenerator";
+import { initPersistentHistory } from "./persistentHistory";
 
 // ==================== TÜRKİYE BÖLGE VERİLERİ ====================
 // Her bölge için koordinat sınırları ve ağırlıklar
@@ -605,48 +620,70 @@ export function resetStaticUsage(): void {
 // ==================== ENTEGRE SERVİS ====================
 
 /**
- * Ana pano getirme fonksiyonu — HYBRID D1 MODEL
+ * Ana pano getirme fonksiyonu — HYBRID D2 MODEL (Dynamic Urban Generator)
  *
  * Urban mod akışı:
- * 1. Province bag'dan sonraki ili çek (stratified, no repetition)
- * 2. Önce statik havuzda bu ilin paketi var mı bak
- * 3. Yoksa dinamik üretimi dene (il merkezinde)
- * 4. O da başarısızsa statik havuzdan rastgele seç
+ * 1. LocationEngine'den province bag'dan sonraki ili çek
+ * 2. Check: should we attempt dynamic generation?
+ *    - Heavy player (30+ rounds) → always try dynamic first
+ *    - Province has no available static candidates → try dynamic
+ * 3. If dynamic: mint via dynamicUrbanGenerator (max 2 SV calls)
+ * 4. If dynamic fails OR not needed: use static locationEngine
+ * 5. If static also fails: last-resort static fallback (any province)
  *
- * Geo mod: Mevcut akış korunuyor (dinamik → statik fallback)
+ * Geo mod: Unchanged (dynamic → static fallback)
+ *
+ * MULTIPLAYER: Host-only minting. Host generates pano, writes to Firebase.
+ * All clients receive the same pano package via room state.
  */
-export async function getNextPanoPackage(mode: GameMode): Promise<PanoPackage> {
+export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promise<PanoPackage> {
   if (mode === "urban") {
-    // PHASE 1: Province bag'dan il seç
-    const targetCity = popNextProvince(mode);
-    const provinceName = targetCity.name;
-    console.log(`[Urban D1] Target province: ${provinceName}`);
+    // PHASE 1: Get target province from locationEngine's province bag
+    const provinceName = getNextProvince();
+    const lastProv = getLastProvince();
+    console.log(`[Urban D2] Target province: ${provinceName}, last: ${lastProv}`);
 
-    // PHASE 2: Statik havuzda bu il var mı?
+    // PHASE 2: Check if dynamic generation should be attempted
+    const tryDynamic = isDynamicGeneratorReady() && shouldAttemptDynamic(provinceName);
+
+    if (tryDynamic) {
+      console.log(`[Urban D2] Attempting dynamic mint for ${provinceName}`);
+      const mintResult = await mintDynamicPackage(provinceName, lastProv, roomId);
+
+      if (mintResult.package) {
+        console.log(`[Urban D2] Dynamic mint SUCCESS: ${mintResult.package.locationName} (${mintResult.attemptsUsed} attempts)`);
+        // Record in locationEngine's anti-repeat state
+        recordDynamicSelection(mintResult.package);
+        return mintResult.package;
+      }
+
+      console.log(`[Urban D2] Dynamic mint failed: ${mintResult.failReason} (${mintResult.attemptsUsed} attempts)`);
+    }
+
+    // PHASE 3: Static selection via locationEngine (preferred province)
     const staticMatch = getStaticPanoPackage(mode, provinceName);
-    if (staticMatch && staticMatch.locationName.includes(provinceName)) {
-      console.log(`[Urban D1] Static match found: ${staticMatch.locationName}`);
-      return staticMatch;
-    }
-
-    // PHASE 3: Dinamik üretim (il merkezinde)
-    const dynamicPano = await generateDynamicPanoPackage(mode);
-    if (dynamicPano) {
-      return dynamicPano;
-    }
-
-    // PHASE 4: Statik fallback (rastgele)
     if (staticMatch) {
-      console.log(`[Urban D1] Using static fallback: ${staticMatch.locationName}`);
+      console.log(`[Urban D2] Static match: ${staticMatch.locationName}`);
+      incrementRoundCount();
       return staticMatch;
     }
 
+    // PHASE 4: Static fallback — any province via full engine
+    const staticAny = getStaticPanoPackage(mode);
+    if (staticAny) {
+      console.log(`[Urban D2] Static fallback: ${staticAny.locationName}`);
+      incrementRoundCount();
+      return staticAny;
+    }
+
+    // PHASE 5: Last resort — first urban package
     const fallback = URBAN_PACKAGES[0];
-    console.warn("[Urban D1] Last resort fallback:", fallback.id);
+    console.warn("[Urban D2] Last resort fallback:", fallback.id);
+    incrementRoundCount();
     return fallback;
   }
 
-  // GEO MOD: Mevcut akış
+  // GEO MOD: Unchanged flow
   const dynamicPano = await generateDynamicPanoPackage(mode);
   if (dynamicPano) return dynamicPano;
 
@@ -661,13 +698,21 @@ export async function getNextPanoPackage(mode: GameMode): Promise<PanoPackage> {
 
 /**
  * Yeni oyun başladığında çağrılacak
+ * @param roomId - Multiplayer room ID (for persistent history from Firebase)
  */
-export function onNewGameStart(): void {
+export async function onNewGameStart(roomId?: string): Promise<void> {
   resetUsedLocations();
   resetStaticUsage();
   resetProvinceBag();
   resetLocationEngine();
+
+  // Initialize dynamic generator (if Google Maps loaded)
+  initDynamicGenerator();
+
+  // Initialize persistent anti-repeat history
+  await initPersistentHistory(roomId);
+
   // Generate enrichment report on first game (lazy)
   getEnrichmentReport();
-  console.log("Yeni oyun: Tüm pano kullanımları ve province bag sıfırlandı");
+  console.log("Yeni oyun: Tüm pano kullanımları, province bag, persistent history sıfırlandı");
 }

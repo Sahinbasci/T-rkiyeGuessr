@@ -97,6 +97,10 @@
           ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0)"
         },
 
+        "locationHistory": {
+          ".validate": "data.parent().child('hostId').val() == auth.uid || !data.parent().exists()"
+        },
+
         "$other": {
           ".validate": false
         },

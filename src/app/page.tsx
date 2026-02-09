@@ -301,8 +301,8 @@ export default function HomePage() {
     // Sonra Street View servisini başlat (dinamik pano için)
     initStreetViewService();
 
-    // Yeni oyun: kullanılmış lokasyonları sıfırla
-    onNewGameStart();
+    // Yeni oyun: kullanılmış lokasyonları ve persistent history sıfırla
+    await onNewGameStart();
 
     // Pano paketi al (dinamik + statik hibrit)
     const panoPackage = await getRandomPanoPackage(room.gameMode || "urban");

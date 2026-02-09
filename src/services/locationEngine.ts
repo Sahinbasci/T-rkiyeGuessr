@@ -1,18 +1,25 @@
 /**
- * PROFESSIONAL URBAN LOCATION SELECTION ENGINE v3 — HARDENED
+ * PROFESSIONAL URBAN LOCATION SELECTION ENGINE v4 — DYNAMIC INTEGRATION
  *
  * This module implements a comprehensive location selection system with:
  * 1. Auto-difficulty tagging (easy/medium/hard) based on cluster + panoId analysis
  * 2. Anti-repeat engine with sliding window dedup (zero-tolerance)
  * 3. Difficulty mix targeting (15% easy, 55% medium, 30% hard)
  * 4. Province bag rotation (URBAN-ONLY provinces, Fisher-Yates, boundary guard)
+ * 5. Dynamic integration: heavy-player detection + repeat-risk assessment
  *
  * HARD INVARIANTS:
  * - Province back-to-back = 0 (urban mode, including fallback)
  * - Banned package selection = 0
  * - No duplicate panoId/locationHash/clusterId within sliding window
- * - ZERO new API calls. Deterministic multiplayer (host decides).
+ * - ZERO new API calls for STATIC path. Deterministic multiplayer (host decides).
  * - Urban mode NEVER shows rural/empty roads.
+ *
+ * DYNAMIC INTEGRATION (v4):
+ * - shouldAttemptDynamic(): detects when dynamic minting should be tried
+ * - recordDynamicSelection(): records dynamic packages in anti-repeat state
+ * - getLastProvince(): exposes lastProvince for dynamic generator
+ * - isHeavyPlayer(): detects heavy session usage
  */
 
 import { PanoPackage, GameMode } from "@/types";
@@ -715,6 +722,111 @@ function selectGeoPackage(): EnrichedPackage | null {
   return null;
 }
 
+// ==================== DYNAMIC INTEGRATION ====================
+
+/**
+ * Total rounds played in this session (for heavy player detection).
+ */
+let sessionRoundCount = 0;
+
+/**
+ * Threshold: after this many rounds, player is "heavy" and dynamic minting
+ * becomes preferred to reduce static pool pressure.
+ */
+const HEAVY_PLAYER_THRESHOLD = 30;
+
+/**
+ * Check if the current player is "heavy" (many rounds played).
+ * Heavy players benefit from dynamic generation to avoid repeats.
+ */
+export function isHeavyPlayer(): boolean {
+  return sessionRoundCount >= HEAVY_PLAYER_THRESHOLD;
+}
+
+/**
+ * Check if static pool would repeat too soon for the given province.
+ * "Too soon" = all candidates for this province are blocked by anti-repeat windows.
+ *
+ * This determines when dynamic minting should be triggered.
+ */
+export function wouldStaticRepeatTooSoon(province: string): boolean {
+  ensureEnrichment();
+
+  const candidates = enrichedUrbanCache.filter(ep =>
+    ep.province === province && !ep.bannedUrban
+  );
+
+  if (candidates.length === 0) return true; // No static packages at all
+
+  // Check if any candidate passes anti-repeat
+  for (const ep of candidates) {
+    const rejection = checkAntiRepeat(ep, true); // Relaxed province window
+    if (!rejection) return false; // At least one candidate is available
+  }
+
+  return true; // All candidates blocked
+}
+
+/**
+ * Check if dynamic generation should be attempted for this round.
+ * Conditions:
+ * 1. Heavy player (many rounds played)
+ * 2. OR province has no available static candidates
+ */
+export function shouldAttemptDynamic(province: string): boolean {
+  if (isHeavyPlayer()) return true;
+  return wouldStaticRepeatTooSoon(province);
+}
+
+/**
+ * Record a dynamically minted package in the location engine's anti-repeat state.
+ * This ensures dynamic packages are tracked alongside static ones.
+ */
+export function recordDynamicSelection(pkg: PanoPackage): void {
+  ensureEnrichment();
+
+  const province = extractProvince(pkg.locationName);
+  const locationHash = createLocationHash(pkg.pano0.lat, pkg.pano0.lng);
+  const clusterId = createClusterId(province, locationHash);
+
+  // Build a minimal EnrichedPackage for recordSelection
+  const ep: EnrichedPackage = {
+    pkg,
+    province,
+    difficulty: "medium", // Dynamic packages have their own difficulty
+    bannedUrban: false,
+    locationHash,
+    clusterId,
+    clusterSize: 1,
+    panoIdGroup: 1,
+    easyScore: 50,
+  };
+
+  recordSelection(ep);
+  sessionRoundCount++;
+}
+
+/**
+ * Get the last selected province (for back-to-back guard in dynamic generator).
+ */
+export function getLastProvince(): string | null {
+  return antiRepeat.lastProvince;
+}
+
+/**
+ * Increment the session round counter (called for static selections too).
+ */
+export function incrementRoundCount(): void {
+  sessionRoundCount++;
+}
+
+/**
+ * Get session round count (for testing/debugging).
+ */
+export function getSessionRoundCount(): number {
+  return sessionRoundCount;
+}
+
 // ==================== PUBLIC API ====================
 
 /**
@@ -799,8 +911,9 @@ export function resetLocationEngine(): void {
 
   provinceBag = [];
   lastBagProvince = null;
+  sessionRoundCount = 0;
 
-  console.log("[LocationEngine v3] Reset complete");
+  console.log("[LocationEngine v4] Reset complete");
 }
 
 /**
@@ -977,7 +1090,9 @@ export const _testExports = {
   setProvinceBag: (bag: string[]) => { provinceBag = bag; },
   getLastBagProvince: () => lastBagProvince,
   setLastBagProvince: (p: string | null) => { lastBagProvince = p; },
-  // staticUsedIds removed in v3 — anti-repeat windows handle dedup
   getUrbanProvinceList: () => urbanProvinceList,
   PANOID_HOTSPOT_THRESHOLD,
+  HEAVY_PLAYER_THRESHOLD,
+  getSessionRoundCount: () => sessionRoundCount,
+  setSessionRoundCount: (n: number) => { sessionRoundCount = n; },
 };
