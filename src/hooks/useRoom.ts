@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * useRoom Hook
- * Oda yönetimi - Mod seçimi, timer, pano paketi desteği
+ * useRoom Hook — MULTIPLAYER ZERO-BUG v2
  *
- * PRODUCTION FEATURES:
- * - Rate limiting (oda oluşturma, katılma, tahmin)
- * - Room lifecycle management (zombie room cleanup)
- * - Player disconnect handling
- * - Timestamp tracking for analytics
- * - Coordinate validation
+ * Architecture invariants:
+ * 1. Presence: Single onDisconnect (once per mount). Heartbeat updates lastSeen only.
+ * 2. Cleanup: HOST-ONLY, runs in ALL statuses, transaction-based, idempotent.
+ * 3. RoundEnd: roundEndLock elector — host acquires lock, writes roundEnd exactly once.
+ *    If host is dead, host migration promotes new host who then acquires lock.
+ * 4. leaveRoom: Only removes self (+ atomic host migration if needed). No roundEnd computation.
+ * 5. Notifications: Snapshot diff with previousPlayerNamesRef. Never suppressed.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -57,7 +57,8 @@ import {
   ERROR_MESSAGES,
 } from "@/config/production";
 
-// Bildirim türleri
+// ==================== TYPES ====================
+
 export interface GameNotification {
   id: string;
   type: "player_left" | "player_joined" | "host_changed" | "error";
@@ -66,6 +67,56 @@ export interface GameNotification {
   timestamp: number;
 }
 
+export interface RoundEndLock {
+  lockedBy: string;   // uid of lock owner
+  roundId: number;    // which round this lock is for
+  lockedAt: number;   // timestamp when acquired
+}
+
+// ==================== CONSTANTS ====================
+
+const DISCONNECT_GRACE_PERIOD = 15000;   // 15s before removing disconnected player
+const STALE_HEARTBEAT_THRESHOLD = 30000; // 30s no heartbeat → mark disconnected
+const HEARTBEAT_INTERVAL = 5000;         // 5s heartbeat
+const CLEANUP_INTERVAL = 10000;          // 10s cleanup cycle
+const ROUND_END_RECOVERY_BUFFER = 3;     // seconds past time limit before recovery kicks in
+
+// ==================== INSTRUMENTATION ====================
+
+// Per-session counters (reset on page reload)
+const mpCounters = {
+  listenerFireCount: 0,
+  statusWriteCount: 0,
+  roundEndLockAcquireAttempts: 0,
+  roundEndLockAcquired: 0,
+  roundEndWrites: 0,
+  ghostRemovedCount: 0,
+  notificationFiredCount: 0,
+  hostMigrationCount: 0,
+};
+
+function roomStateDigest(room: Room, trigger: string, clientId: string): void {
+  const players = Object.values(room.players || {});
+  const playerSummary = players.map(p => ({
+    id: p.id.substring(0, 8),
+    name: p.name,
+    status: p.status || 'online',
+    lastSeen: p.lastSeen ? `${Math.round((Date.now() - p.lastSeen) / 1000)}s ago` : 'n/a',
+    hasGuessed: p.hasGuessed,
+    guessPresent: !!p.currentGuess,
+  }));
+
+  console.log(`[MP] ===== ROOM DIGEST (${trigger}) =====`);
+  console.log(`[MP] room=${room.id} client=${clientId.substring(0, 8)} status=${room.status} round=${room.currentRound}`);
+  console.log(`[MP] hostId=${room.hostId.substring(0, 8)} roundStartTime=${room.roundStartTime}`);
+  console.log(`[MP] expected=${room.expectedGuesses} current=${room.currentGuesses} active=${room.activePlayerCount}`);
+  console.log(`[MP] players=`, JSON.stringify(playerSummary));
+  console.log(`[MP] counters=`, JSON.stringify(mpCounters));
+  console.log(`[MP] ===================================`);
+}
+
+// ==================== HOOK ====================
+
 export function useRoom() {
   const [room, setRoom] = useState<Room | null>(null);
   const [playerId, setPlayerId] = useState<string>("");
@@ -73,277 +124,314 @@ export function useRoom() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Bildirim sistemi
+  // Notification system
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
   const previousPlayersRef = useRef<string[]>([]);
   const previousHostIdRef = useRef<string | null>(null);
-  // Son bildirilen oyuncu ID'leri (tekrar bildirim önleme)
   const notifiedJoinedRef = useRef<Set<string>>(new Set());
   const notifiedLeftRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
+  // Name cache: stores player names from PREVIOUS snapshot for reliable left-notification
+  const previousPlayerNamesRef = useRef<Map<string, string>>(new Map());
 
-  // RACE CONDITION FIX: Round hesaplaması sırasında kilitle
+  // Round processing guards
   const isProcessingRoundRef = useRef<boolean>(false);
   const processingRoundIdRef = useRef<number | null>(null);
-
-  // TIMER SPAM FIX: Status geçişlerinde bildirim gösterme
   const lastStatusRef = useRef<string | null>(null);
 
-  // Bildirim ekle
+  // Double-submit guard (synchronous, not React state)
+  const isSubmittingGuessRef = useRef<boolean>(false);
+
+  // Stuck-client recovery ref
+  const stuckRecoveryTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Presence refs
+  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Host migration guard: prevent duplicate migration attempts
+  const isMigratingHostRef = useRef<string | null>(null); // old hostId being migrated away from
+
+  // ==================== NOTIFICATION HELPERS ====================
+
   const addNotification = useCallback((
     type: GameNotification["type"],
     message: string,
-    playerName?: string
+    pName?: string
   ) => {
+    mpCounters.notificationFiredCount++;
     const notification: GameNotification = {
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,
       message,
-      playerName,
+      playerName: pName,
       timestamp: Date.now(),
     };
 
     setNotifications(prev => [...prev, notification]);
 
-    // 5 saniye sonra bildirimi kaldır
+    // Auto-dismiss after 5s
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
     }, 5000);
   }, []);
 
-  // Bildirimi manuel kaldır
   const dismissNotification = useCallback((notificationId: string) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
   }, []);
 
-  // Firebase Presence sistemi - Bağlantı yönetimi
-  // GRACE PERIOD: Kısa süreli kopmalar için oyuncuyu hemen silme
-  const DISCONNECT_GRACE_PERIOD = 15000; // 15 saniye grace period
-  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const lastHeartbeatRef = useRef<number>(Date.now());
+  // ==================== EFFECT 1: PRESENCE (heartbeat + onDisconnect) ====================
+  // Single onDisconnect registration per mount. Heartbeat updates lastSeen only.
 
   useEffect(() => {
     if (!room?.id || !playerId) return;
 
     const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
 
-    // Heartbeat: Her 5 saniyede bir lastSeen güncelle
+    // Register onDisconnect ONCE — marks player as disconnected on server-side
+    const disconnectRef = onDisconnect(playerRef);
+    disconnectRef.update({
+      status: 'disconnected' as PlayerStatus,
+    });
+
+    // Heartbeat: update lastSeen every HEARTBEAT_INTERVAL
     const updatePresence = async () => {
       try {
         await update(playerRef, {
           lastSeen: Date.now(),
           status: 'online' as PlayerStatus,
         });
-        lastHeartbeatRef.current = Date.now();
       } catch (err) {
-        console.warn("Presence update failed:", err);
+        // Player may have been removed — ignore
       }
     };
 
-    // Hemen bir kez güncelle
+    // Immediate first heartbeat
     updatePresence();
-
-    // Her 5 saniyede heartbeat gönder
-    presenceIntervalRef.current = setInterval(updatePresence, 5000);
-
-    // onDisconnect: Oyuncuyu "disconnected" işaretle (silme, sadece işaretle)
-    // NOT: serverTimestamp() burada kullanılamaz, Date.now() kullanıyoruz
-    const disconnectHandler = onDisconnect(playerRef);
-    disconnectHandler.update({
-      status: 'disconnected' as PlayerStatus,
-      disconnectedAt: Date.now(),
-    });
+    presenceIntervalRef.current = setInterval(updatePresence, HEARTBEAT_INTERVAL);
 
     return () => {
       if (presenceIntervalRef.current) {
         clearInterval(presenceIntervalRef.current);
+        presenceIntervalRef.current = null;
       }
-      disconnectHandler.cancel();
+      // Cancel onDisconnect on clean unmount (leaveRoom handles explicit removal)
+      disconnectRef.cancel();
     };
   }, [room?.id, playerId]);
 
-  // Offline oyuncuları temizle ve round completion kontrolü (sadece host yapar)
-  // NOT: isHost henüz tanımlanmadığı için doğrudan karşılaştırma kullanıyoruz
+  // ==================== EFFECT 2: HOST-ONLY CLEANUP ====================
+  // Runs in ALL statuses including "waiting". Single authority: host only.
+  // Detects: (a) status='disconnected' + grace exceeded, (b) stale heartbeat (online but no update).
+  // Transaction-based, idempotent.
+
   useEffect(() => {
-    const amIHost = playerId === room?.hostId;
-    if (!room?.id || !amIHost || room.status === "waiting") return;
+    if (!room?.id || !playerId) return;
+    // Only host runs cleanup
+    if (playerId !== room.hostId) return;
+
+    const roomId = room.id;
 
     const checkOfflinePlayers = async () => {
-      if (!room?.players) return;
+      // READ FRESH DATA from Firebase instead of relying on stale closure.
+      // This prevents the race where a player reconnects between React renders
+      // but the closure still sees old lastSeen values.
+      let freshRoom: Room | null;
+      try {
+        const freshSnap = await get(ref(database, `rooms/${roomId}`));
+        freshRoom = freshSnap.val() as Room | null;
+      } catch {
+        return; // Firebase read failed — skip this cycle
+      }
+
+      if (!freshRoom?.players) return;
 
       const now = Date.now();
-      let removedAny = false;
 
-      for (const player of Object.values(room.players)) {
-        // Kendi kendimizi silme
-        if (player.id === playerId) continue;
+      for (const player of Object.values(freshRoom.players)) {
+        if (player.id === playerId) continue; // Never remove self
 
-        // status='disconnected' ve grace period geçmişse sil
-        // Backward compat: status undefined = online (silme)
         const lastSeen = player.lastSeen || now;
-        const isPlayerOnline = !player.status || player.status === 'online';
         const timeSinceLastSeen = now - lastSeen;
+        const playerStatus = player.status || 'online';
 
-        // Sadece açıkça 'disconnected' olan ve grace period geçmiş oyuncuları sil
-        if (player.status === 'disconnected' && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
-          console.log(`Offline player removed: ${player.name} (${timeSinceLastSeen}ms)`);
+        // Case A: Explicitly 'disconnected' AND grace period exceeded → remove
+        if (playerStatus === 'disconnected' && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
+          mpCounters.ghostRemovedCount++;
+          console.log(`[MP] Ghost cleanup: removing ${player.name} (status=disconnected, ${timeSinceLastSeen}ms stale) [total: ${mpCounters.ghostRemovedCount}]`);
+
           try {
-            await remove(ref(database, `rooms/${room.id}/players/${player.id}`));
-            removedAny = true;
+            // Remove player node
+            await remove(ref(database, `rooms/${roomId}/players/${player.id}`));
 
-            // Eğer oyun aktifse ve bu oyuncu guess yapmamışsa, expectedGuesses azalt
-            if (room.status === "playing" && !player.hasGuessed) {
-              const roomRef = ref(database, `rooms/${room.id}`);
+            // If game is playing and player hadn't guessed, decrement expectedGuesses
+            if (freshRoom.status === "playing" && !player.hasGuessed) {
+              const roomRef = ref(database, `rooms/${roomId}`);
               await runTransaction(roomRef, (currentRoom) => {
-                if (!currentRoom) return currentRoom;
+                if (!currentRoom || currentRoom.status !== "playing") return currentRoom;
                 return {
                   ...currentRoom,
                   expectedGuesses: Math.max(0, (currentRoom.expectedGuesses || 0) - 1),
                 };
               });
             }
+
+            roomStateDigest(freshRoom, `ghostRemoved:${player.name}`, playerId);
           } catch (err) {
-            console.error("Failed to remove offline player:", err);
+            console.warn("[MP] Ghost cleanup failed:", err);
+          }
+        }
+
+        // Case B: Still 'online' but stale heartbeat → mark as disconnected (triggers Case A next cycle)
+        else if (playerStatus === 'online' && timeSinceLastSeen > STALE_HEARTBEAT_THRESHOLD) {
+          console.log(`[MP] Stale heartbeat: ${player.name} (${timeSinceLastSeen}ms, still 'online')`);
+          try {
+            await update(ref(database, `rooms/${roomId}/players/${player.id}`), {
+              status: 'disconnected' as PlayerStatus,
+            });
+          } catch (err) {
+            console.warn("[MP] Failed to mark stale player:", err);
           }
         }
       }
-
-      // Oyuncu silindiyse round completion kontrolü yap
-      if (removedAny && room.status === "playing") {
-        // Round completion'ı tetikle (allGuessed kontrolü otomatik listener'da)
-        console.log("Offline player removed, checking round completion...");
-      }
     };
 
-    // Her 10 saniyede offline oyuncuları kontrol et
-    const cleanupInterval = setInterval(checkOfflinePlayers, 10000);
+    // Run immediately + every CLEANUP_INTERVAL
+    checkOfflinePlayers();
+    cleanupIntervalRef.current = setInterval(checkOfflinePlayers, CLEANUP_INTERVAL);
 
-    return () => clearInterval(cleanupInterval);
-  }, [room?.id, room?.hostId, room?.players, room?.status, playerId]);
+    return () => {
+      if (cleanupIntervalRef.current) {
+        clearInterval(cleanupIntervalRef.current);
+        cleanupIntervalRef.current = null;
+      }
+    };
+  }, [room?.id, room?.hostId, playerId]);
 
-  // beforeunload event - sekme kapatılmadan önce cleanup
+  // ==================== EFFECT 3: BEFOREUNLOAD ====================
+  // Fire-and-forget status update. Primary protection is onDisconnect.
+
   useEffect(() => {
     if (!room?.id || !playerId) return;
 
-    const handleBeforeUnload = async () => {
-      // Senkron olarak oyuncuyu sil
+    const handleBeforeUnload = () => {
       const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
-
-      try {
-        // Navigator.sendBeacon kullanarak asenkron istek at
-        // Bu sayede sekme kapansa bile istek tamamlanır
-        await remove(playerRef);
-      } catch (err) {
-        console.error("beforeunload cleanup error:", err);
-      }
+      // Fire-and-forget — browser may close before this completes, that's OK.
+      // onDisconnect server-side handler is the primary mechanism.
+      update(playerRef, {
+        status: 'disconnected' as PlayerStatus,
+      }).catch(() => { /* tab closing, ignore */ });
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [room?.id, playerId]);
 
-  // Telemetry başlat (component mount)
+  // ==================== EFFECT 4: TELEMETRY INIT ====================
+
   useEffect(() => {
     initTelemetry();
-    return () => {
-      cleanupTelemetry();
-    };
+    return () => cleanupTelemetry();
   }, []);
 
-  // Odayı dinle ve otomatik tahmin kontrolü yap
+  // ==================== EFFECT 5: ROOM LISTENER + ROUND END ELECTOR ====================
+  // Main onValue listener. Handles:
+  // - Notification diffs (player join/leave)
+  // - Host migration detection
+  // - allGuessed detection (host-only)
+  // - RoundEnd recovery elector (host-only, transaction-based)
+
   useEffect(() => {
     if (!room?.id) return;
 
-    // Telemetry listener tracking
     trackListener("subscribe");
 
     const roomRef = ref(database, `rooms/${room.id}`);
     const unsubscribe = onValue(roomRef, async (snapshot) => {
       const data = snapshot.val();
+      mpCounters.listenerFireCount++;
+
       if (data) {
         const roomData = data as Room;
         const currentPlayerIds = Object.keys(roomData.players || {});
-        const currentPlayerNames = Object.values(roomData.players || {}).reduce(
-          (acc, p) => ({ ...acc, [p.id]: p.name }),
-          {} as Record<string, string>
-        );
+        const currentPlayerNames: Record<string, string> = {};
+        Object.values(roomData.players || {}).forEach(p => { currentPlayerNames[p.id] = p.name; });
 
-        // === OYUNCU AYRILDI/KATILDI KONTROLÜ ===
-        // TIMER SPAM FIX: Status geçişlerinde (playing -> roundEnd) bildirim gösterme
-        // Bu, timer bitiminde sahte "katıldı/ayrıldı" mesajlarını önler
-        const isStatusTransition = lastStatusRef.current !== null &&
-          lastStatusRef.current !== roomData.status;
+        // --- Status change logging ---
+        if (lastStatusRef.current !== null && lastStatusRef.current !== roomData.status) {
+          mpCounters.statusWriteCount++;
+          roomStateDigest(roomData, `status:${lastStatusRef.current}->${roomData.status}`, playerId);
+        }
         lastStatusRef.current = roomData.status;
 
-        // İlk yüklemede veya status geçişinde bildirim gösterme (spam önleme)
-        if (!isFirstLoadRef.current && previousPlayersRef.current.length > 0 && !isStatusTransition) {
+        // --- NOTIFICATIONS: snapshot diff, NEVER suppressed ---
+        if (!isFirstLoadRef.current && previousPlayersRef.current.length > 0) {
+          // Players who left
           const leftPlayers = previousPlayersRef.current.filter(
             id => !currentPlayerIds.includes(id)
           );
-
-          // Ayrılan oyuncular için bildirim (sadece 1 kez)
           leftPlayers.forEach(leftPlayerId => {
             if (leftPlayerId !== playerId && !notifiedLeftRef.current.has(leftPlayerId)) {
-              const leftPlayerName = room?.players?.[leftPlayerId]?.name || "Bir oyuncu";
+              const leftPlayerName = previousPlayerNamesRef.current.get(leftPlayerId) || "Bir oyuncu";
               addNotification("player_left", `${leftPlayerName} oyundan ayrıldı`, leftPlayerName);
               notifiedLeftRef.current.add(leftPlayerId);
-              // 10 saniye sonra tekrar bildirim gösterilebilir
               setTimeout(() => notifiedLeftRef.current.delete(leftPlayerId), 10000);
             }
           });
 
-          // Yeni katılan oyuncular için bildirim (sadece 1 kez)
+          // Players who joined
           const joinedPlayers = currentPlayerIds.filter(
             id => !previousPlayersRef.current.includes(id)
           );
-
           joinedPlayers.forEach(joinedPlayerId => {
             if (joinedPlayerId !== playerId && !notifiedJoinedRef.current.has(joinedPlayerId)) {
               const joinedPlayerName = currentPlayerNames[joinedPlayerId] || "Bir oyuncu";
               addNotification("player_joined", `${joinedPlayerName} odaya katıldı`, joinedPlayerName);
               notifiedJoinedRef.current.add(joinedPlayerId);
-              // 10 saniye sonra tekrar bildirim gösterilebilir
               setTimeout(() => notifiedJoinedRef.current.delete(joinedPlayerId), 10000);
             }
           });
         }
 
-        // İlk yükleme tamamlandı
         if (isFirstLoadRef.current && previousPlayersRef.current.length > 0) {
           isFirstLoadRef.current = false;
         }
 
-        // === HOST AYRILDI MI KONTROLÜ ===
-        // Host artık oyuncular arasında değilse veya offline ise, yeni host ata
+        // --- HOST MIGRATION ---
         const currentHost = roomData.players?.[roomData.hostId];
-        const hostStillOnline = currentHost && currentHost.status === 'online';
+        const hostOnline = currentHost && (currentHost.status === 'online' || !currentHost.status);
 
-        if ((!hostStillOnline || !currentPlayerIds.includes(roomData.hostId)) && currentPlayerIds.length > 0) {
-          // Host ayrılmış/offline ve başka oyuncular var - yeni host ata
-          // Deterministic seçim: en düşük joinedAt (en eski online oyuncu)
-          const onlinePlayers = Object.values(roomData.players || {})
-            .filter((p) => (!p.status || p.status === 'online') && p.id !== roomData.hostId)
+        // Reset migration guard if hostId changed (migration succeeded or someone else did it)
+        if (isMigratingHostRef.current && isMigratingHostRef.current !== roomData.hostId) {
+          isMigratingHostRef.current = null;
+        }
+
+        if ((!hostOnline || !currentPlayerIds.includes(roomData.hostId)) && currentPlayerIds.length > 0 && !isMigratingHostRef.current) {
+          // Deterministic election: lowest joinedAt among online players (excluding dead host)
+          const onlineCandidates = Object.values(roomData.players || {})
+            .filter((p) => (p.status === 'online' || !p.status) && p.id !== roomData.hostId)
             .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
 
-          const newHost = onlinePlayers[0];
+          const newHost = onlineCandidates[0];
 
-          // Sadece yeni host olacak oyuncu güncelleme yapsın (race condition önleme)
+          // Only the elected candidate writes migration (prevents race)
           if (newHost && newHost.id === playerId) {
-            console.log("Host ayrıldı/offline, yeni host atanıyor:", newHost.id);
+            // Set migration guard SYNCHRONOUSLY before any async work
+            isMigratingHostRef.current = roomData.hostId;
+            mpCounters.hostMigrationCount++;
+            console.log(`[MP] Host migration: ${roomData.hostId.substring(0, 8)} → ${newHost.id.substring(0, 8)}`);
 
-            // Transaction ile atomic host değişimi
+            // Transaction on whole room for atomicity.
+            // Firebase rules now use root.child() (post-write state) instead of
+            // data.parent().child() (pre-write state) for host checks, so the new
+            // hostId is visible to all validate rules within the same transaction.
             const roomRefForMigration = ref(database, `rooms/${roomData.id}`);
+            let migrationCommitted = false;
             try {
               await runTransaction(roomRefForMigration, (currentRoom) => {
                 if (!currentRoom) return currentRoom;
-
-                // Host hala aynı mı kontrol et (başka biri zaten değiştirmiş olabilir)
-                if (currentRoom.hostId !== roomData.hostId) {
-                  return; // abort - başka biri zaten değiştirmiş
-                }
+                // Abort if host already changed
+                if (currentRoom.hostId !== roomData.hostId) return;
 
                 return {
                   ...currentRoom,
@@ -357,17 +445,84 @@ export function useRoom() {
                   },
                 };
               });
+              migrationCommitted = true;
+              console.log(`[MP] Host migration committed: ${newHost.id.substring(0, 8)} is now host`);
             } catch (err) {
-              console.error("Host migration transaction failed:", err);
+              console.error("[MP] Host migration failed:", err);
+            }
+
+            // POST-MIGRATION RECOVERY: After becoming host, start a periodic
+            // check that runs every 5s until roundEnd is resolved. This is needed
+            // because the onValue listener may not fire again if no other Firebase
+            // updates happen (e.g., timer expires but nothing writes to Firebase).
+            if (migrationCommitted && roomData.status === "playing") {
+              const migrationRoomId = roomData.id;
+              const migrationRound = roomData.currentRound;
+              console.log(`[MP] Post-migration recovery interval starting for room=${migrationRoomId} round=${migrationRound}`);
+
+              const recoveryCheck = async () => {
+                if (isProcessingRoundRef.current) return false; // busy, try again next tick
+                try {
+                  const freshSnap = await get(ref(database, `rooms/${migrationRoomId}`));
+                  const freshRoom = freshSnap.val() as Room | null;
+                  if (!freshRoom || freshRoom.status !== "playing" || freshRoom.currentRound !== migrationRound) {
+                    console.log(`[MP] Post-migration recovery: room state changed, stopping`);
+                    return true; // done, stop interval
+                  }
+                  if (freshRoom.hostId !== playerId) {
+                    console.log(`[MP] Post-migration recovery: no longer host, stopping`);
+                    return true; // done
+                  }
+
+                  // Check allGuessed (excluding disconnected/stale players)
+                  const freshPlayers = Object.values(freshRoom.players || {});
+                  const freshOnline = freshPlayers.filter((p) =>
+                    p.status === 'online' || (!p.status && p.lastSeen && (Date.now() - p.lastSeen) < STALE_HEARTBEAT_THRESHOLD)
+                  );
+                  const allGuessedNow = freshOnline.length > 0 && freshOnline.every((p) => p.hasGuessed);
+
+                  const elapsed = freshRoom.roundStartTime ? (Date.now() - freshRoom.roundStartTime) / 1000 : 0;
+                  const tLimit = freshRoom.timeLimit || 90;
+                  const timeExpired = elapsed > tLimit + ROUND_END_RECOVERY_BUFFER;
+
+                  if (allGuessedNow || timeExpired) {
+                    const trigger = allGuessedNow ? "postMigrationAllGuessed" : "postMigrationTimeExpired";
+                    console.log(`[MP] Post-migration recovery: triggering roundEnd (${trigger}, elapsed=${elapsed.toFixed(1)}s, online=${freshOnline.length})`);
+                    isProcessingRoundRef.current = true;
+                    try {
+                      await acquireAndWriteRoundEnd(migrationRoomId, migrationRound, null, freshRoom.currentLocation, playerId, trigger);
+                    } finally {
+                      isProcessingRoundRef.current = false;
+                    }
+                    return true; // done
+                  }
+                  console.log(`[MP] Post-migration recovery: waiting (allGuessed=${allGuessedNow}, elapsed=${elapsed.toFixed(0)}s/${tLimit}s, online=${freshOnline.length})`);
+                  return false; // keep checking
+                } catch (err) {
+                  console.error("[MP] Post-migration recovery error:", err);
+                  return false; // keep trying
+                }
+              };
+
+              // First check after 3s (wait for onDisconnect to propagate)
+              setTimeout(async () => {
+                const done = await recoveryCheck();
+                if (done) return;
+                // Continue checking every 5s until resolved
+                const interval = setInterval(async () => {
+                  const isDone = await recoveryCheck();
+                  if (isDone) clearInterval(interval);
+                }, 5000);
+                // Safety: clear after 3 minutes max
+                setTimeout(() => clearInterval(interval), 180000);
+              }, 3000);
             }
           }
         }
 
-        // === HOST DEĞİŞTİ Mİ KONTROLÜ (bildirim için) ===
+        // --- HOST CHANGE NOTIFICATION ---
         if (previousHostIdRef.current && previousHostIdRef.current !== roomData.hostId) {
           const newHostName = currentPlayerNames[roomData.hostId] || "Yeni host";
-
-          // Kendimiz yeni host olduk mu?
           if (roomData.hostId === playerId) {
             addNotification("host_changed", "Artık sen hostsun!", playerName);
           } else {
@@ -375,120 +530,140 @@ export function useRoom() {
           }
         }
 
-        // Referansları güncelle
+        // --- Update refs ---
         previousPlayersRef.current = currentPlayerIds;
         previousHostIdRef.current = roomData.hostId;
+        const namesMap = new Map<string, string>();
+        Object.values(roomData.players || {}).forEach(p => namesMap.set(p.id, p.name));
+        previousPlayerNamesRef.current = namesMap;
 
         setRoom(roomData);
 
-        // === OTOMATİK TAHMİN KONTROLÜ (sadece host) ===
-        // RACE CONDITION FIX: İşlem zaten devam ediyorsa yeni işlem başlatma
-        // DISCONNECT FIX: Sadece ONLINE oyuncuları say
+        // --- ROUND END ELECTOR (HOST-ONLY) ---
+        // Two triggers, both host-only, both transaction-guarded:
+        // (a) allGuessed: all online players have guessed
+        // (b) timeExpired: roundStartTime + timeLimit + BUFFER exceeded
+
         if (playerId === roomData.hostId && roomData.status === "playing" && roomData.players) {
           const playerList = Object.values(roomData.players);
-          // CRITICAL: Sadece online oyuncuları filtrele
-          // BACKWARD COMPAT: status undefined ise online kabul et (eski oyuncular)
-          const onlinePlayers = playerList.filter((p) => !p.status || p.status === 'online');
+          const now = Date.now();
+          const onlinePlayers = playerList.filter((p) => {
+            // Explicitly disconnected → not online
+            if (p.status === 'disconnected') return false;
+            // Stale heartbeat (no update for 30s) → treat as disconnected
+            if (p.lastSeen && (now - p.lastSeen) > STALE_HEARTBEAT_THRESHOLD) return false;
+            // Online or no status set yet
+            return true;
+          });
+
+          // --- Trigger (a): allGuessed ---
           const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
 
           if (allGuessed && roomData.currentLocation && !isProcessingRoundRef.current) {
-            // Round işlemini kilitle
             isProcessingRoundRef.current = true;
             const currentRoundId = roomData.currentRound;
             processingRoundIdRef.current = currentRoundId;
 
-            // SNAPSHOT AL: Bu noktadaki oyuncu listesini sakla
-            // Sonraki değişiklikler bu hesaplamayı etkilemeyecek
             const snapshotPlayerIds = Object.keys(roomData.players);
-            const snapshotPlayers = { ...roomData.players };
             const snapshotLocation = { ...roomData.currentLocation };
 
-            // HIZLI SONUÇ: Gecikmeyi 100ms'e düşür (eskiden 500ms)
             setTimeout(async () => {
               try {
-                // Round hala aynı mı kontrol et (başka bir işlem devreye girmiş olabilir)
-                if (processingRoundIdRef.current !== currentRoundId) {
-                  console.log("Round değişti, hesaplama iptal edildi");
-                  return;
-                }
+                if (processingRoundIdRef.current !== currentRoundId) return;
 
-                const freshSnap = await get(ref(database, `rooms/${roomData.id}`));
-                const freshRoom = freshSnap.val() as Room | null;
-
-                // Durum hala playing mi VE aynı round mu kontrol et
-                if (freshRoom && freshRoom.status === "playing" && freshRoom.currentRound === currentRoundId) {
-                  // SNAPSHOT'TAKİ OYUNCULARI KULLAN, yeni katılanları dahil etme
-                  const playersToProcess = snapshotPlayerIds
-                    .map(id => freshRoom.players?.[id])
-                    .filter((p): p is Player => p !== undefined && p !== null);
-
-                  const results = playersToProcess
-                    .filter((player) => player && player.id && player.name)
-                    .map((player) => {
-                      const distance = player.currentGuess
-                        ? calculateDistance(snapshotLocation, player.currentGuess)
-                        : 9999;
-                      const score = calculateScore(distance);
-
-                      return {
-                        odlayerId: player.id,
-                        playerName: player.name || "Oyuncu",
-                        guess: player.currentGuess || { lat: 0, lng: 0 },
-                        distance,
-                        score,
-                      };
-                    });
-
-                  // Sadece snapshot'taki oyuncuları güncelle
-                  const updatedPlayers: { [key: string]: Player } = {};
-
-                  // Önce TÜM mevcut oyuncuları koru (yeni katılanlar dahil)
-                  Object.values(freshRoom.players || {}).forEach((player) => {
-                    updatedPlayers[player.id] = player;
-                  });
-
-                  // Sonra sadece snapshot'takilerin skorlarını güncelle
-                  playersToProcess.forEach((player) => {
-                    const result = results.find((r) => r.odlayerId === player.id);
-                    const currentRoundScores = player.roundScores || [];
-                    updatedPlayers[player.id] = {
-                      ...player,
-                      totalScore: (player.totalScore || 0) + (result?.score || 0),
-                      roundScores: [...currentRoundScores, result?.score || 0],
-                    };
-                  });
-
-                  // MP-001 FIX: Use runTransaction for atomic round end.
-                  // Prevents race where two rapid onValue callbacks both write roundEnd.
-                  // Transaction checks status is still "playing" before transitioning.
-                  const roomRefForRoundEnd = ref(database, `rooms/${freshRoom.id}`);
-                  await runTransaction(roomRefForRoundEnd, (currentRoom) => {
-                    if (!currentRoom) return currentRoom;
-                    // GUARD: Only transition if still playing (another process may have already transitioned)
-                    if (currentRoom.status !== "playing") return; // abort
-                    if (currentRoom.currentRound !== currentRoundId) return; // abort — round changed
-                    return {
-                      ...currentRoom,
-                      status: "roundEnd",
-                      roundState: 'ended',
-                      roundResults: results,
-                      players: updatedPlayers,
-                    };
-                  });
-
-                  trackEvent("roundEnd", { roundId: currentRoundId, trigger: "allGuessed" });
-                }
+                await acquireAndWriteRoundEnd(roomData.id, currentRoundId, snapshotPlayerIds, snapshotLocation, playerId, "allGuessed");
               } catch (err) {
-                console.error("Round hesaplama hatası:", err);
+                console.error("[MP] allGuessed roundEnd error:", err);
                 trackError(err instanceof Error ? err : String(err), "autoRoundEnd");
               } finally {
-                // Kilidi aç
                 isProcessingRoundRef.current = false;
                 processingRoundIdRef.current = null;
               }
-            }, 100); // 500ms -> 100ms (hızlı sonuç)
+            }, 100);
+          }
+
+          // --- Trigger (b): timeExpired recovery ---
+          if (roomData.roundStartTime && !isProcessingRoundRef.current) {
+            const elapsed = (Date.now() - roomData.roundStartTime) / 1000;
+            const timeLimit = roomData.timeLimit || 90;
+
+            if (elapsed > timeLimit + ROUND_END_RECOVERY_BUFFER) {
+              console.log(`[MP] RoundEnd recovery: elapsed=${elapsed.toFixed(1)}s > limit=${timeLimit}s`);
+              isProcessingRoundRef.current = true;
+              const recoveryRoundId = roomData.currentRound;
+
+              setTimeout(async () => {
+                try {
+                  await acquireAndWriteRoundEnd(roomData.id, recoveryRoundId, null, roomData.currentLocation, playerId, "recovery");
+                } catch (err) {
+                  console.error("[MP] RoundEnd recovery error:", err);
+                } finally {
+                  isProcessingRoundRef.current = false;
+                }
+              }, 200);
+            }
           }
         }
+
+        // --- STUCK CLIENT RECOVERY ---
+        // If this client has guessed and room is still "playing" for too long,
+        // force a fresh re-read from Firebase to see if status actually changed.
+        // This catches cases where the onValue snapshot was delayed/missed.
+        if (
+          roomData.status === "playing" &&
+          roomData.players?.[playerId]?.hasGuessed &&
+          roomData.roundStartTime
+        ) {
+          const elapsed = (Date.now() - roomData.roundStartTime) / 1000;
+          const timeLimit = roomData.timeLimit || 90;
+
+          // If we've been "playing" for longer than timeLimit + 10s after guessing,
+          // something may be stuck. Force a fresh read.
+          if (elapsed > timeLimit + 10) {
+            if (!stuckRecoveryTimerRef.current) {
+              console.log(`[MP] Stuck recovery: client guessed but still playing after ${elapsed.toFixed(0)}s — scheduling fresh read`);
+              stuckRecoveryTimerRef.current = setTimeout(async () => {
+                stuckRecoveryTimerRef.current = null;
+                try {
+                  const freshSnap = await get(roomRef);
+                  const freshData = freshSnap.val() as Room | null;
+                  if (freshData && freshData.status !== "playing") {
+                    console.log(`[MP] Stuck recovery: Firebase shows status=${freshData.status}, forcing local update`);
+                    setRoom(freshData);
+                  } else if (freshData) {
+                    console.log(`[MP] Stuck recovery: Firebase still shows playing (round=${freshData.currentRound})`);
+                    // If we're host and room is truly stuck, try to trigger roundEnd
+                    if (playerId === freshData.hostId && !isProcessingRoundRef.current) {
+                      console.log(`[MP] Stuck recovery: host forcing roundEnd for round ${freshData.currentRound}`);
+                      isProcessingRoundRef.current = true;
+                      try {
+                        await acquireAndWriteRoundEnd(
+                          freshData.id,
+                          freshData.currentRound,
+                          null,
+                          freshData.currentLocation,
+                          playerId,
+                          "stuckRecovery"
+                        );
+                      } finally {
+                        isProcessingRoundRef.current = false;
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.warn("[MP] Stuck recovery read failed:", err);
+                }
+              }, 3000); // 3s delay to avoid hammering
+            }
+          }
+        } else {
+          // Clear stuck recovery timer if conditions no longer apply
+          if (stuckRecoveryTimerRef.current) {
+            clearTimeout(stuckRecoveryTimerRef.current);
+            stuckRecoveryTimerRef.current = null;
+          }
+        }
+
       } else {
         setRoom(null);
         setError("Oda silindi veya bulunamadı");
@@ -498,15 +673,147 @@ export function useRoom() {
     return () => {
       unsubscribe();
       trackListener("unsubscribe");
+      if (stuckRecoveryTimerRef.current) {
+        clearTimeout(stuckRecoveryTimerRef.current);
+        stuckRecoveryTimerRef.current = null;
+      }
     };
   }, [room?.id, playerId, playerName, addNotification]);
 
-  // Oda oluştur (Rate Limited)
+  // ==================== ROUND END LOCK + WRITE ====================
+  // Acquires roundEndLock via transaction, then writes roundEnd atomically.
+  // Idempotent: if lock already acquired for this round, or status != playing, aborts.
+
+  async function acquireAndWriteRoundEnd(
+    roomId: string,
+    roundId: number,
+    snapshotPlayerIds: string[] | null, // null = use all current players (recovery mode)
+    snapshotLocation: Coordinates | null,
+    ownerId: string,
+    trigger: string
+  ) {
+    mpCounters.roundEndLockAcquireAttempts++;
+    console.log(`[MP] acquireAndWriteRoundEnd: ENTER trigger=${trigger} roundId=${roundId} owner=${ownerId.substring(0, 8)} attempt=#${mpCounters.roundEndLockAcquireAttempts}`);
+
+    const roomRef = ref(database, `rooms/${roomId}`);
+    const freshSnap = await get(roomRef);
+    const freshRoom = freshSnap.val() as Room | null;
+
+    if (!freshRoom || freshRoom.status !== "playing" || freshRoom.currentRound !== roundId) {
+      console.log(`[MP] roundEnd abort: stale state (status=${freshRoom?.status}, round=${freshRoom?.currentRound}, expected=${roundId}) trigger=${trigger}`);
+      return;
+    }
+
+    // Check lock — if already locked for this round, abort
+    const existingLock = (freshRoom as any).roundEndLock as RoundEndLock | undefined;
+    if (existingLock && existingLock.roundId === roundId) {
+      console.log(`[MP] roundEnd abort: lock already held by ${existingLock.lockedBy.substring(0, 8)} for round ${roundId} trigger=${trigger}`);
+      return;
+    }
+
+    // Acquire lock + write roundEnd in single transaction
+    const playerIdsToProcess = snapshotPlayerIds || Object.keys(freshRoom.players || {});
+    const location = snapshotLocation || freshRoom.currentLocation;
+
+    const playersToProcess = playerIdsToProcess
+      .map(id => freshRoom.players?.[id])
+      .filter((p): p is Player => p !== undefined && p !== null);
+
+    const results = playersToProcess
+      .filter(p => p.id && p.name)
+      .map((player) => {
+        const distance = player.currentGuess && location
+          ? calculateDistance(location, player.currentGuess)
+          : 9999;
+        const score = player.hasGuessed ? calculateScore(distance) : 0;
+        return {
+          odlayerId: player.id,
+          playerName: player.name || "Oyuncu",
+          guess: player.currentGuess || { lat: 0, lng: 0 },
+          distance: player.hasGuessed ? distance : 9999,
+          score,
+        };
+      });
+
+    // Build updated players
+    const updatedPlayers: { [key: string]: Player } = {};
+    Object.values(freshRoom.players || {}).forEach((player) => {
+      updatedPlayers[player.id] = player;
+    });
+    playersToProcess.forEach((player) => {
+      const result = results.find((r) => r.odlayerId === player.id);
+      const currentRoundScores = player.roundScores || [];
+      updatedPlayers[player.id] = {
+        ...player,
+        totalScore: (player.totalScore || 0) + (result?.score || 0),
+        roundScores: [...currentRoundScores, result?.score || 0],
+        hasGuessed: true,
+      };
+    });
+
+    // Atomic: acquire lock + transition to roundEnd
+    let transactionCommitted = false;
+    await runTransaction(roomRef, (currentRoom) => {
+      if (!currentRoom) return currentRoom;
+      if (currentRoom.status !== "playing") {
+        console.log(`[MP] roundEnd TX abort: status=${currentRoom.status} (expected playing) trigger=${trigger}`);
+        return; // abort
+      }
+      if (currentRoom.currentRound !== roundId) {
+        console.log(`[MP] roundEnd TX abort: round=${currentRoom.currentRound} (expected ${roundId}) trigger=${trigger}`);
+        return; // abort
+      }
+
+      // Check lock inside transaction
+      const lock = currentRoom.roundEndLock as RoundEndLock | undefined;
+      if (lock && lock.roundId === roundId) {
+        console.log(`[MP] roundEnd TX abort: lock already held trigger=${trigger}`);
+        return; // abort — already locked
+      }
+
+      mpCounters.roundEndLockAcquired++;
+      mpCounters.roundEndWrites++;
+      transactionCommitted = true;
+
+      return {
+        ...currentRoom,
+        status: "roundEnd",
+        roundState: 'ended',
+        roundResults: results,
+        players: updatedPlayers,
+        roundEndLock: {
+          lockedBy: ownerId,
+          roundId: roundId,
+          lockedAt: Date.now(),
+        },
+      };
+    });
+
+    if (transactionCommitted) {
+      trackEvent("roundEnd", { roundId, trigger });
+      console.log(`[MP] RoundEnd COMMITTED: round=${roundId} trigger=${trigger} by=${ownerId.substring(0, 8)}`);
+      console.table({
+        "Round": roundId,
+        "Trigger": trigger,
+        "Lock Attempts": mpCounters.roundEndLockAcquireAttempts,
+        "Lock Acquired": mpCounters.roundEndLockAcquired,
+        "RoundEnd Writes": mpCounters.roundEndWrites,
+        "Ghosts Removed": mpCounters.ghostRemovedCount,
+        "Players": Object.keys(freshRoom.players || {}).length,
+      });
+      roomStateDigest({ ...freshRoom, status: "roundEnd" } as Room, `roundEnd:${trigger}`, ownerId);
+    } else {
+      console.log(`[MP] RoundEnd NOT committed: round=${roundId} trigger=${trigger} — transaction aborted`);
+    }
+  }
+
+  // ==================== ACTIONS ====================
+
+  // --- Create Room ---
   const createRoom = useCallback(async (name: string, gameMode: GameMode = "urban") => {
     setIsLoading(true);
     setError(null);
 
-    // Rate limit kontrolü
     if (!canCreateRoom()) {
       const cooldown = Math.ceil(getRoomCreateCooldown() / 1000);
       setError(`${ERROR_MESSAGES.RATE_LIMIT_EXCEEDED} (${cooldown}s)`);
@@ -514,7 +821,6 @@ export function useRoom() {
       return null;
     }
 
-    // İsim validasyonu
     if (!isValidPlayerName(name)) {
       setError("Geçersiz oyuncu adı (1-20 karakter)");
       setIsLoading(false);
@@ -537,7 +843,6 @@ export function useRoom() {
         hasGuessed: false,
         movesUsed: 0,
         roundScores: [],
-        // Yeni presence alanları
         status: 'online' as PlayerStatus,
         lastSeen: now,
         disconnectedAt: null,
@@ -561,7 +866,6 @@ export function useRoom() {
         currentLocationName: null,
         roundResults: null,
         roundStartTime: null,
-        // Round State Machine
         roundState: 'waiting',
         roundVersion: 0,
         activePlayerCount: 0,
@@ -569,7 +873,6 @@ export function useRoom() {
         currentGuesses: 0,
       };
 
-      // Timestamp'leri ekle (Firebase rules'da optional)
       const roomWithTimestamps = {
         ...newRoom,
         createdAt: now,
@@ -582,10 +885,8 @@ export function useRoom() {
       setPlayerName(name.trim());
       setRoom(newRoom);
 
-      // Session token'ı localStorage'a kaydet (rejoin için)
       saveSessionToken(roomCode, sessionToken);
 
-      // Telemetry context ayarla
       setTelemetryContext({
         roomId: roomCode,
         playerId: odlayerId,
@@ -593,14 +894,12 @@ export function useRoom() {
       });
       trackEvent("join", { action: "create", gameMode });
 
-      // Referansları başlat (bildirim spam önleme)
       previousPlayersRef.current = [odlayerId];
       previousHostIdRef.current = odlayerId;
       isFirstLoadRef.current = true;
       notifiedJoinedRef.current.clear();
       notifiedLeftRef.current.clear();
 
-      // Room lifecycle tracking
       setupRoomCleanup(newRoom);
 
       return roomCode;
@@ -614,19 +913,17 @@ export function useRoom() {
     }
   }, []);
 
-  // Odaya katıl (Rate Limited) - Rejoin desteği ile
+  // --- Join Room ---
   const joinRoom = useCallback(async (roomCode: string, name: string) => {
     setIsLoading(true);
     setError(null);
 
-    // Rate limit kontrolü
     if (!canJoinRoom()) {
       setError(ERROR_MESSAGES.RATE_LIMIT_EXCEEDED);
       setIsLoading(false);
       return false;
     }
 
-    // İsim validasyonu
     if (!isValidPlayerName(name)) {
       setError("Geçersiz oyuncu adı (1-20 karakter)");
       setIsLoading(false);
@@ -645,27 +942,22 @@ export function useRoom() {
 
       const roomData = snapshot.val() as Room;
 
-      // === REJOIN KONTROLÜ ===
-      // localStorage'dan sessionToken al ve eşleşen oyuncu ara
+      // --- REJOIN CHECK ---
       const existingSessionToken = getSessionToken(normalizedRoomCode);
-      let rejoinedPlayer: Player | null = null;
 
       if (existingSessionToken && roomData.players) {
-        // SessionToken ile eşleşen oyuncu bul
         const matchingPlayer = Object.values(roomData.players).find(
           (p) => p.sessionToken === existingSessionToken
         );
 
         if (matchingPlayer) {
-          // Rejoin: Oyuncuyu online yap, state'i koru
-          console.log(`Rejoin: ${matchingPlayer.name} geri döndü`);
+          console.log(`[MP] Rejoin: ${matchingPlayer.name} reconnected`);
 
           const now = Date.now();
           await update(ref(database, `rooms/${normalizedRoomCode}/players/${matchingPlayer.id}`), {
             status: 'online' as PlayerStatus,
             lastSeen: now,
             disconnectedAt: null,
-            // İsim değişmişse güncelle
             name: name.trim(),
           });
 
@@ -673,7 +965,6 @@ export function useRoom() {
           setPlayerName(name.trim());
           setRoom({ ...roomData, id: normalizedRoomCode });
 
-          // Telemetry
           setTelemetryContext({
             roomId: normalizedRoomCode,
             playerId: matchingPlayer.id,
@@ -681,14 +972,12 @@ export function useRoom() {
           });
           trackEvent("join", { action: "rejoin" });
 
-          // Referansları başlat
           previousPlayersRef.current = Object.keys(roomData.players || {});
           previousHostIdRef.current = roomData.hostId;
           isFirstLoadRef.current = true;
           notifiedJoinedRef.current.clear();
           notifiedLeftRef.current.clear();
 
-          // Activity tracking
           recordPlayerActivity(normalizedRoomCode, matchingPlayer.id);
 
           setIsLoading(false);
@@ -696,8 +985,7 @@ export function useRoom() {
         }
       }
 
-      // === YENİ OYUNCU KATILIMI ===
-      // Oyun başlamışsa ve rejoin değilse, katılmayı engelle
+      // --- NEW PLAYER JOIN ---
       if (roomData.status !== "waiting") {
         setError(ERROR_MESSAGES.GAME_ALREADY_STARTED);
         return false;
@@ -722,7 +1010,6 @@ export function useRoom() {
         hasGuessed: false,
         movesUsed: 0,
         roundScores: [],
-        // Yeni presence alanları
         status: 'online' as PlayerStatus,
         lastSeen: now,
         disconnectedAt: null,
@@ -730,23 +1017,22 @@ export function useRoom() {
         joinedAt: now,
       };
 
-      await update(ref(database, `rooms/${normalizedRoomCode}/players`), {
-        [odlayerId]: newPlayer,
-      });
+      // Write to player-level path so $playerId .write rule applies
+      // (room-level .write rule requires host or existing player)
+      await set(ref(database, `rooms/${normalizedRoomCode}/players/${odlayerId}`), newPlayer);
 
-      // Son aktivite güncelle
+      // lastActivityAt update: use player-level lastActiveAt instead
+      // (room-level write requires host or existing player — we are now a player after the set above)
       await update(ref(database, `rooms/${normalizedRoomCode}`), {
         lastActivityAt: now,
       });
 
-      // Session token'ı localStorage'a kaydet
       saveSessionToken(normalizedRoomCode, sessionToken);
 
       setPlayerId(odlayerId);
       setPlayerName(name.trim());
       setRoom({ ...roomData, id: normalizedRoomCode });
 
-      // Telemetry context ayarla
       setTelemetryContext({
         roomId: normalizedRoomCode,
         playerId: odlayerId,
@@ -754,14 +1040,12 @@ export function useRoom() {
       });
       trackEvent("join", { action: "join" });
 
-      // Referansları başlat (bildirim spam önleme)
       previousPlayersRef.current = [...Object.keys(roomData.players || {}), odlayerId];
       previousHostIdRef.current = roomData.hostId;
       isFirstLoadRef.current = true;
       notifiedJoinedRef.current.clear();
       notifiedLeftRef.current.clear();
 
-      // Player activity tracking
       recordPlayerActivity(normalizedRoomCode, odlayerId);
 
       return true;
@@ -775,13 +1059,12 @@ export function useRoom() {
     }
   }, []);
 
-  // Oyun modunu değiştir (sadece host, lobby'de)
+  // --- Set Game Mode ---
   const setGameMode = useCallback(
     async (mode: GameMode) => {
       if (!room || playerId !== room.hostId || room.status !== "waiting") return;
 
       const modeConfig = GAME_MODE_CONFIG[mode];
-
       await update(ref(database, `rooms/${room.id}`), {
         gameMode: mode,
         timeLimit: modeConfig.timeLimit,
@@ -791,12 +1074,11 @@ export function useRoom() {
     [room, playerId]
   );
 
-  // Oyunu başlat (sadece host) - Pano paketi ile
+  // --- Start Game with PanoPackage ---
   const startGameWithPanoPackage = useCallback(
     async (panoPackage: PanoPackage) => {
       if (!room || playerId !== room.hostId) return;
 
-      // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
       const onlinePlayers = Object.values(room.players || {}).filter(
         (p) => !p.status || p.status === 'online'
       );
@@ -808,7 +1090,7 @@ export function useRoom() {
           ...player,
           currentGuess: null,
           hasGuessed: false,
-        movesUsed: 0,
+          movesUsed: 0,
         };
       });
 
@@ -824,12 +1106,12 @@ export function useRoom() {
         players: updatedPlayers,
         roundResults: null,
         roundStartTime: now,
-        // Round State Machine
         roundState: 'active',
         roundVersion: (room.roundVersion || 0) + 1,
         activePlayerCount: onlinePlayerCount,
         expectedGuesses: onlinePlayerCount,
         currentGuesses: 0,
+        roundEndLock: null, // Clear lock for new round
       });
 
       trackEvent("roundStart", { roundId: 1, panoPackageId: panoPackage.id });
@@ -837,12 +1119,11 @@ export function useRoom() {
     [room, playerId]
   );
 
-  // Eski startGame (geriye uyumluluk için)
+  // --- Start Game (legacy) ---
   const startGame = useCallback(
     async (location: Coordinates, panoId: string, locationName?: string) => {
       if (!room || playerId !== room.hostId) return;
 
-      // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
       const onlinePlayers = Object.values(room.players || {}).filter(
         (p) => !p.status || p.status === 'online'
       );
@@ -854,7 +1135,7 @@ export function useRoom() {
           ...player,
           currentGuess: null,
           hasGuessed: false,
-        movesUsed: 0,
+          movesUsed: 0,
         };
       });
 
@@ -869,225 +1150,144 @@ export function useRoom() {
         players: updatedPlayers,
         roundResults: null,
         roundStartTime: now,
-        // Round State Machine
         roundState: 'active',
         roundVersion: (room.roundVersion || 0) + 1,
         activePlayerCount: onlinePlayerCount,
         expectedGuesses: onlinePlayerCount,
         currentGuesses: 0,
+        roundEndLock: null,
       });
     },
     [room, playerId]
   );
 
-  // Tahmin gönder (Rate Limited + Validated)
+  // --- Submit Guess ---
   const submitGuess = useCallback(
     async (guess: Coordinates) => {
       if (!room || !playerId) return;
 
-      // Zaten tahmin yaptıysa çık
-      const currentPlayer = room.players?.[playerId];
-      if (currentPlayer?.hasGuessed) {
-        console.log("submitGuess: Zaten tahmin yapılmış, atlanıyor");
+      // SYNCHRONOUS double-submit guard (not React state — immune to stale closures)
+      if (isSubmittingGuessRef.current) {
+        console.log("[MP] submitGuess: submission in-flight, skipping");
         return;
       }
 
-      // Rate limit kontrolü
+      const currentPlayer = room.players?.[playerId];
+      if (currentPlayer?.hasGuessed) {
+        console.log("[MP] submitGuess: already guessed, skipping");
+        return;
+      }
+
       if (!canSubmitGuess(playerId, room.currentRound)) {
         setError(ERROR_MESSAGES.RATE_LIMIT_EXCEEDED);
         return;
       }
 
-      // Koordinat validasyonu (production config kullan)
       if (!isValidTurkeyCoordinate(guess.lat, guess.lng)) {
         setError(ERROR_MESSAGES.INVALID_COORDINATES);
         return;
       }
 
-      // Player activity güncelle
-      recordPlayerActivity(room.id, playerId);
+      isSubmittingGuessRef.current = true;
 
-      // Player güncelle
-      await update(ref(database, `rooms/${room.id}/players/${playerId}`), {
-        currentGuess: guess,
-        hasGuessed: true,
-        lastActiveAt: Date.now(),
-      });
+      try {
+        recordPlayerActivity(room.id, playerId);
 
-      // Atomic increment: currentGuesses++
-      const roomRef = ref(database, `rooms/${room.id}`);
-      await runTransaction(roomRef, (currentRoom) => {
-        if (!currentRoom) return currentRoom;
-        return {
-          ...currentRoom,
-          currentGuesses: (currentRoom.currentGuesses || 0) + 1,
-        };
-      });
+        await update(ref(database, `rooms/${room.id}/players/${playerId}`), {
+          currentGuess: guess,
+          hasGuessed: true,
+          lastActiveAt: Date.now(),
+        });
 
-      trackEvent("submitGuess", { roundId: room.currentRound, lat: guess.lat, lng: guess.lng });
+        // Atomic increment with hasGuessed pre-check to prevent counter drift
+        const roomRef = ref(database, `rooms/${room.id}`);
+        await runTransaction(roomRef, (currentRoom) => {
+          if (!currentRoom) return currentRoom;
+          // Double-check: if this player already has hasGuessed=true in Firebase, don't increment
+          const playerInDb = currentRoom.players?.[playerId];
+          if (playerInDb?.hasGuessed && playerInDb?.currentGuess) {
+            // Player already submitted — this is a duplicate; return unchanged
+            return currentRoom;
+          }
+          return {
+            ...currentRoom,
+            currentGuesses: (currentRoom.currentGuesses || 0) + 1,
+          };
+        });
+
+        trackEvent("submitGuess", { roundId: room.currentRound, lat: guess.lat, lng: guess.lng });
+      } finally {
+        isSubmittingGuessRef.current = false;
+      }
     },
     [room, playerId]
   );
 
-  // Tüm tahminler geldi mi kontrol et ve sonuçları hesapla
+  // --- Check All Guessed (explicit call) ---
   const checkAllGuessed = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
     const latestSnap = await get(ref(database, `rooms/${room.id}`));
     const latestRoom = latestSnap.val() as Room | null;
 
-    if (!latestRoom?.players) return;
-    if (latestRoom.status !== "playing") return;
+    if (!latestRoom?.players || latestRoom.status !== "playing") return;
 
     const playerList = Object.values(latestRoom.players);
-    // DISCONNECT FIX: Sadece online oyuncuları say (backward compat: status undefined = online)
     const onlinePlayers = playerList.filter((p) => !p.status || p.status === 'online');
     const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
 
     if (allGuessed && latestRoom.currentLocation) {
-      // Sadece online oyuncuların sonuçlarını hesapla
-      const results = onlinePlayers.map((player) => {
-        const distance = player.currentGuess
-          ? calculateDistance(latestRoom.currentLocation!, player.currentGuess)
-          : 9999;
-        const score = calculateScore(distance);
-
-        return {
-          odlayerId: player.id,
-          playerName: player.name || "Oyuncu",
-          guess: player.currentGuess || { lat: 0, lng: 0 },
-          distance,
-          score,
-        };
-      }).filter((r) => r.odlayerId);
-
-      // Tüm oyuncuları güncelle (disconnect olanlar dahil - skorlarını koru)
-      const updatedPlayers: { [key: string]: Player } = {};
-      playerList.forEach((player) => {
-        const result = results.find((r) => r.odlayerId === player.id);
-        const currentRoundScores = player.roundScores || [];
-        // Sadece online oyuncuların skorlarını güncelle (backward compat: status undefined = online)
-        if (!player.status || player.status === 'online') {
-          updatedPlayers[player.id] = {
-            ...player,
-            totalScore: (player.totalScore || 0) + (result?.score || 0),
-            roundScores: [...currentRoundScores, result?.score || 0],
-          };
-        } else {
-          // Disconnect olan oyuncuların mevcut state'ini koru
-          updatedPlayers[player.id] = {
-            ...player,
-            roundScores: [...currentRoundScores, 0], // 0 puan
-          };
-        }
-      });
-
-      await update(ref(database, `rooms/${latestRoom.id}`), {
-        status: "roundEnd",
-        roundState: 'ended',
-        roundResults: results,
-        players: updatedPlayers,
-      });
+      await acquireAndWriteRoundEnd(
+        latestRoom.id,
+        latestRoom.currentRound,
+        Object.keys(latestRoom.players),
+        latestRoom.currentLocation,
+        playerId,
+        "checkAllGuessed"
+      );
     }
   }, [room, playerId]);
 
-  // Süre doldu - otomatik tahmin gönder
-  // TIMER SPAM FIX: handleTimeUp için idempotent guard
+  // --- Handle Time Up ---
   const hasHandledTimeUpRef = useRef<number | null>(null);
 
   const handleTimeUp = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
-    // IDEMPOTENT GUARD: Bu round için zaten işlem yapıldıysa çık
     if (hasHandledTimeUpRef.current === room.currentRound) {
-      console.log("handleTimeUp: Bu round için zaten işlem yapıldı, atlanıyor");
       trackDuplicateAttempt("timeUp", room.currentRound);
       return;
     }
 
-    // RACE CONDITION GUARD: Round hesaplaması zaten devam ediyorsa bekle
     if (isProcessingRoundRef.current) {
-      console.log("handleTimeUp: İşlem devam ediyor, atlanıyor");
       trackDuplicateAttempt("timeUp", room.currentRound);
       return;
     }
 
-    trackEvent("timeUp", { roundId: room.currentRound });
+    mpCounters.roundEndLockAcquireAttempts++;
+    console.log(`[MP] handleTimeUp: round=${room.currentRound}`);
 
-    // İşlemi kilitle
     isProcessingRoundRef.current = true;
     hasHandledTimeUpRef.current = room.currentRound;
 
     try {
-      const latestSnap = await get(ref(database, `rooms/${room.id}`));
-      const latestRoom = latestSnap.val() as Room | null;
-
-      // Durum kontrolü - playing değilse veya round değiştiyse çık
-      if (!latestRoom?.players || latestRoom.status !== "playing") {
-        console.log("handleTimeUp: Room status playing değil, atlanıyor");
-        return;
-      }
-
-      // Round eşleşmesi kontrolü
-      if (latestRoom.currentRound !== room.currentRound) {
-        console.log("handleTimeUp: Round değişti, atlanıyor");
-        return;
-      }
-
-      const playerList = Object.values(latestRoom.players);
-
-      const results = playerList.map((player) => {
-        const distance = player.currentGuess
-          ? calculateDistance(latestRoom.currentLocation!, player.currentGuess)
-          : 9999;
-        const score = player.hasGuessed ? calculateScore(distance) : 0;
-
-        return {
-          odlayerId: player.id,
-          playerName: player.name || "Oyuncu",
-          guess: player.currentGuess || { lat: 0, lng: 0 },
-          distance: player.hasGuessed ? distance : 9999,
-          score,
-        };
-      }).filter((r) => r.odlayerId);
-
-      const updatedPlayers: { [key: string]: Player } = {};
-      playerList.forEach((player) => {
-        const result = results.find((r) => r.odlayerId === player.id);
-        const currentRoundScores = player.roundScores || [];
-        updatedPlayers[player.id] = {
-          ...player,
-          totalScore: (player.totalScore || 0) + (result?.score || 0),
-          roundScores: [...currentRoundScores, result?.score || 0],
-          hasGuessed: true,
-        };
-      });
-
-      // MP-001 FIX: Atomic transition via runTransaction (same pattern as allGuessed)
-      const roomRefForTimeUp = ref(database, `rooms/${latestRoom.id}`);
-      await runTransaction(roomRefForTimeUp, (currentRoom) => {
-        if (!currentRoom) return currentRoom;
-        if (currentRoom.status !== "playing") return; // abort — already transitioned
-        return {
-          ...currentRoom,
-          status: "roundEnd",
-          roundState: 'ended',
-          roundResults: results,
-          players: updatedPlayers,
-        };
-      });
-
-      trackEvent("roundEnd", { roundId: latestRoom.currentRound, trigger: "timeUp" });
+      await acquireAndWriteRoundEnd(
+        room.id,
+        room.currentRound,
+        null, // use all current players
+        room.currentLocation,
+        playerId,
+        "timeUp"
+      );
     } catch (err) {
-      console.error("handleTimeUp hatası:", err);
+      console.error("[MP] handleTimeUp error:", err);
       trackError(err instanceof Error ? err : String(err), "handleTimeUp");
     } finally {
-      // Kilidi aç
       isProcessingRoundRef.current = false;
     }
   }, [room, playerId]);
 
-  // Sonraki tura geç - Pano paketi ile
+  // --- Next Round with PanoPackage ---
   const nextRoundWithPanoPackage = useCallback(
     async (panoPackage: PanoPackage) => {
       if (!room || playerId !== room.hostId) return;
@@ -1101,7 +1301,6 @@ export function useRoom() {
         });
         trackEvent("gameEnd", { totalRounds: room.totalRounds });
       } else {
-        // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
         const onlinePlayers = Object.values(room.players || {}).filter(
           (p) => !p.status || p.status === 'online'
         );
@@ -1113,7 +1312,7 @@ export function useRoom() {
             ...player,
             currentGuess: null,
             hasGuessed: false,
-        movesUsed: 0,
+            movesUsed: 0,
           };
         });
 
@@ -1129,12 +1328,12 @@ export function useRoom() {
           players: updatedPlayers,
           roundResults: null,
           roundStartTime: now,
-          // Round State Machine
           roundState: 'active',
           roundVersion: (room.roundVersion || 0) + 1,
           activePlayerCount: onlinePlayerCount,
           expectedGuesses: onlinePlayerCount,
           currentGuesses: 0,
+          roundEndLock: null, // Clear lock for new round
         });
 
         trackEvent("roundStart", { roundId: room.currentRound + 1, panoPackageId: panoPackage.id });
@@ -1143,7 +1342,7 @@ export function useRoom() {
     [room, playerId]
   );
 
-  // Eski nextRound (geriye uyumluluk için)
+  // --- Next Round (legacy) ---
   const nextRound = useCallback(
     async (location: Coordinates, panoId: string, locationName?: string) => {
       if (!room || playerId !== room.hostId) return;
@@ -1156,7 +1355,6 @@ export function useRoom() {
           roundState: 'ended',
         });
       } else {
-        // Sadece ONLINE oyuncuları al (backward compat: status undefined = online)
         const onlinePlayers = Object.values(room.players || {}).filter(
           (p) => !p.status || p.status === 'online'
         );
@@ -1168,7 +1366,7 @@ export function useRoom() {
             ...player,
             currentGuess: null,
             hasGuessed: false,
-        movesUsed: 0,
+            movesUsed: 0,
           };
         });
 
@@ -1183,134 +1381,94 @@ export function useRoom() {
           players: updatedPlayers,
           roundResults: null,
           roundStartTime: now,
-          // Round State Machine
           roundState: 'active',
           roundVersion: (room.roundVersion || 0) + 1,
           activePlayerCount: onlinePlayerCount,
           expectedGuesses: onlinePlayerCount,
           currentGuesses: 0,
+          roundEndLock: null,
         });
       }
     },
     [room, playerId]
   );
 
-  // Odadan ayrıl
+  // --- Leave Room ---
+  // Only removes self. If host, atomically assigns new host first.
+  // NO roundEnd computation. The remaining host's onValue listener handles that.
   const leaveRoom = useCallback(async () => {
     if (!room || !playerId) return;
 
     const playerList = Object.values(room.players || {});
+    const roomId = room.id;
 
     if (playerList.length === 1) {
-      // Son oyuncu - odayı sil
-      await remove(ref(database, `rooms/${room.id}`));
+      // Last player — delete room
+      await remove(ref(database, `rooms/${roomId}`));
     } else {
-      // Oyuncuyu çıkar
-      await remove(ref(database, `rooms/${room.id}/players/${playerId}`));
-
-      // Host ayrılıyorsa yeni host ata
+      // If we're host, atomically migrate host before leaving
       if (playerId === room.hostId) {
-        const newHost = playerList.find((p) => p.id !== playerId);
+        const candidates = playerList
+          .filter((p) => p.id !== playerId && (!p.status || p.status === 'online'))
+          .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+        const newHost = candidates[0] || playerList.find((p) => p.id !== playerId);
+
         if (newHost) {
-          await update(ref(database, `rooms/${room.id}`), {
-            hostId: newHost.id,
-          });
-          await update(ref(database, `rooms/${room.id}/players/${newHost.id}`), {
-            isHost: true,
+          const roomRef = ref(database, `rooms/${roomId}`);
+          await runTransaction(roomRef, (currentRoom) => {
+            if (!currentRoom) return currentRoom;
+            if (currentRoom.hostId !== playerId) return; // abort — already migrated
+            return {
+              ...currentRoom,
+              hostId: newHost.id,
+              players: {
+                ...currentRoom.players,
+                [newHost.id]: { ...currentRoom.players[newHost.id], isHost: true },
+                [playerId]: { ...currentRoom.players[playerId], isHost: false },
+              },
+            };
           });
         }
       }
 
-      // Oyun sırasında ayrılan oyuncu için round kontrolü
-      // RACE CONDITION FIX: İşlem devam ediyorsa bekle
-      // DISCONNECT FIX: Sadece online oyuncuları say
-      if (room.status === "playing" && !isProcessingRoundRef.current) {
-        const remainingPlayers = playerList.filter((p) => p.id !== playerId);
-        // Sadece online oyuncuları say (backward compat: status undefined = online)
-        const onlineRemainingPlayers = remainingPlayers.filter((p) => !p.status || p.status === 'online');
-        const allRemainingGuessed =
-          onlineRemainingPlayers.length > 0 &&
-          onlineRemainingPlayers.every((p) => p.hasGuessed);
+      // Remove ourselves
+      await remove(ref(database, `rooms/${roomId}/players/${playerId}`));
 
-        if (allRemainingGuessed && room.currentLocation) {
-          // Kilitle
-          isProcessingRoundRef.current = true;
-
-          try {
-            const results = onlineRemainingPlayers.map((player) => {
-              const distance = player.currentGuess
-                ? calculateDistance(room.currentLocation!, player.currentGuess)
-                : 9999;
-              const score = calculateScore(distance);
-
-              return {
-                odlayerId: player.id,
-                playerName: player.name || "Oyuncu",
-                guess: player.currentGuess || { lat: 0, lng: 0 },
-                distance,
-                score,
-              };
-            }).filter((r) => r.odlayerId);
-
-            const updatedPlayers: { [key: string]: Player } = {};
-            remainingPlayers.forEach((player) => {
-              const result = results.find((r) => r.odlayerId === player.id);
-              const currentRoundScores = player.roundScores || [];
-              // Backward compat: status undefined = online
-              if (!player.status || player.status === 'online') {
-                updatedPlayers[player.id] = {
-                  ...player,
-                  totalScore: (player.totalScore || 0) + (result?.score || 0),
-                  roundScores: [...currentRoundScores, result?.score || 0],
-                };
-              } else {
-                updatedPlayers[player.id] = {
-                  ...player,
-                  roundScores: [...currentRoundScores, 0],
-                };
-              }
-            });
-
-            // MP-001 FIX: Atomic transition via runTransaction
-            const roomRefForLeave = ref(database, `rooms/${room.id}`);
-            await runTransaction(roomRefForLeave, (currentRoom) => {
-              if (!currentRoom) return currentRoom;
-              if (currentRoom.status !== "playing") return; // abort
-              return {
-                ...currentRoom,
-                status: "roundEnd",
-                roundState: 'ended',
-                roundResults: results,
-                players: updatedPlayers,
-              };
-            });
-          } finally {
-            isProcessingRoundRef.current = false;
-          }
+      // If playing and we hadn't guessed, decrement expectedGuesses
+      if (room.status === "playing") {
+        const myPlayer = room.players?.[playerId];
+        if (myPlayer && !myPlayer.hasGuessed) {
+          const roomRef = ref(database, `rooms/${roomId}`);
+          await runTransaction(roomRef, (currentRoom) => {
+            if (!currentRoom || currentRoom.status !== "playing") return currentRoom;
+            return {
+              ...currentRoom,
+              expectedGuesses: Math.max(0, (currentRoom.expectedGuesses || 0) - 1),
+            };
+          }).catch(() => {
+            // May fail if we lost host — OK, new host's onValue handles it
+          });
         }
       }
     }
 
-    // Cleanup
-    if (room?.id) {
-      cleanupRoomData(room.id);
-      // Session token temizle (kalıcı ayrılma)
-      clearSessionToken(room.id);
-    }
-
-    trackEvent("leave", { roomId: room?.id });
+    // Local cleanup
+    cleanupRoomData(roomId);
+    clearSessionToken(roomId);
+    trackEvent("leave", { roomId });
 
     setRoom(null);
     setPlayerId("");
     setNotifications([]);
     previousPlayersRef.current = [];
     previousHostIdRef.current = null;
+    previousPlayerNamesRef.current = new Map();
     isFirstLoadRef.current = true;
     notifiedJoinedRef.current.clear();
     notifiedLeftRef.current.clear();
   }, [room, playerId]);
 
-  // Yeni oyun (sadece host)
+  // --- Restart Game ---
   const restartGame = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
@@ -1324,8 +1482,6 @@ export function useRoom() {
         movesUsed: 0,
         roundScores: [],
       };
-
-      // Rate limit sıfırla
       resetGuessLimit(player.id);
     });
 
@@ -1340,17 +1496,18 @@ export function useRoom() {
       roundStartTime: null,
       players: updatedPlayers,
       lastActivityAt: Date.now(),
-      // Round State Machine reset
       roundState: 'waiting',
       roundVersion: 0,
       activePlayerCount: 0,
       expectedGuesses: 0,
       currentGuesses: 0,
+      roundEndLock: null,
     });
 
-    // Room lifecycle reset
     setupRoomCleanup({ ...room, status: "waiting" });
   }, [room, playerId]);
+
+  // ==================== DERIVED STATE ====================
 
   const currentPlayer = room?.players?.[playerId] || null;
   const isHost = playerId === room?.hostId;
@@ -1365,10 +1522,8 @@ export function useRoom() {
     players: playersList,
     error,
     isLoading,
-    // Bildirim sistemi
     notifications,
     dismissNotification,
-    // Aksiyonlar
     createRoom,
     joinRoom,
     setGameMode,

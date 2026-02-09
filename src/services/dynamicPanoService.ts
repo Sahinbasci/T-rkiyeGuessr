@@ -504,8 +504,10 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
     return null;
   }
 
-  // Maksimum deneme sayısı (maliyet kontrolü: her deneme ~5 API call)
-  const maxAttempts = 2;
+  // Maliyet kontrolü: her deneme 1 center + 3 branch = 4 getPanorama calls.
+  // With maxAttempts=1, worst case is 4 SV calls + 1 geocode = 5 total.
+  // (Previously maxAttempts=2 → up to 8 SV calls, too expensive.)
+  const maxAttempts = 1;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Rastgele şehir seç

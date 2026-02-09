@@ -16,15 +16,10 @@ interface RateLimitEntry {
 class RateLimiter {
   private limits: Map<string, RateLimitEntry> = new Map();
 
-  /**
-   * Rate limit kontrolü yap
-   * @returns true eğer izin veriliyorsa, false eğer limit aşıldıysa
-   */
   check(key: string, maxRequests: number, windowMs: number = 60000): boolean {
     const now = Date.now();
     const entry = this.limits.get(key);
 
-    // Yeni entry veya süresi dolmuş entry
     if (!entry || now >= entry.resetTime) {
       this.limits.set(key, {
         count: 1,
@@ -33,7 +28,6 @@ class RateLimiter {
       return true;
     }
 
-    // Limit aşıldı mı?
     if (entry.count >= maxRequests) {
       if (FEATURE_FLAGS.ENABLE_DEBUG_LOGS) {
         console.warn(`Rate limit aşıldı: ${key} (${entry.count}/${maxRequests})`);
@@ -41,82 +35,46 @@ class RateLimiter {
       return false;
     }
 
-    // Sayacı artır
     entry.count++;
     return true;
   }
 
-  /**
-   * Kalan süreyi döndür (ms)
-   */
   getTimeUntilReset(key: string): number {
     const entry = this.limits.get(key);
     if (!entry) return 0;
     return Math.max(0, entry.resetTime - Date.now());
   }
 
-  /**
-   * Belirli bir key için limiti sıfırla
-   */
   reset(key: string): void {
     this.limits.delete(key);
   }
 
-  /**
-   * Tüm limitleri temizle
-   */
   clear(): void {
     this.limits.clear();
   }
 }
 
-// Singleton instance
 const rateLimiter = new RateLimiter();
 
-// ==================== RATE LIMIT FUNCTIONS ====================
-
-/**
- * Oda oluşturma rate limit kontrolü
- */
 export function canCreateRoom(): boolean {
   return rateLimiter.check("room_create", RATE_LIMITS.ROOM_CREATION_PER_MINUTE);
 }
 
-/**
- * Odaya katılma rate limit kontrolü
- */
 export function canJoinRoom(): boolean {
   return rateLimiter.check("room_join", RATE_LIMITS.ROOM_JOIN_PER_MINUTE);
 }
 
-/**
- * Tahmin gönderme rate limit kontrolü (round bazlı)
- */
 export function canSubmitGuess(playerId: string, round: number): boolean {
   const key = `guess_${playerId}_${round}`;
-  return rateLimiter.check(key, RATE_LIMITS.GUESS_PER_ROUND, 5 * 60 * 1000); // 5 dakika window
+  return rateLimiter.check(key, RATE_LIMITS.GUESS_PER_ROUND, 5 * 60 * 1000);
 }
 
-/**
- * API çağrısı rate limit kontrolü
- */
-export function canMakeApiCall(): boolean {
-  return rateLimiter.check("api_call", RATE_LIMITS.API_CALLS_PER_MINUTE);
-}
-
-/**
- * Rate limiti sıfırla (yeni oyun başladığında)
- */
 export function resetGuessLimit(playerId: string): void {
-  // Tüm round'lar için limitleri temizle
   for (let i = 0; i <= 10; i++) {
     rateLimiter.reset(`guess_${playerId}_${i}`);
   }
 }
 
-/**
- * Oda oluşturma için bekleme süresi (ms)
- */
 export function getRoomCreateCooldown(): number {
   return rateLimiter.getTimeUntilReset("room_create");
 }

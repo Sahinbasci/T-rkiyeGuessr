@@ -107,21 +107,6 @@ export const SECURITY = {
   },
 } as const;
 
-// ==================== PERFORMANCE ====================
-export const PERFORMANCE = {
-  // Firebase listener debounce (ms)
-  LISTENER_DEBOUNCE_MS: 100,
-
-  // UI güncelleme throttle (ms)
-  UI_UPDATE_THROTTLE_MS: 50,
-
-  // Maksimum concurrent listener sayısı
-  MAX_CONCURRENT_LISTENERS: 5,
-
-  // Bundle size uyarı limiti (KB)
-  BUNDLE_SIZE_WARNING_KB: 200,
-} as const;
-
 // ==================== FEATURE FLAGS ====================
 export const FEATURE_FLAGS = {
   // Dinamik pano üretimi aktif mi
@@ -162,25 +147,6 @@ export function isValidTurkeyCoordinate(lat: number, lng: number): boolean {
 }
 
 /**
- * Oda kodunun geçerli formatda olup olmadığını kontrol et
- */
-export function isValidRoomCode(code: string): boolean {
-  return /^[A-Z0-9]{6}$/.test(code);
-}
-
-/**
- * Player ID'nin geçerli formatda olup olmadığını kontrol et
- */
-export function isValidPlayerId(id: string): boolean {
-  const { PLAYER_ID_MIN_LENGTH, PLAYER_ID_MAX_LENGTH } = SECURITY;
-  return (
-    /^[a-z0-9]+$/.test(id) &&
-    id.length >= PLAYER_ID_MIN_LENGTH &&
-    id.length <= PLAYER_ID_MAX_LENGTH
-  );
-}
-
-/**
  * İsmin geçerli olup olmadığını kontrol et
  */
 export function isValidPlayerName(name: string): boolean {
@@ -192,9 +158,3 @@ export function isValidPlayerName(name: string): boolean {
   return true;
 }
 
-/**
- * Skorun geçerli aralıkta olup olmadığını kontrol et
- */
-export function isValidScore(score: number): boolean {
-  return score >= 0 && score <= GAME_SETTINGS.MAX_SCORE_PER_ROUND * GAME_SETTINGS.MAX_ROUNDS;
-}

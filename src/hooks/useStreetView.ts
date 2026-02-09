@@ -435,10 +435,10 @@ export function useStreetView(roomId?: string, playerId?: string) {
       navigationMetrics.revertPanoCallCount = 0;
       navigationMetrics.fallbackMetadataCallCount = 0;
 
-      // Mobil cihaz tespiti
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      );
+      // Mobil cihaz tespiti — UA regex fails on modern iPadOS (reports as Mac).
+      // Use pointer:coarse as primary check, fall back to UA for older browsers.
+      const isMobile = window.matchMedia("(pointer: coarse)").matches ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       // ============================================
       // v3 COST FIX: REUSE panorama object

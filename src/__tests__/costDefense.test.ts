@@ -101,13 +101,13 @@ describe('Dynamic Pano Retry Limit', () => {
     expect(API_COST_CONTROL.MAX_PANO_GENERATION_ATTEMPTS).toBe(2);
   });
 
-  it('dynamicPanoService uses maxAttempts = 2', () => {
+  it('dynamicPanoService uses maxAttempts = 1 (geo mode cost cap)', () => {
     const dynamicPanoSource = fs.readFileSync(
       path.resolve(__dirname, '../services/dynamicPanoService.ts'),
       'utf-8'
     );
-    // Must contain "const maxAttempts = 2" (not 10)
-    expect(dynamicPanoSource).toContain('const maxAttempts = 2');
+    // Geo mode: maxAttempts capped to 1 (4 SV calls per attempt)
+    expect(dynamicPanoSource).toContain('const maxAttempts = 1');
     expect(dynamicPanoSource).not.toContain('const maxAttempts = 10');
   });
 });

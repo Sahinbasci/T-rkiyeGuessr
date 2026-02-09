@@ -47,34 +47,6 @@ export const GAME_MODE_CONFIG = {
   },
 } as const;
 
-// ==================== DAL SİSTEMİ ====================
-export type BranchKey = "left" | "right" | "forward";
-
-export interface PlayerNavigationState {
-  currentPanoKey: "pano0" | "pano1" | "pano2" | "pano3";
-  usedBranches: {
-    left: boolean;
-    right: boolean;
-    forward: boolean;
-  };
-  movesUsed: number;
-  moveLimit: number;
-}
-
-// Dal -> Pano eşleştirmesi
-export const BRANCH_TO_PANO: Record<BranchKey, "pano1" | "pano2" | "pano3"> = {
-  left: "pano1",
-  right: "pano2",
-  forward: "pano3",
-};
-
-// Pano -> Dal eşleştirmesi (geri dönüş için)
-export const PANO_TO_BRANCH: Record<"pano1" | "pano2" | "pano3", BranchKey> = {
-  pano1: "left",
-  pano2: "right",
-  pano3: "forward",
-};
-
 // ==================== PLAYER ====================
 export type PlayerStatus = 'online' | 'offline' | 'disconnected';
 
@@ -98,8 +70,6 @@ export interface Player {
 }
 
 // ==================== ROOM ====================
-export type RoundState = 'waiting' | 'active' | 'ending' | 'ended';
-
 export interface Room {
   id: string;
   hostId: string;
@@ -126,7 +96,7 @@ export interface Room {
   roundStartTime: number | null; // timestamp
 
   // Round State Machine - Disconnect handling için
-  roundState: RoundState;           // waiting → active → ending → ended
+  roundState: 'waiting' | 'active' | 'ending' | 'ended';
   roundVersion: number;             // Optimistic concurrency control
   activePlayerCount: number;        // Round başında snapshot
   expectedGuesses: number;          // Round başında online oyuncu sayısı
