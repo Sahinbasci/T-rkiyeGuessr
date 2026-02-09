@@ -291,7 +291,8 @@ div[aria-label*="Street View"] {
 .mini-map-container {
   position: fixed;
   z-index: 50;
-  background: rgba(10, 10, 15, 0.95);
+  pointer-events: auto;
+  background: rgba(10, 10, 15, 1);
   border: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   overflow: hidden;

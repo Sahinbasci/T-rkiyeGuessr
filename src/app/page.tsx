@@ -132,6 +132,7 @@ export default function HomePage() {
   const prevRoundRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
   // timerStartedForRoundRef kaldırıldı — timer yönetimi useTimer hook'a devredildi
+  const lastShownPanoRoundRef = useRef<string | null>(null); // Dedup: "round_panoId"
 
   // ==================== EFFECTS ====================
 
@@ -162,12 +163,28 @@ export default function HomePage() {
 
       // Pano paketi varsa göster
       if (room.currentPanoPackage) {
+        // DEDUP GUARD: Aynı round+pano için tekrar showPanoPackage çağırma
+        const dedupKey = `${room.currentRound}_${room.currentPanoPackage.id}`;
+        if (lastShownPanoRoundRef.current === dedupKey) {
+          console.log(`[Effect] Skipping duplicate showPanoPackage for ${dedupKey}`);
+          return;
+        }
+        lastShownPanoRoundRef.current = dedupKey;
+
         // Hareket hakkını ayarla (oda ayarlarından)
         setMoves(room.moveLimit || 3);
         await showPanoPackage(room.currentPanoPackage);
         // Timer yönetimi useTimer hook'una bırakıldı (serverStartTime tabanlı)
         // Manuel resetTimer/startTimer çağrılmaz — çift çağrı race condition yaratıyordu
       } else if (room.currentPanoPackageId) {
+        // DEDUP GUARD
+        const dedupKey = `${room.currentRound}_${room.currentPanoPackageId}`;
+        if (lastShownPanoRoundRef.current === dedupKey) {
+          console.log(`[Effect] Skipping duplicate showStreetView for ${dedupKey}`);
+          return;
+        }
+        lastShownPanoRoundRef.current = dedupKey;
+
         // Eski sistem (geriye uyumluluk)
         setMoves(room.moveLimit || 3);
         await showStreetView(room.currentPanoPackageId);
@@ -292,9 +309,13 @@ export default function HomePage() {
   };
 
   // Oyunu başlat
+  const gameStartingRef = useRef(false);
   const handleStartGame = async () => {
     if (!room) return;
+    if (gameStartingRef.current) return; // Prevent double invocation
+    gameStartingRef.current = true;
 
+    try {
     // ÖNCE Google Maps API'yi yükle
     await initializeGoogleMaps();
 
@@ -303,6 +324,7 @@ export default function HomePage() {
 
     // Yeni oyun: kullanılmış lokasyonları ve persistent history sıfırla
     await onNewGameStart();
+    lastShownPanoRoundRef.current = null; // Reset dedup for new game
 
     // Pano paketi al (dinamik + statik hibrit)
     const panoPackage = await getRandomPanoPackage(room.gameMode || "urban");
@@ -316,6 +338,9 @@ export default function HomePage() {
         await startGame(location.coordinates, location.panoId, location.locationName);
         setScreen("game");
       }
+    }
+    } finally {
+      gameStartingRef.current = false;
     }
   };
 
@@ -879,7 +904,12 @@ export default function HomePage() {
         {!isRoundEnd && !isGameOver && (
           <div
             className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}
-            onClick={() => !mapExpanded && setMapExpanded(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              !mapExpanded && setMapExpanded(true);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
           >
             <button
               onClick={(e) => {
