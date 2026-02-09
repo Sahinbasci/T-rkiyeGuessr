@@ -141,6 +141,16 @@ export default function HomePage() {
     if (screen !== "game" || !room) return;
     if (room.status !== "playing") return;
 
+    // DEDUP GUARD: Aynı round+pano için useEffect'in tekrar çalışmasını engelle
+    // Bu guard setTimeout'tan ÖNCE çalışır — race condition önlenir
+    const panoKey = room.currentPanoPackage?.id || room.currentPanoPackageId || "";
+    const dedupKey = `${room.currentRound}_${panoKey}`;
+    if (lastShownPanoRoundRef.current === dedupKey) {
+      console.log(`[Effect] Skipping duplicate effect for ${dedupKey}`);
+      return;
+    }
+    lastShownPanoRoundRef.current = dedupKey;
+
     let cancelled = false;
     let tries = 0;
 
@@ -163,28 +173,12 @@ export default function HomePage() {
 
       // Pano paketi varsa göster
       if (room.currentPanoPackage) {
-        // DEDUP GUARD: Aynı round+pano için tekrar showPanoPackage çağırma
-        const dedupKey = `${room.currentRound}_${room.currentPanoPackage.id}`;
-        if (lastShownPanoRoundRef.current === dedupKey) {
-          console.log(`[Effect] Skipping duplicate showPanoPackage for ${dedupKey}`);
-          return;
-        }
-        lastShownPanoRoundRef.current = dedupKey;
-
         // Hareket hakkını ayarla (oda ayarlarından)
         setMoves(room.moveLimit || 3);
         await showPanoPackage(room.currentPanoPackage);
         // Timer yönetimi useTimer hook'una bırakıldı (serverStartTime tabanlı)
         // Manuel resetTimer/startTimer çağrılmaz — çift çağrı race condition yaratıyordu
       } else if (room.currentPanoPackageId) {
-        // DEDUP GUARD
-        const dedupKey = `${room.currentRound}_${room.currentPanoPackageId}`;
-        if (lastShownPanoRoundRef.current === dedupKey) {
-          console.log(`[Effect] Skipping duplicate showStreetView for ${dedupKey}`);
-          return;
-        }
-        lastShownPanoRoundRef.current = dedupKey;
-
         // Eski sistem (geriye uyumluluk)
         setMoves(room.moveLimit || 3);
         await showStreetView(room.currentPanoPackageId);
