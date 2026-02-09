@@ -7,13 +7,13 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Tek worker - multiplayer senkronizasyonu için
   reporter: process.env.CI ? 'github' : 'html',
-  timeout: 180000, // 3 dakika timeout (host disconnect tests need 90s timer + setup + recovery)
+  timeout: 240000, // 4 dakika timeout (host disconnect: 90s timer + 30s cleanup + 5s recovery + setup)
 
   use: {
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'on-first-retry',
+    video: 'retain-on-failure',
   },
 
   // Dev server'ı otomatik başlat

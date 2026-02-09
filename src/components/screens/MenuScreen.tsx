@@ -16,220 +16,31 @@ interface MenuScreenProps {
 }
 
 /* ==========================================
-   SEO LANDING CONTENT — On-Page SEO Power Section
-   Keyword-dense, semantic, FAQ Schema goldmine
+   SEO LANDING TEASER — Kompakt on-page SEO
+   Detaylı içerik alt sayfalara taşındı
    ========================================== */
 function SEOLandingContent() {
   return (
-    <article className="mt-12 mb-6 w-full max-w-md mx-auto space-y-8">
-      {/* Section Header */}
-      <header className="text-center">
-        <h2
-          className="text-2xl sm:text-3xl font-bold text-white tracking-wide"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          En İyi Multiplayer Harita ve Konum Bilmece Oyunu
-        </h2>
-        <p className="text-gray-500 text-sm mt-2">
-          Ücretsiz Geoguessr alternatifi — tamamen Türkçe, tamamen ücretsiz.
-        </p>
-      </header>
-
-      {/* Section 1: The Hook */}
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-red-400 flex items-center gap-2">
-          <span className="text-xl" aria-hidden="true">🎯</span>
-          Coğrafya Bilgini Test Et
-        </h3>
-        <p className="text-gray-400 text-sm leading-relaxed">
-          TürkiyeGuessr, Türkiye&apos;nin dört bir yanından sokak görünümlerini
-          karşına çıkaran bir <strong className="text-gray-300">coğrafya tahmin oyunu</strong>dur.
-          Google Street View üzerinde rastgele bir noktaya düşersin; tabelaları,
-          manzarayı ve ipuçlarını kullanarak haritada doğru konumu bulmaya çalışırsın.
-          Hedefin basit: pini ne kadar yakına koyarsan o kadar çok puan kazanırsın!
-          İster İstanbul&apos;un sokaklarını ister Karadeniz yaylalarını tanı —{" "}
-          <strong className="text-gray-300">81 il gezgini</strong> olmanın tam zamanı.
-        </p>
-      </section>
-
-      {/* Section 2: Multiplayer Focus */}
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-red-400 flex items-center gap-2">
-          <span className="text-xl" aria-hidden="true">👥</span>
-          Arkadaşınla Oyna — Online Multiplayer
-        </h3>
-        <p className="text-gray-400 text-sm leading-relaxed">
-          TürkiyeGuessr bir{" "}
-          <strong className="text-gray-300">online multiplayer harita oyunu</strong>dur.
-          Arkadaşınla oynamak çok kolay: &quot;Yeni Oda Oluştur&quot; butonuna
-          tıkla, ekranda beliren 6 haneli oda kodunu arkadaşınla paylaş ve
-          birlikte aynı turda yarışmaya başlayın. Her turda aynı konuma
-          düşersiniz; kim daha doğru tahmin ederse o kazanır.
-          Tek başına pratik yap, ikili düello kur veya 8 kişilik büyük
-          turnuvalar düzenle —{" "}
-          <strong className="text-gray-300">arkadaşınla oyna</strong>,
-          skor tablosunda zirveye çık!
-        </p>
-        <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 space-y-2">
-          <h4 className="text-sm font-medium text-gray-300">Nasıl Başlanır?</h4>
-          <ol className="text-gray-500 text-xs space-y-1 list-decimal list-inside">
-            <li>Oyuncu adını yaz</li>
-            <li>Oyun modunu seç (Şehir Kaşifi veya Coğrafya Modu)</li>
-            <li>&quot;Yeni Oda Oluştur&quot; butonuna bas</li>
-            <li>Oda kodunu arkadaşlarınla paylaş</li>
-            <li>Herkes katılınca &quot;Oyunu Başlat&quot; de — ve keşfe çık!</li>
-          </ol>
-        </div>
-      </section>
-
-      {/* Section 3: Educational Value */}
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold text-red-400 flex items-center gap-2">
-          <span className="text-xl" aria-hidden="true">🎓</span>
-          Öğrenciler ve Coğrafya Tutkunları İçin
-        </h3>
-        <p className="text-gray-400 text-sm leading-relaxed">
-          Sadece bir oyun değil, aynı zamanda bir öğrenme aracı.{" "}
-          <strong className="text-gray-300">Türkiye harita konum bilmece</strong>{" "}
-          formatıyla illeri, bölgeleri ve yöresel özellikleri oyun oynarken
-          öğrenirsin. Öğretmenler sınıfta, öğrenciler ders aralarında, coğrafya
-          meraklıları her an oynayabilir. TürkiyeGuessr,{" "}
-          <strong className="text-gray-300">ücretsiz Geoguessr alternatifi</strong>{" "}
-          olarak Türkiye&apos;ye özel içerikleriyle fark yaratır — kayıt
-          gerektirmez, reklam yoktur, anında oynamaya başlarsın.
-        </p>
-      </section>
-
-      {/* Divider */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
-        <span className="text-gray-600 text-xs">SSS</span>
-        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
-      </div>
-
-      {/* FAQ Section */}
-      <section className="space-y-3" aria-label="Sıkça Sorulan Sorular">
-        <h3 className="text-lg font-semibold text-gray-300">Sıkça Sorulan Sorular</h3>
-
-        <details className="group bg-gray-800/40 border border-gray-700/50 rounded-xl">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-colors list-none flex items-center justify-between">
-            Arkadaşımla nasıl oynarım?
-            <span className="text-gray-600 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
-          </summary>
-          <div className="px-4 pb-3 text-gray-400 text-sm leading-relaxed">
-            Çok basit! Ana ekranda adını yaz, oyun modunu seç ve &quot;Yeni Oda
-            Oluştur&quot; butonuna tıkla. Ekranda çıkan 6 haneli oda kodunu
-            arkadaşlarınla paylaş. Onlar da aynı kodu &quot;Oda Kodu&quot;
-            alanına yazıp &quot;Odaya Katıl&quot; diyerek lobiye girer.
-            Herkes hazır olduğunda host oyunu başlatır. Arkadaşınla oyna
-            ve kimin Türkiye coğrafyasını daha iyi bildiğini kanıtla!
-          </div>
-        </details>
-
-        <details className="group bg-gray-800/40 border border-gray-700/50 rounded-xl">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-colors list-none flex items-center justify-between">
-            Oyun ücretli mi?
-            <span className="text-gray-600 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
-          </summary>
-          <div className="px-4 pb-3 text-gray-400 text-sm leading-relaxed">
-            Hayır! TürkiyeGuessr %100 ücretsizdir. Kayıt, giriş veya ödeme
-            gerektirmez. Tarayıcını aç, adını yaz ve oynamaya başla.
-            Ücretsiz Geoguessr alternatifi arıyorsan doğru yerdesin.
-          </div>
-        </details>
-
-        <details className="group bg-gray-800/40 border border-gray-700/50 rounded-xl">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-colors list-none flex items-center justify-between">
-            Kaç kişi aynı anda oynayabilir?
-            <span className="text-gray-600 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
-          </summary>
-          <div className="px-4 pb-3 text-gray-400 text-sm leading-relaxed">
-            Bir odada 2 ile 8 kişi arası aynı anda oynayabilir. Herkese
-            aynı konum gösterilir ve süre bitene kadar tahminler yapılır.
-            En yüksek puanı toplayan oyuncu kazanır. Online multiplayer
-            harita oyunu deneyiminin tadını çıkar!
-          </div>
-        </details>
-
-        <details className="group bg-gray-800/40 border border-gray-700/50 rounded-xl">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-colors list-none flex items-center justify-between">
-            Hangi cihazlarda oynanabilir?
-            <span className="text-gray-600 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
-          </summary>
-          <div className="px-4 pb-3 text-gray-400 text-sm leading-relaxed">
-            TürkiyeGuessr masaüstü, tablet ve mobil tarayıcılarda çalışır.
-            Chrome, Safari, Firefox veya Edge — fark etmez. Uygulama
-            indirmen gerekmez; tarayıcıdan doğrudan oynarsın.
-          </div>
-        </details>
-
-        <details className="group bg-gray-800/40 border border-gray-700/50 rounded-xl">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-gray-300 hover:text-white transition-colors list-none flex items-center justify-between">
-            Türkiye&apos;nin kaç ili var oyunda?
-            <span className="text-gray-600 group-open:rotate-180 transition-transform" aria-hidden="true">▾</span>
-          </summary>
-          <div className="px-4 pb-3 text-gray-400 text-sm leading-relaxed">
-            TürkiyeGuessr, Türkiye&apos;nin tüm bölgelerini kapsayan geniş bir
-            konum havuzuna sahiptir. Marmara&apos;dan Güneydoğu&apos;ya, Ege&apos;den
-            Karadeniz&apos;e kadar onlarca ilden sokak görünümleri bulunur.
-            Gerçek bir 81 il gezgini olmak istiyorsan bu oyun tam sana göre.
-          </div>
-        </details>
-      </section>
-
-      {/* FAQ Schema JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            mainEntity: [
-              {
-                "@type": "Question",
-                name: "Arkadaşımla nasıl oynarım?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Ana ekranda adını yaz, oyun modunu seç ve 'Yeni Oda Oluştur' butonuna tıkla. Ekranda çıkan 6 haneli oda kodunu arkadaşlarınla paylaş. Onlar da aynı kodu 'Oda Kodu' alanına yazıp 'Odaya Katıl' diyerek lobiye girer. Herkes hazır olduğunda host oyunu başlatır.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "TürkiyeGuessr ücretli mi?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Hayır! TürkiyeGuessr %100 ücretsizdir. Kayıt, giriş veya ödeme gerektirmez. Tarayıcını aç, adını yaz ve oynamaya başla. Ücretsiz Geoguessr alternatifi arıyorsan doğru yerdesin.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Kaç kişi aynı anda oynayabilir?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "Bir odada 2 ile 8 kişi arası aynı anda oynayabilir. Herkese aynı konum gösterilir ve süre bitene kadar tahminler yapılır. En yüksek puanı toplayan oyuncu kazanır.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Hangi cihazlarda oynanabilir?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "TürkiyeGuessr masaüstü, tablet ve mobil tarayıcılarda çalışır. Chrome, Safari, Firefox veya Edge — fark etmez. Uygulama indirmen gerekmez; tarayıcıdan doğrudan oynarsın.",
-                },
-              },
-              {
-                "@type": "Question",
-                name: "Türkiye'nin kaç ili var oyunda?",
-                acceptedAnswer: {
-                  "@type": "Answer",
-                  text: "TürkiyeGuessr, Türkiye'nin tüm bölgelerini kapsayan geniş bir konum havuzuna sahiptir. Marmara'dan Güneydoğu'ya, Ege'den Karadeniz'e kadar onlarca ilden sokak görünümleri bulunur.",
-                },
-              },
-            ],
-          }),
-        }}
-      />
-    </article>
+    <section className="mt-8 mb-4 w-full max-w-md mx-auto text-center space-y-3">
+      <h2 className="text-base font-semibold text-gray-400">
+        Türkiye&apos;nin Ücretsiz Konum Tahmin Oyunu
+      </h2>
+      <p className="text-gray-600 text-xs leading-relaxed">
+        142+ lokasyon, 7 bölge, 2-8 kişi multiplayer.
+        Sokak görünümünde Türkiye&apos;yi keşfet, haritada konumu bul.
+      </p>
+      <nav className="flex flex-wrap justify-center gap-x-2 gap-y-1 text-[11px] text-gray-600" aria-label="Keşfet">
+        <Link href="/nasil-oynanir" className="hover:text-gray-400 transition-colors">Nasıl Oynanır?</Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/bolgeler" className="hover:text-gray-400 transition-colors">Bölgeler</Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/sehirler" className="hover:text-gray-400 transition-colors">Şehirler</Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/blog" className="hover:text-gray-400 transition-colors">Blog</Link>
+        <span aria-hidden="true">·</span>
+        <Link href="/sss" className="hover:text-gray-400 transition-colors">SSS</Link>
+      </nav>
+    </section>
   );
 }
 

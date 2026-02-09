@@ -40,11 +40,33 @@ async function createPlayer(
 }
 
 async function fillPlayerName(page: Page, name: string) {
-  await page.fill('input[placeholder="Adını gir..."]', name);
+  // Wait for React hydration: the "Yeni Oda Oluştur" button starts disabled (no name),
+  // and only becomes interactive once React has hydrated and onChange works.
+  // We fill, check if the button responds, and retry if React wasn't ready.
+  const input = page.locator('input[placeholder="Adını gir..."]');
+  await input.waitFor({ state: 'visible', timeout: 30000 });
+
+  // Retry fill up to 3 times — first fill may land before React hydration
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await input.fill(name);
+    // If name is accepted by React, the "Yeni Oda Oluştur" button enables
+    const btn = page.locator('button:has-text("Yeni Oda Oluştur")');
+    const enabled = await btn.isEnabled({ timeout: 5000 }).catch(() => false);
+    if (enabled) return;
+    // React didn't pick up the fill — clear and retry after a short wait
+    console.log(`      fillPlayerName: attempt ${attempt + 1} — button still disabled, retrying`);
+    await input.clear();
+    await page.waitForTimeout(2000);
+  }
+  // Final attempt — if still fails, proceed and let the test fail with clear error
+  await input.fill(name);
 }
 
 async function createRoom(page: Page): Promise<string> {
-  await page.click('button:has-text("Yeni Oda Oluştur")');
+  // fillPlayerName already ensured button is enabled; just click
+  const createBtn = page.locator('button:has-text("Yeni Oda Oluştur")');
+  await expect(createBtn).toBeEnabled({ timeout: 10000 });
+  await createBtn.click();
   await page.waitForSelector('text=Oda Kodu', { timeout: TEST_CONFIG.TIMEOUT.ACTION });
 
   // Oda kodunu al
@@ -56,11 +78,15 @@ async function createRoom(page: Page): Promise<string> {
 }
 
 async function joinRoom(page: Page, roomCode: string) {
-  // Wait for Firebase auth to be ready (anonymous sign-in)
-  await page.waitForTimeout(1500);
+  // Wait for join button to exist and room code input to be ready
+  const roomInput = page.locator('input[placeholder="ABC123"]');
+  await roomInput.waitFor({ state: 'visible', timeout: 15000 });
+  await roomInput.fill(roomCode);
 
-  await page.fill('input[placeholder="ABC123"]', roomCode);
-  await page.click('button:has-text("Odaya Katıl")');
+  // Wait for the join button to become enabled (name filled + room code filled + auth ready)
+  const joinBtn = page.locator('button:has-text("Odaya Katıl")');
+  await expect(joinBtn).toBeEnabled({ timeout: 15000 });
+  await joinBtn.click();
 
   // Retry once if join fails (Permission denied due to auth race)
   try {
@@ -768,8 +794,12 @@ test.describe('Stuck Client Regression', () => {
       await joinRoom(p.page, roomCode);
     }
 
-    await host.page.waitForTimeout(2000);
-    await host.page.click('button:has-text("Oyunu Başlat")');
+    // Wait for all players to appear in lobby before starting
+    const startBtn = host.page.locator('button:has-text("Oyunu Başlat")');
+    await expect(startBtn).toBeEnabled({ timeout: 15000 });
+    // Verify player count shows 3
+    await host.page.locator('text=/3\\/8/').waitFor({ state: 'visible', timeout: 10000 });
+    await startBtn.click();
     await waitForPanoLoad(host.page);
 
     for (const p of [host, p2, p3]) {
@@ -779,22 +809,31 @@ test.describe('Stuck Client Regression', () => {
     }
 
     // P2 and P3 guess
-    await makeGuess(p2.page);
-    await makeGuess(p3.page);
-    console.log('[DCTest] P2 and P3 guessed, now disconnecting host');
+    const p2Guessed = await makeGuess(p2.page);
+    const p3Guessed = await makeGuess(p3.page);
+    console.log(`[DCTest] P2 guessed: ${p2Guessed}, P3 guessed: ${p3Guessed}, now disconnecting host`);
 
     // Host disconnects (close context = hard disconnect)
     await host.context.close();
 
-    // P2 and P3 should see roundEnd via:
-    // - If guesses placed: Host migration → new host detects allGuessed → fast roundEnd
-    // - If guesses NOT placed: Must wait full timer (90s) + recovery buffer (3s) + migration (30s)
-    // Timeout: 150s covers worst case
+    // Determine timeout based on whether guesses were placed
+    // If guesses placed: Host migration → new host detects allGuessed → roundEnd (~30-45s)
+    // If not placed: Must wait full timer (90s) + recovery buffer (3s) + migration (30s) = ~130s
+    const bothGuessed = p2Guessed && p3Guessed;
+    const roundEndTimeout = bothGuessed ? 60000 : 150000;
+    console.log(`[DCTest] Waiting for roundEnd (timeout=${roundEndTimeout/1000}s, bothGuessed=${bothGuessed})`);
+
+    const roundEndLocator = (page: Page) =>
+      page.locator('text=/Tur.*Sonuç/i')
+        .or(page.locator('text=/Sonraki Tur/i'))
+        .or(page.locator('text=/SONUÇLARI/i'))
+        .first();
+
     const checks = [p2, p3].map(async (p) => {
       try {
-        await p.page.locator('text=/Tur.*Sonuç/i').or(p.page.locator('text=/Sonraki Tur/i')).or(p.page.locator('text=/SONUÇLARI/i')).first().waitFor({
+        await roundEndLocator(p.page).waitFor({
           state: 'visible',
-          timeout: 150000,
+          timeout: roundEndTimeout,
         });
         console.log(`[DCTest] ${p.name} saw roundEnd`);
         return true;
