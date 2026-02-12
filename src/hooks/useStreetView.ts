@@ -210,6 +210,13 @@ export function useStreetView(roomId?: string, playerId?: string) {
   // v3 COST FIX: Flag to track if panorama has been constructed this session
   const panoramaConstructedRef = useRef(false);
 
+  // BUG-2 FIX: Navigation error dismiss timer tracking (prevents orphan setTimeout)
+  const navErrorTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // BUG-2 FIX: setPano timeout guard — detects silent black screen
+  const panoLoadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [panoLoadFailed, setPanoLoadFailed] = useState(false);
+
   // Server-side move enforcement: blocks concurrent transactions
   const isPendingMoveRef = useRef(false);
   // Track roomId/playerId in refs for closure safety
@@ -445,7 +452,28 @@ export function useStreetView(roomId?: string, playerId?: string) {
       // Only create a new panorama if we don't have one yet.
       // On subsequent rounds, just setPano + setPov on the existing one.
       // This avoids the GetMetadata call from the constructor.
+      //
+      // BUG-2 FIX: Container validation — detect orphaned panorama
+      // After screen transitions (game→lobby→game), the container div is
+      // removed from DOM but panoramaRef still holds the old instance.
+      // Pattern from useGuessMap.ts:83 (getDiv() !== ref check).
       // ============================================
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const panoAny = panoramaRef.current as any;
+      const hasGetDiv = panoAny && typeof panoAny.getDiv === 'function';
+      const containerChanged = hasGetDiv && streetViewRef.current &&
+        panoAny.getDiv() !== streetViewRef.current;
+      const containerDetached = hasGetDiv &&
+        panoAny.getDiv() &&
+        !document.body.contains(panoAny.getDiv());
+
+      if (containerChanged || containerDetached) {
+        console.log(`[Nav] Panorama container stale (changed=${!!containerChanged}, detached=${!!containerDetached}), hard recreate`);
+        google.maps.event.clearInstanceListeners(panoramaRef.current!);
+        panoramaRef.current = null;
+        panoramaConstructedRef.current = false;
+      }
+
       if (!panoramaRef.current || !panoramaConstructedRef.current) {
         // Mevcut panorama varsa temizle
         if (panoramaRef.current) {
@@ -749,9 +777,18 @@ export function useStreetView(roomId?: string, playerId?: string) {
         const currentPov = panoramaRef.current.getPov();
         const links = panoramaRef.current.getLinks();
 
+        // Helper: set nav error with tracked auto-dismiss timeout
+        const showNavError = (msg: string) => {
+          setNavigationError(msg);
+          if (navErrorTimerRef.current) clearTimeout(navErrorTimerRef.current);
+          navErrorTimerRef.current = setTimeout(() => {
+            navErrorTimerRef.current = null;
+            setNavigationError(null);
+          }, 2000);
+        };
+
         if (!links || links.length === 0) {
-          setNavigationError("Bu yönde gidilebilecek yol yok");
-          setTimeout(() => setNavigationError(null), 2000);
+          showNavError("Bu yönde gidilebilecek yol yok");
           return;
         }
 
@@ -765,8 +802,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
         const nearestLink = findNearestLink(clickHeading, links);
 
         if (!nearestLink) {
-          setNavigationError("Bu yönde gidilebilecek yol yok");
-          setTimeout(() => setNavigationError(null), 2000);
+          showNavError("Bu yönde gidilebilecek yol yok");
           return;
         }
 
@@ -783,8 +819,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
 
           if (!isTargetCached) {
             navigationMetrics.moveRejectedCount++;
-            setNavigationError("Hareket hakkın bitti!");
-            setTimeout(() => setNavigationError(null), 2000);
+            showNavError("Hareket hakkın bitti!");
             return;
           }
           // Target is cached — allow navigation (no budget consumed, enforced by pano_changed)
@@ -820,13 +855,73 @@ export function useStreetView(roomId?: string, playerId?: string) {
     [initializeGoogleMaps, calculateClickHeading, findNearestLink, navigateToLink]
   );
 
-  // Cleanup listeners on unmount
+  // Cleanup on unmount — listeners, panorama instance, timers
   useEffect(() => {
     return () => {
       if (cleanupFnRef.current) {
         cleanupFnRef.current();
         cleanupFnRef.current = null;
       }
+      // BUG-2 FIX: Reset panorama state so next mount creates fresh instance
+      if (panoramaRef.current) {
+        google.maps.event.clearInstanceListeners(panoramaRef.current);
+      }
+      panoramaRef.current = null;
+      panoramaConstructedRef.current = false;
+      // Clear timeout guards
+      if (panoLoadTimeoutRef.current) {
+        clearTimeout(panoLoadTimeoutRef.current);
+        panoLoadTimeoutRef.current = null;
+      }
+      if (navErrorTimerRef.current) {
+        clearTimeout(navErrorTimerRef.current);
+        navErrorTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // BUG-2 FIX: Visibility/Pageshow handler — detect iOS Safari bfcache and tab resume
+  // When page returns from background, check if panorama container is still valid.
+  // If not, set flag so next showStreetView creates fresh instance.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && panoramaRef.current && streetViewRef.current) {
+        // Check if container is still in DOM
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pano = panoramaRef.current as any;
+        const div = typeof pano.getDiv === 'function' ? pano.getDiv() : null;
+        if (div && !document.body.contains(div)) {
+          console.log("[Nav] Visibility resume: panorama container detached, marking for recreate");
+          google.maps.event.clearInstanceListeners(panoramaRef.current);
+          panoramaRef.current = null;
+          panoramaConstructedRef.current = false;
+        } else if (div && panoramaRef.current && startPanoIdRef.current) {
+          // Container exists but tiles may be corrupted after background — re-trigger setPano
+          const currentPano = panoramaRef.current.getPano();
+          if (currentPano) {
+            console.log("[Nav] Visibility resume: refreshing panorama tiles");
+            panoramaRef.current.setPano(currentPano);
+          }
+        }
+      }
+    };
+
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && panoramaRef.current) {
+        // Page restored from bfcache — panorama may be corrupted
+        console.log("[Nav] Pageshow bfcache restore: refreshing panorama");
+        const currentPano = panoramaRef.current.getPano();
+        if (currentPano && streetViewRef.current) {
+          panoramaRef.current.setPano(currentPano);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, []);
 
@@ -856,6 +951,15 @@ export function useStreetView(roomId?: string, playerId?: string) {
           streetViewServiceRef.current = new google.maps.StreetViewService();
         }
 
+        // Clear any previous load failure state
+        setPanoLoadFailed(false);
+
+        // Clear any previous timeout guard
+        if (panoLoadTimeoutRef.current) {
+          clearTimeout(panoLoadTimeoutRef.current);
+          panoLoadTimeoutRef.current = null;
+        }
+
         // v3: Directly show the pano — NO validation call
         // If the panoId is expired, the panorama will emit a status_changed event
         // with ZERO_RESULTS, and we handle fallback there.
@@ -865,10 +969,19 @@ export function useStreetView(roomId?: string, playerId?: string) {
         // This only fires if the panoId fails to load (expired/invalid)
         if (panoramaRef.current) {
           let fallbackTriggered = false;
+          let loadSucceeded = false;
+
+          const clearTimeoutGuard = () => {
+            if (panoLoadTimeoutRef.current) {
+              clearTimeout(panoLoadTimeoutRef.current);
+              panoLoadTimeoutRef.current = null;
+            }
+          };
 
           const triggerFallback = (status: string) => {
             if (fallbackTriggered) return;
             fallbackTriggered = true;
+            clearTimeoutGuard();
 
             // PanoId is invalid — fallback to coords-based resolution
             console.warn(`[Nav] Pano ID expired (status=${status}), resolving from coords: ${panoPackage.locationName}`);
@@ -902,10 +1015,13 @@ export function useStreetView(roomId?: string, playerId?: string) {
                     navigationMetrics.googleInternalMetadataEstimate++; // setPano triggers Google-internal
                   }
 
+                  loadSucceeded = true;
                   logCostMetrics("fallbackSuccess", { pano: freshPanoId.substring(0, 12) });
                 } else {
                   console.error(`[Nav] Could not resolve pano from coords for ${panoPackage.locationName}`);
-                  setError("Konum yüklenemedi");
+                  // BUG-2 FIX: Show user-visible failure state instead of silent black screen
+                  setPanoLoadFailed(true);
+                  setError("Street View yüklenemedi");
                 }
               }
             );
@@ -915,7 +1031,10 @@ export function useStreetView(roomId?: string, playerId?: string) {
             if (!panoramaRef.current) return;
             const status = panoramaRef.current.getStatus();
 
-            if (status !== google.maps.StreetViewStatus.OK) {
+            if (status === google.maps.StreetViewStatus.OK) {
+              loadSucceeded = true;
+              clearTimeoutGuard();
+            } else {
               triggerFallback(String(status));
             }
 
@@ -930,6 +1049,20 @@ export function useStreetView(roomId?: string, playerId?: string) {
           if (immediateStatus && immediateStatus !== google.maps.StreetViewStatus.OK) {
             triggerFallback(String(immediateStatus));
             google.maps.event.removeListener(statusListener);
+          } else if (immediateStatus === google.maps.StreetViewStatus.OK) {
+            loadSucceeded = true;
+          }
+
+          // BUG-2 FIX: setPano timeout guard — if no load success within 10s, trigger fallback
+          // This catches silent failures where status_changed never fires (orphaned panorama, etc.)
+          if (!loadSucceeded && !fallbackTriggered) {
+            panoLoadTimeoutRef.current = setTimeout(() => {
+              panoLoadTimeoutRef.current = null;
+              if (!loadSucceeded && !fallbackTriggered) {
+                console.warn(`[Nav] setPano timeout (10s) — triggering fallback for ${panoPackage.locationName}`);
+                triggerFallback("TIMEOUT");
+              }
+            }, 10000);
           }
         }
 
@@ -1102,5 +1235,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
     returnToStart,
     // Cache bilgisi
     visitedPanoCount: visitedPanosRef.current.size,
+    // BUG-2 FIX: Expose load failure state for UI fallback overlay
+    panoLoadFailed,
   };
 }

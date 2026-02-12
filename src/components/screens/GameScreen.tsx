@@ -1,5 +1,5 @@
 import { RefObject } from "react";
-import { RefreshCw, AlertTriangle, WifiOff } from "lucide-react";
+import { RefreshCw, AlertTriangle, WifiOff, LogOut } from "lucide-react";
 import { Room, Player, Coordinates, RoundResult } from "@/types";
 import { GameNotification } from "@/hooks";
 import { GameHeader } from "@/components/game/GameHeader";
@@ -47,6 +47,7 @@ interface GameScreenProps {
   onLeaveRoom: () => void;
   returnToStart: () => void;
   onReturnToMenu: () => void;
+  panoLoadFailed?: boolean;
 }
 
 export function GameScreen({
@@ -77,6 +78,7 @@ export function GameScreen({
   onLeaveRoom,
   returnToStart,
   onReturnToMenu,
+  panoLoadFailed,
 }: GameScreenProps) {
   // Connection lost fallback
   if (!room) {
@@ -146,6 +148,35 @@ export function GameScreen({
       {/* Players Sidebar */}
       {!isRoundEnd && !isGameOver && (
         <PlayersSidebar players={players} returnToStart={returnToStart} />
+      )}
+
+      {/* BUG-2 FIX: Pano load failure overlay — prevents silent black screen */}
+      {panoLoadFailed && !isRoundEnd && !isGameOver && (
+        <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center">
+          <div className="text-center p-6">
+            <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={32} className="text-red-400" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Street View Yüklenemedi</h2>
+            <p className="text-gray-400 mb-6">Panorama yüklenirken bir hata oluştu.</p>
+            <button onClick={onLeaveRoom} className="btn-primary">
+              Lobiye Dön
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency exit button — visible after guessing, provides escape from stuck state */}
+      {hasGuessed && !isRoundEnd && !isGameOver && !panoLoadFailed && (
+        <button
+          onClick={onLeaveRoom}
+          className="absolute top-14 left-3 z-30 glass rounded-lg px-3 py-2 flex items-center gap-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+          aria-label="Oyundan ayrıl"
+          title="Oyundan Ayrıl"
+        >
+          <LogOut size={14} />
+          <span className="hidden sm:inline">Ayrıl</span>
+        </button>
       )}
 
       {/* Mini Map */}

@@ -36,7 +36,7 @@ export default function HomePage() {
     showStreetView, showPanoPackage, initializeGoogleMaps,
     setMoves, resetMoves, movesRemaining, movesUsed,
     isMovementLocked, showBudgetWarning, returnToStart,
-    navigationError,
+    navigationError, panoLoadFailed,
   } = useStreetView(room?.id, playerId);
 
   const { guessMapRef, initializeMap, resetMap } = useGuessMap(setGuessLocation);
@@ -53,8 +53,29 @@ export default function HomePage() {
   const prevRoundRef = useRef<number | null>(null);
   const prevStatusRef = useRef<string | null>(null);
   const lastShownPanoRoundRef = useRef<string | null>(null);
+  // BUG-2 FIX: Track toast dismiss timeout to prevent orphan timers
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ==================== HELPERS ====================
+
+  // Tracked toast: clear-before-set pattern prevents orphan timers
+  const showTrackedToast = (msg: string, duration = 3000) => {
+    setShowToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => {
+      toastTimerRef.current = null;
+      setShowToast(null);
+    }, duration);
+  };
 
   // ==================== EFFECTS ====================
+
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
 
   // Initialize Street View and map when game starts
   useEffect(() => {
@@ -148,8 +169,7 @@ export default function HomePage() {
       setGuessLocation(null);
       resetMoves();
       if (error) {
-        setShowToast(error === "Oda silindi veya bulunamadı" ? "Oda kapatıldı" : error);
-        setTimeout(() => setShowToast(null), 3000);
+        showTrackedToast(error === "Oda silindi veya bulunamadı" ? "Oda kapatıldı" : error);
       }
     }
   }, [room, error, screen, isLoading]);
@@ -162,8 +182,7 @@ export default function HomePage() {
         resetMap();
         setGuessLocation(null);
         resetMoves();
-        setShowToast("Bağlantı koptu, yeniden bağlanın");
-        setTimeout(() => setShowToast(null), 3000);
+        showTrackedToast("Bağlantı koptu, yeniden bağlanın");
       }
     };
 
@@ -204,8 +223,7 @@ export default function HomePage() {
       if ((window as any).__mpCounters) {
         (window as any).__mpCounters.unhandledRejectionCount++;
       }
-      setShowToast("Beklenmeyen bir hata oluştu");
-      setTimeout(() => setShowToast(null), 3000);
+      showTrackedToast("Beklenmeyen bir hata oluştu");
     };
     window.addEventListener("unhandledrejection", handler);
     return () => window.removeEventListener("unhandledrejection", handler);
@@ -286,6 +304,8 @@ export default function HomePage() {
   };
 
   const handleRestartGame = async () => {
+    // BUG-2 FIX: Reset dedup guard so new game's panorama effect will fire
+    lastShownPanoRoundRef.current = null;
     resetMap();
     setGuessLocation(null);
     resetMoves();
@@ -305,8 +325,11 @@ export default function HomePage() {
     if (room?.id) {
       navigator.clipboard.writeText(room.id);
       setCopied(true);
+      // Use tracked toast — also reset copied state when toast dismisses
       setShowToast("Kod kopyalandı!");
-      setTimeout(() => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
+        toastTimerRef.current = null;
         setCopied(false);
         setShowToast(null);
       }, 2000);
@@ -398,6 +421,7 @@ export default function HomePage() {
         onLeaveRoom={handleLeaveRoom}
         returnToStart={returnToStart}
         onReturnToMenu={handleReturnToMenu}
+        panoLoadFailed={panoLoadFailed}
       />
       </GameErrorBoundary>
     );

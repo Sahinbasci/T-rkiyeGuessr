@@ -193,6 +193,12 @@ export function useRoom() {
   const watchdogIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const watchdogAttemptsRef = useRef<number>(0);
 
+  // Client resync watchdog refs (Effect 7) — non-host stuck detection
+  const clientResyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const clientResyncDelayRef = useRef<NodeJS.Timeout | null>(null);
+  const clientResyncSafetyRef = useRef<NodeJS.Timeout | null>(null);
+  const clientGuessTimestampRef = useRef<number | null>(null);
+
   // Mirror refs for heartbeat (avoids stale closure in Effect 1)
   const roomStatusRef = useRef<string | null>(null);
   const roomHostIdRef = useRef<string | null>(null);
@@ -757,7 +763,7 @@ export function useRoom() {
 
           // If we've been "playing" for longer than timeLimit + 10s after guessing,
           // something may be stuck. Force a fresh read.
-          if (elapsed > timeLimit + 10) {
+          if (elapsed > timeLimit + 5) {
             if (!stuckRecoveryTimerRef.current) {
               console.log(`[MP] Stuck recovery: client guessed but still playing after ${elapsed.toFixed(0)}s — scheduling fresh read`);
               stuckRecoveryTimerRef.current = setTimeout(async () => {
@@ -829,6 +835,125 @@ export function useRoom() {
       }
     };
   }, [room?.id, playerId, playerName, addNotification]);
+
+  // BUG-1 FIX: hardResync — reset local locks/guards so UI can rebuild from fresh room state.
+  // Idempotent: safe to call multiple times. Does NOT touch Firebase — only local state.
+  const hardResync = useCallback(() => {
+    isProcessingRoundRef.current = false;
+    processingRoundIdRef.current = null;
+    isSubmittingGuessRef.current = false;
+    if (stuckRecoveryTimerRef.current) {
+      clearTimeout(stuckRecoveryTimerRef.current);
+      stuckRecoveryTimerRef.current = null;
+    }
+    clientGuessTimestampRef.current = null;
+    console.log("[MP] hardResync: local locks/guards reset");
+  }, []);
+
+  // ==================== EFFECT 7: CLIENT RESYNC WATCHDOG ====================
+  // BUG-1 FIX: Non-host clients poll Firebase after guessing to detect stale snapshot.
+  // If fresh read shows status !== "playing" or round changed, force setRoom(freshData).
+  // This catches the case where onValue snapshot is delayed/missed (network jitter,
+  // tab backgrounding, Firebase SDK queueing).
+  //
+  // Conditions: status=playing && hasGuessed=true && !isHost
+  // Start delay: 2s after hasGuessed detected
+  // Interval: 2s
+  // Max duration: 15s (safety cleanup)
+  // Idempotent: multiple firings are safe (setRoom with same data = no-op rerender)
+
+  useEffect(() => {
+    if (!room?.id || !playerId) return;
+    // Host has its own watchdog (Effect 6) — skip
+    if (playerId === room.hostId) return;
+    // Only active during playing
+    if (room.status !== "playing") {
+      clientGuessTimestampRef.current = null;
+      return;
+    }
+    // Only active after this client has guessed
+    const myPlayer = room.players?.[playerId];
+    if (!myPlayer?.hasGuessed) return;
+
+    // Record when we first detected hasGuessed
+    if (!clientGuessTimestampRef.current) {
+      clientGuessTimestampRef.current = Date.now();
+    }
+
+    // Don't start polling until at least 2s after guess
+    const elapsed = Date.now() - clientGuessTimestampRef.current;
+    if (elapsed < 2000) return;
+
+    const roomId = room.id;
+    const expectedRound = room.currentRound;
+    const roomRef = ref(database, `rooms/${roomId}`);
+
+    // Start polling with 2s delay, then every 2s
+    clientResyncDelayRef.current = setTimeout(() => {
+      clientResyncDelayRef.current = null;
+
+      clientResyncIntervalRef.current = setInterval(async () => {
+        try {
+          const freshSnap = await get(roomRef);
+          const freshRoom = freshSnap.val() as Room | null;
+
+          if (!freshRoom) return; // Room deleted — Effect 5's null handler deals with it
+
+          // Case 1: Status changed (roundEnd, gameOver, waiting)
+          if (freshRoom.status !== "playing") {
+            console.log(`[MP] ClientResync: status=${freshRoom.status} (was playing), forcing local update`);
+            hardResync();
+            setRoom(freshRoom);
+            return;
+          }
+
+          // Case 2: Round changed (we missed a round transition)
+          if (freshRoom.currentRound !== expectedRound) {
+            console.log(`[MP] ClientResync: round=${freshRoom.currentRound} (expected ${expectedRound}), forcing local update`);
+            hardResync();
+            setRoom(freshRoom);
+            return;
+          }
+
+          // Case 3: roundResults appeared but status still "playing" (edge case)
+          if (freshRoom.roundResults && Array.isArray(freshRoom.roundResults) && freshRoom.roundResults.length > 0) {
+            console.log(`[MP] ClientResync: roundResults present but status still playing, forcing local update`);
+            hardResync();
+            setRoom(freshRoom);
+            return;
+          }
+        } catch (err) {
+          console.warn("[MP] ClientResync poll failed:", err);
+        }
+      }, 2000);
+    }, 2000);
+
+    // Safety: stop polling after 15s max to prevent infinite Firebase reads
+    clientResyncSafetyRef.current = setTimeout(() => {
+      clientResyncSafetyRef.current = null;
+      if (clientResyncIntervalRef.current) {
+        clearInterval(clientResyncIntervalRef.current);
+        clientResyncIntervalRef.current = null;
+        console.log("[MP] ClientResync: safety timeout (15s), stopping polling");
+      }
+    }, 15000);
+
+    return () => {
+      if (clientResyncDelayRef.current) {
+        clearTimeout(clientResyncDelayRef.current);
+        clientResyncDelayRef.current = null;
+      }
+      if (clientResyncIntervalRef.current) {
+        clearInterval(clientResyncIntervalRef.current);
+        clientResyncIntervalRef.current = null;
+      }
+      if (clientResyncSafetyRef.current) {
+        clearTimeout(clientResyncSafetyRef.current);
+        clientResyncSafetyRef.current = null;
+      }
+      clientGuessTimestampRef.current = null;
+    };
+  }, [room?.id, room?.status, room?.hostId, room?.currentRound, room?.players?.[playerId]?.hasGuessed, playerId]);
 
   // ==================== EFFECT 6: HOST-ONLY WATCHDOG ====================
   // Independent interval that guarantees no round stays stuck in "playing" forever.
