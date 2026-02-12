@@ -104,7 +104,7 @@ export interface Room {
 }
 
 export interface RoundResult {
-  odlayerId: string;
+  playerId: string;
   playerName: string;
   guess: Coordinates;
   distance: number;

@@ -80,8 +80,21 @@ const STALE_HEARTBEAT_THRESHOLD = 30000; // 30s no heartbeat → mark disconnect
 const HEARTBEAT_INTERVAL = 5000;         // 5s heartbeat
 const CLEANUP_INTERVAL = 10000;          // 10s cleanup cycle
 const ROUND_END_RECOVERY_BUFFER = 3;     // seconds past time limit before recovery kicks in
+const WATCHDOG_INTERVAL = 5000;          // 5s watchdog tick
+const WATCHDOG_BUFFER = 5;              // seconds past timeLimit before watchdog acts
+const WATCHDOG_MAX_ATTEMPTS = 3;         // max resolution attempts before escalation
+const WATCHDOG_LOCK_STALE_THRESHOLD = 10000; // 10s — lock older than this is considered stale
 
 // ==================== INSTRUMENTATION ====================
+
+interface RoundEndTimingContext {
+  serverNow?: number;  // from meta/serverNow, passed by caller
+}
+
+// CHAOS_MODE: enable via localStorage.setItem('CHAOS_MODE', '1') or env var
+const CHAOS_MODE = typeof window !== 'undefined'
+  ? localStorage.getItem('CHAOS_MODE') === '1'
+  : process.env.NEXT_PUBLIC_CHAOS_MODE === '1';
 
 // Per-session counters (reset on page reload)
 const mpCounters = {
@@ -93,7 +106,20 @@ const mpCounters = {
   ghostRemovedCount: 0,
   notificationFiredCount: 0,
   hostMigrationCount: 0,
+  watchdogFiredCount: 0,
+  watchdogFailureCount: 0,
+  roundEndLatencyMs: 0,
+  maxRoundEndLatencyMs: 0,
+  unhandledRejectionCount: 0,
+  firebaseInternalAbortCount: 0,  // Firebase SDK repoAbortTransactionsOnNode (not our bug)
+  roundEndLatencies: [] as number[],       // timeUp/watchdog/recovery latencies only
+  earlyFinishLatencies: [] as number[],    // allGuessed early-finish times (positive = ms before timer expiry)
 };
+
+// Expose mpCounters on window for CHAOS validation (console access)
+if (CHAOS_MODE && typeof window !== 'undefined') {
+  (window as any).__mpCounters = mpCounters;
+}
 
 function roomStateDigest(room: Room, trigger: string, clientId: string): void {
   const players = Object.values(room.players || {});
@@ -133,11 +159,17 @@ export function useRoom() {
   const isFirstLoadRef = useRef(true);
   // Name cache: stores player names from PREVIOUS snapshot for reliable left-notification
   const previousPlayerNamesRef = useRef<Map<string, string>>(new Map());
+  // Track notification auto-dismiss timeouts for cleanup on unmount
+  const notificationTimerIdsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
   // Round processing guards
   const isProcessingRoundRef = useRef<boolean>(false);
   const processingRoundIdRef = useRef<number | null>(null);
   const lastStatusRef = useRef<string | null>(null);
+
+  // Connection state tracking
+  const [connectionState, setConnectionState] = useState<'online' | 'reconnecting' | 'lost'>('online');
+  const consecutiveHeartbeatFailsRef = useRef<number>(0);
 
   // Double-submit guard (synchronous, not React state)
   const isSubmittingGuessRef = useRef<boolean>(false);
@@ -149,8 +181,29 @@ export function useRoom() {
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Post-migration recovery refs (track leaked timeout/interval)
+  const postMigrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const postMigrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const postMigrationSafetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Host migration guard: prevent duplicate migration attempts
   const isMigratingHostRef = useRef<string | null>(null); // old hostId being migrated away from
+
+  // Watchdog refs (Effect 6)
+  const watchdogIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const watchdogAttemptsRef = useRef<number>(0);
+
+  // Mirror refs for heartbeat (avoids stale closure in Effect 1)
+  const roomStatusRef = useRef<string | null>(null);
+  const roomHostIdRef = useRef<string | null>(null);
+  const roomIdRef = useRef<string | null>(null);
+
+  // Keep mirror refs in sync with room state
+  useEffect(() => {
+    roomStatusRef.current = room?.status || null;
+    roomHostIdRef.current = room?.hostId || null;
+    roomIdRef.current = room?.id || null;
+  }, [room?.status, room?.hostId, room?.id]);
 
   // ==================== NOTIFICATION HELPERS ====================
 
@@ -170,10 +223,12 @@ export function useRoom() {
 
     setNotifications(prev => [...prev, notification]);
 
-    // Auto-dismiss after 5s
-    setTimeout(() => {
+    // Auto-dismiss after 5s (tracked for cleanup on unmount)
+    const timerId = setTimeout(() => {
+      notificationTimerIdsRef.current.delete(timerId);
       setNotifications(prev => prev.filter(n => n.id !== notification.id));
     }, 5000);
+    notificationTimerIdsRef.current.add(timerId);
   }, []);
 
   const dismissNotification = useCallback((notificationId: string) => {
@@ -201,8 +256,35 @@ export function useRoom() {
           lastSeen: Date.now(),
           status: 'online' as PlayerStatus,
         });
-      } catch (err) {
-        // Player may have been removed — ignore
+        // FLOOD CONTROL: Only write serverNow while room is "playing"
+        // (watchdog only runs in "playing" — no need for serverNow in other statuses)
+        // Uses refs instead of closure to avoid stale room.status/room.hostId
+        if (playerId === roomHostIdRef.current && roomStatusRef.current === "playing" && roomIdRef.current) {
+          await update(ref(database, `rooms/${roomIdRef.current}/meta`), {
+            serverNow: serverTimestamp(),
+          });
+        }
+        consecutiveHeartbeatFailsRef.current = 0;
+        setConnectionState('online');
+      } catch (err: any) {
+        // Classify error to determine connection state
+        const code = err?.code || '';
+        const message = err?.message || '';
+        if (code === 'PERMISSION_DENIED' || code === 'permission-denied') {
+          // Player was removed from room
+          setConnectionState('lost');
+        } else if (message.includes('not found') || message.includes('deleted')) {
+          // Room no longer exists
+          setConnectionState('lost');
+        } else {
+          // Network/transient error
+          consecutiveHeartbeatFailsRef.current++;
+          if (consecutiveHeartbeatFailsRef.current >= 6) {
+            setConnectionState('lost');
+          } else if (consecutiveHeartbeatFailsRef.current >= 2) {
+            setConnectionState('reconnecting');
+          }
+        }
       }
     };
 
@@ -334,6 +416,43 @@ export function useRoom() {
     return () => cleanupTelemetry();
   }, []);
 
+  // ==================== EFFECT 4b: CHAOS_MODE LOGGING ====================
+
+  useEffect(() => {
+    if (!CHAOS_MODE) return;
+    console.log("[CHAOS] CHAOS_MODE enabled — logging every 30s");
+
+    const chaosInterval = setInterval(() => {
+      console.log("[CHAOS] mpCounters:", JSON.stringify(mpCounters));
+      console.log("[CHAOS] Intervals:", JSON.stringify({
+        presence: !!presenceIntervalRef.current,
+        cleanup: !!cleanupIntervalRef.current,
+        watchdog: !!watchdogIntervalRef.current,
+        postMigrationTimeout: !!postMigrationTimeoutRef.current,
+        postMigrationInterval: !!postMigrationIntervalRef.current,
+      }));
+      if (typeof performance !== 'undefined' && (performance as any).memory) {
+        const mem = (performance as any).memory;
+        console.log(`[CHAOS] Heap: used=${(mem.usedJSHeapSize / 1048576).toFixed(1)}MB total=${(mem.totalJSHeapSize / 1048576).toFixed(1)}MB`);
+      }
+      // Latency percentile (timer-expiry rounds only)
+      const latencies = mpCounters.roundEndLatencies;
+      if (latencies.length > 0) {
+        const under3s = latencies.filter(l => l <= 3000).length;
+        console.log(`[CHAOS] RoundEndLatency (timeUp): ${under3s}/${latencies.length} under 3s (${((under3s / latencies.length) * 100).toFixed(1)}%) max=${Math.max(...latencies)}ms`);
+      }
+      const earlyFinishes = mpCounters.earlyFinishLatencies;
+      if (earlyFinishes.length > 0) {
+        console.log(`[CHAOS] EarlyFinish (allGuessed): ${earlyFinishes.length} rounds, avg=${Math.round(earlyFinishes.reduce((a, b) => a + b, 0) / earlyFinishes.length)}ms early`);
+      }
+      if (mpCounters.firebaseInternalAbortCount > 0) {
+        console.log(`[CHAOS] FirebaseInternalAborts: ${mpCounters.firebaseInternalAbortCount} (SDK-level, not app errors)`);
+      }
+    }, 30000);
+
+    return () => clearInterval(chaosInterval);
+  }, []);
+
   // ==================== EFFECT 5: ROOM LISTENER + ROUND END ELECTOR ====================
   // Main onValue listener. Handles:
   // - Notification diffs (player join/leave)
@@ -375,7 +494,11 @@ export function useRoom() {
               const leftPlayerName = previousPlayerNamesRef.current.get(leftPlayerId) || "Bir oyuncu";
               addNotification("player_left", `${leftPlayerName} oyundan ayrıldı`, leftPlayerName);
               notifiedLeftRef.current.add(leftPlayerId);
-              setTimeout(() => notifiedLeftRef.current.delete(leftPlayerId), 10000);
+              const leftTimerId = setTimeout(() => {
+                notificationTimerIdsRef.current.delete(leftTimerId);
+                notifiedLeftRef.current.delete(leftPlayerId);
+              }, 10000);
+              notificationTimerIdsRef.current.add(leftTimerId);
             }
           });
 
@@ -388,7 +511,11 @@ export function useRoom() {
               const joinedPlayerName = currentPlayerNames[joinedPlayerId] || "Bir oyuncu";
               addNotification("player_joined", `${joinedPlayerName} odaya katıldı`, joinedPlayerName);
               notifiedJoinedRef.current.add(joinedPlayerId);
-              setTimeout(() => notifiedJoinedRef.current.delete(joinedPlayerId), 10000);
+              const joinTimerId = setTimeout(() => {
+                notificationTimerIdsRef.current.delete(joinTimerId);
+                notifiedJoinedRef.current.delete(joinedPlayerId);
+              }, 10000);
+              notificationTimerIdsRef.current.add(joinTimerId);
             }
           });
         }
@@ -504,17 +631,28 @@ export function useRoom() {
                 }
               };
 
+              // Clear any existing post-migration timers before creating new ones
+              if (postMigrationTimeoutRef.current) { clearTimeout(postMigrationTimeoutRef.current); postMigrationTimeoutRef.current = null; }
+              if (postMigrationIntervalRef.current) { clearInterval(postMigrationIntervalRef.current); postMigrationIntervalRef.current = null; }
+              if (postMigrationSafetyTimeoutRef.current) { clearTimeout(postMigrationSafetyTimeoutRef.current); postMigrationSafetyTimeoutRef.current = null; }
+
               // First check after 3s (wait for onDisconnect to propagate)
-              setTimeout(async () => {
+              postMigrationTimeoutRef.current = setTimeout(async () => {
+                postMigrationTimeoutRef.current = null;
                 const done = await recoveryCheck();
                 if (done) return;
                 // Continue checking every 5s until resolved
-                const interval = setInterval(async () => {
+                postMigrationIntervalRef.current = setInterval(async () => {
                   const isDone = await recoveryCheck();
-                  if (isDone) clearInterval(interval);
+                  if (isDone) {
+                    if (postMigrationIntervalRef.current) { clearInterval(postMigrationIntervalRef.current); postMigrationIntervalRef.current = null; }
+                  }
                 }, 5000);
-                // Safety: clear after 3 minutes max
-                setTimeout(() => clearInterval(interval), 180000);
+                // Safety: clear after 3 minutes max (tracked in ref for cleanup)
+                postMigrationSafetyTimeoutRef.current = setTimeout(() => {
+                  postMigrationSafetyTimeoutRef.current = null;
+                  if (postMigrationIntervalRef.current) { clearInterval(postMigrationIntervalRef.current); postMigrationIntervalRef.current = null; }
+                }, 180000);
               }, 3000);
             }
           }
@@ -677,12 +815,146 @@ export function useRoom() {
         clearTimeout(stuckRecoveryTimerRef.current);
         stuckRecoveryTimerRef.current = null;
       }
+      if (postMigrationTimeoutRef.current) {
+        clearTimeout(postMigrationTimeoutRef.current);
+        postMigrationTimeoutRef.current = null;
+      }
+      if (postMigrationIntervalRef.current) {
+        clearInterval(postMigrationIntervalRef.current);
+        postMigrationIntervalRef.current = null;
+      }
+      if (postMigrationSafetyTimeoutRef.current) {
+        clearTimeout(postMigrationSafetyTimeoutRef.current);
+        postMigrationSafetyTimeoutRef.current = null;
+      }
     };
   }, [room?.id, playerId, playerName, addNotification]);
+
+  // ==================== EFFECT 6: HOST-ONLY WATCHDOG ====================
+  // Independent interval that guarantees no round stays stuck in "playing" forever.
+  // Uses server-authoritative time (serverNow from meta/) for elapsed calculation.
+  // SAFETY: Never manually clearInterval inside tick — just return. Cleanup is effect-only.
+
+  useEffect(() => {
+    if (!room?.id || !playerId) return;
+    if (playerId !== room.hostId) return;
+    if (room.status !== "playing") return;
+    if (!room.roundStartTime) return;
+
+    const roomId = room.id;
+    const expectedRound = room.currentRound;
+    const timeLimit = room.timeLimit || 90;
+    const roundStartTime = room.roundStartTime;
+
+    // Reset attempts for this new effect run (new round or re-mount)
+    watchdogAttemptsRef.current = 0;
+
+    watchdogIntervalRef.current = setInterval(async () => {
+      // 1. Read FRESH room data
+      let freshSnap;
+      try {
+        freshSnap = await get(ref(database, `rooms/${roomId}`));
+      } catch {
+        return; // Firebase read failed — try next tick
+      }
+
+      const freshRoom = freshSnap.val() as Room | null;
+
+      // 2. Null room → deleted, effect will cleanup via deps
+      if (!freshRoom) return;
+
+      // 3. Status changed → resolved, effect will cleanup via status dep
+      if (freshRoom.status !== "playing") return;
+
+      // 4. Round changed → effect restarting via currentRound dep
+      if (freshRoom.currentRound !== expectedRound) return;
+
+      // 5. No longer host → effect will cleanup via hostId dep
+      if (freshRoom.hostId !== playerId) return;
+
+      // 6. Compute elapsed using server time
+      const meta = freshSnap.child("meta").val() as { serverNow?: number } | null;
+      let elapsed: number;
+      if (meta?.serverNow) {
+        elapsed = (meta.serverNow - roundStartTime) / 1000;
+      } else {
+        elapsed = (Date.now() - roundStartTime) / 1000;
+        console.log("[MP] Watchdog using client time fallback (serverNow missing)");
+      }
+
+      // 7. Normal operation — timer hasn't expired yet
+      if (elapsed <= timeLimit + WATCHDOG_BUFFER) return;
+
+      // 8. Timer expired — check if we should resolve
+      // a. Skip if already processing
+      if (isProcessingRoundRef.current) return;
+
+      // b. Check roundEndLock state
+      let staleLockDetected = false;
+      const existingLock = (freshRoom as any).roundEndLock as RoundEndLock | undefined;
+      if (existingLock && existingLock.roundId === expectedRound) {
+        // Lock exists for this round — check finalization
+        // Note: cast needed because TS narrows status to "playing" from check above,
+        // but fresh Firebase read may see a concurrent status change
+        if ((freshRoom.status as string) === "roundEnd") {
+          // Finalized — watchdog job done (effect will cleanup via status dep)
+          return;
+        }
+        const lockAge = (meta?.serverNow || Date.now()) - existingLock.lockedAt;
+        if (lockAge < WATCHDOG_LOCK_STALE_THRESHOLD) {
+          // Recent lock — someone is actively processing, skip this tick
+          console.log(`[MP] Watchdog: lock held by ${existingLock.lockedBy.substring(0, 8)}, age=${lockAge}ms — waiting`);
+          return;
+        }
+        // Stale lock — holder may have crashed, force override
+        staleLockDetected = true;
+        console.log(`[MP] Watchdog: stale lock detected (age=${lockAge}ms), forcing override`);
+      }
+
+      // c. Increment attempts
+      watchdogAttemptsRef.current++;
+
+      // d. Max attempts exceeded — escalate
+      if (watchdogAttemptsRef.current > WATCHDOG_MAX_ATTEMPTS) {
+        mpCounters.watchdogFailureCount++;
+        console.error(`[MP] Watchdog FAILURE: max attempts (${WATCHDOG_MAX_ATTEMPTS}) exceeded`, {
+          attempt: watchdogAttemptsRef.current,
+          freshStatus: freshRoom.status,
+          freshHostId: freshRoom.hostId,
+          roundEndLock: (freshRoom as any).roundEndLock,
+          isProcessingRound: isProcessingRoundRef.current,
+          elapsed: elapsed.toFixed(1),
+          timeLimit,
+        });
+        // Just return — do NOT clearInterval from inside tick
+        return;
+      }
+
+      // e. Attempt resolution
+      isProcessingRoundRef.current = true;
+      try {
+        mpCounters.watchdogFiredCount++;
+        console.log(`[MP] Watchdog resolution: round=${expectedRound} elapsed=${elapsed.toFixed(1)}s attempt=${watchdogAttemptsRef.current} staleLock=${staleLockDetected}`);
+        await acquireAndWriteRoundEnd(roomId, expectedRound, null, freshRoom.currentLocation, playerId, "watchdog", { serverNow: meta?.serverNow }, staleLockDetected);
+      } catch (err) {
+        console.error("[MP] Watchdog acquireAndWriteRoundEnd error:", err);
+      } finally {
+        isProcessingRoundRef.current = false;
+      }
+    }, WATCHDOG_INTERVAL);
+
+    return () => {
+      if (watchdogIntervalRef.current) {
+        clearInterval(watchdogIntervalRef.current);
+        watchdogIntervalRef.current = null;
+      }
+    };
+  }, [room?.id, room?.hostId, room?.status, room?.roundStartTime, room?.timeLimit, room?.currentRound, playerId]);
 
   // ==================== ROUND END LOCK + WRITE ====================
   // Acquires roundEndLock via transaction, then writes roundEnd atomically.
   // Idempotent: if lock already acquired for this round, or status != playing, aborts.
+  // forceOverrideStaleLock: when true, skips the lock-exists abort (used by watchdog for stale lock override).
 
   async function acquireAndWriteRoundEnd(
     roomId: string,
@@ -690,7 +962,9 @@ export function useRoom() {
     snapshotPlayerIds: string[] | null, // null = use all current players (recovery mode)
     snapshotLocation: Coordinates | null,
     ownerId: string,
-    trigger: string
+    trigger: string,
+    timingContext: RoundEndTimingContext = {},
+    forceOverrideStaleLock: boolean = false
   ) {
     mpCounters.roundEndLockAcquireAttempts++;
     console.log(`[MP] acquireAndWriteRoundEnd: ENTER trigger=${trigger} roundId=${roundId} owner=${ownerId.substring(0, 8)} attempt=#${mpCounters.roundEndLockAcquireAttempts}`);
@@ -704,11 +978,14 @@ export function useRoom() {
       return;
     }
 
-    // Check lock — if already locked for this round, abort
+    // Check lock — if already locked for this round, abort (unless forcing stale override)
     const existingLock = (freshRoom as any).roundEndLock as RoundEndLock | undefined;
-    if (existingLock && existingLock.roundId === roundId) {
+    if (existingLock && existingLock.roundId === roundId && !forceOverrideStaleLock) {
       console.log(`[MP] roundEnd abort: lock already held by ${existingLock.lockedBy.substring(0, 8)} for round ${roundId} trigger=${trigger}`);
       return;
+    }
+    if (existingLock && existingLock.roundId === roundId && forceOverrideStaleLock) {
+      console.log(`[MP] roundEnd: OVERRIDING stale lock held by ${existingLock.lockedBy.substring(0, 8)} (age=${Date.now() - existingLock.lockedAt}ms) trigger=${trigger}`);
     }
 
     // Acquire lock + write roundEnd in single transaction
@@ -727,7 +1004,7 @@ export function useRoom() {
           : 9999;
         const score = player.hasGuessed ? calculateScore(distance) : 0;
         return {
-          odlayerId: player.id,
+          playerId: player.id,
           playerName: player.name || "Oyuncu",
           guess: player.currentGuess || { lat: 0, lng: 0 },
           distance: player.hasGuessed ? distance : 9999,
@@ -741,7 +1018,7 @@ export function useRoom() {
       updatedPlayers[player.id] = player;
     });
     playersToProcess.forEach((player) => {
-      const result = results.find((r) => r.odlayerId === player.id);
+      const result = results.find((r) => r.playerId === player.id);
       const currentRoundScores = player.roundScores || [];
       updatedPlayers[player.id] = {
         ...player,
@@ -764,9 +1041,9 @@ export function useRoom() {
         return; // abort
       }
 
-      // Check lock inside transaction
+      // Check lock inside transaction (skip if forcing stale override)
       const lock = currentRoom.roundEndLock as RoundEndLock | undefined;
-      if (lock && lock.roundId === roundId) {
+      if (lock && lock.roundId === roundId && !forceOverrideStaleLock) {
         console.log(`[MP] roundEnd TX abort: lock already held trigger=${trigger}`);
         return; // abort — already locked
       }
@@ -790,6 +1067,32 @@ export function useRoom() {
     });
 
     if (transactionCommitted) {
+      // Compute roundEnd latency — different metric depending on trigger type
+      const now = timingContext.serverNow || Date.now();
+      const expectedEnd = freshRoom.roundStartTime
+        ? freshRoom.roundStartTime + (freshRoom.timeLimit || 90) * 1000
+        : now;
+      const timeDelta = now - expectedEnd;
+      const timeSource = timingContext.serverNow ? "server" : "client";
+      const isTimerTrigger = trigger === "timeUp" || trigger === "watchdog" || trigger === "recovery"
+        || trigger === "stuckRecovery" || trigger === "postMigrationTimeExpired";
+
+      if (isTimerTrigger) {
+        // Timer-expiry triggers: latency = time AFTER timer expired (should be small positive)
+        mpCounters.roundEndLatencyMs = timeDelta;
+        mpCounters.maxRoundEndLatencyMs = Math.max(mpCounters.maxRoundEndLatencyMs, timeDelta);
+        mpCounters.roundEndLatencies.push(timeDelta);
+        console.log(`[MP] RoundEndLatency: ${timeDelta}ms (source=${timeSource}, trigger=${trigger})`);
+        if (timeDelta > 3000) {
+          console.warn(`[MP] RoundEndLatency SLO breach: ${timeDelta}ms`);
+        }
+      } else {
+        // allGuessed / postMigrationAllGuessed: earlyFinish = time BEFORE timer would expire (positive = early)
+        const earlyFinishByMs = -timeDelta; // flip sign: negative delta → positive early finish
+        mpCounters.earlyFinishLatencies.push(earlyFinishByMs);
+        console.log(`[MP] EarlyFinish: ${earlyFinishByMs}ms before timer expiry (source=${timeSource}, trigger=${trigger})`);
+      }
+
       trackEvent("roundEnd", { roundId, trigger });
       console.log(`[MP] RoundEnd COMMITTED: round=${roundId} trigger=${trigger} by=${ownerId.substring(0, 8)}`);
       console.table({
@@ -800,6 +1103,8 @@ export function useRoom() {
         "RoundEnd Writes": mpCounters.roundEndWrites,
         "Ghosts Removed": mpCounters.ghostRemovedCount,
         "Players": Object.keys(freshRoom.players || {}).length,
+        "TimeDelta (ms)": timeDelta,
+        "Metric": isTimerTrigger ? `latency=${timeDelta}ms` : `earlyFinish=${-timeDelta}ms`,
       });
       roomStateDigest({ ...freshRoom, status: "roundEnd" } as Room, `roundEnd:${trigger}`, ownerId);
     } else {
@@ -829,13 +1134,13 @@ export function useRoom() {
 
     try {
       const roomCode = generateRoomCode();
-      const odlayerId = await getAuthUid();
+      const authUid = await getAuthUid();
       const sessionToken = generateSessionToken();
       const modeConfig = GAME_MODE_CONFIG[gameMode];
       const now = Date.now();
 
       const newPlayer: Player = {
-        id: odlayerId,
+        id: authUid,
         name: name.trim(),
         isHost: true,
         totalScore: 0,
@@ -852,11 +1157,11 @@ export function useRoom() {
 
       const newRoom: Room = {
         id: roomCode,
-        hostId: odlayerId,
+        hostId: authUid,
         status: "waiting",
         currentRound: 0,
         totalRounds: 5,
-        players: { [odlayerId]: newPlayer },
+        players: { [authUid]: newPlayer },
         gameMode: gameMode,
         timeLimit: modeConfig.timeLimit,
         moveLimit: modeConfig.moveLimit,
@@ -881,7 +1186,7 @@ export function useRoom() {
 
       await set(ref(database, `rooms/${roomCode}`), roomWithTimestamps);
 
-      setPlayerId(odlayerId);
+      setPlayerId(authUid);
       setPlayerName(name.trim());
       setRoom(newRoom);
 
@@ -889,13 +1194,13 @@ export function useRoom() {
 
       setTelemetryContext({
         roomId: roomCode,
-        playerId: odlayerId,
+        playerId: authUid,
         playerName: name.trim(),
       });
       trackEvent("join", { action: "create", gameMode });
 
-      previousPlayersRef.current = [odlayerId];
-      previousHostIdRef.current = odlayerId;
+      previousPlayersRef.current = [authUid];
+      previousHostIdRef.current = authUid;
       isFirstLoadRef.current = true;
       notifiedJoinedRef.current.clear();
       notifiedLeftRef.current.clear();
@@ -997,12 +1302,12 @@ export function useRoom() {
         return false;
       }
 
-      const odlayerId = await getAuthUid();
+      const authUid = await getAuthUid();
       const sessionToken = generateSessionToken();
       const now = Date.now();
 
       const newPlayer: Player = {
-        id: odlayerId,
+        id: authUid,
         name: name.trim(),
         isHost: false,
         totalScore: 0,
@@ -1019,7 +1324,7 @@ export function useRoom() {
 
       // Write to player-level path so $playerId .write rule applies
       // (room-level .write rule requires host or existing player)
-      await set(ref(database, `rooms/${normalizedRoomCode}/players/${odlayerId}`), newPlayer);
+      await set(ref(database, `rooms/${normalizedRoomCode}/players/${authUid}`), newPlayer);
 
       // lastActivityAt update: use player-level lastActiveAt instead
       // (room-level write requires host or existing player — we are now a player after the set above)
@@ -1029,24 +1334,24 @@ export function useRoom() {
 
       saveSessionToken(normalizedRoomCode, sessionToken);
 
-      setPlayerId(odlayerId);
+      setPlayerId(authUid);
       setPlayerName(name.trim());
       setRoom({ ...roomData, id: normalizedRoomCode });
 
       setTelemetryContext({
         roomId: normalizedRoomCode,
-        playerId: odlayerId,
+        playerId: authUid,
         playerName: name.trim(),
       });
       trackEvent("join", { action: "join" });
 
-      previousPlayersRef.current = [...Object.keys(roomData.players || {}), odlayerId];
+      previousPlayersRef.current = [...Object.keys(roomData.players || {}), authUid];
       previousHostIdRef.current = roomData.hostId;
       isFirstLoadRef.current = true;
       notifiedJoinedRef.current.clear();
       notifiedLeftRef.current.clear();
 
-      recordPlayerActivity(normalizedRoomCode, odlayerId);
+      recordPlayerActivity(normalizedRoomCode, authUid);
 
       return true;
     } catch (err) {
@@ -1460,6 +1765,9 @@ export function useRoom() {
     setRoom(null);
     setPlayerId("");
     setNotifications([]);
+    // Clear all pending notification timers
+    notificationTimerIdsRef.current.forEach(clearTimeout);
+    notificationTimerIdsRef.current.clear();
     previousPlayersRef.current = [];
     previousHostIdRef.current = null;
     previousPlayerNamesRef.current = new Map();
@@ -1522,6 +1830,7 @@ export function useRoom() {
     players: playersList,
     error,
     isLoading,
+    connectionState,
     notifications,
     dismissNotification,
     createRoom,

@@ -864,55 +864,73 @@ export function useStreetView(roomId?: string, playerId?: string) {
         // v3: Attach a ONE-TIME status_changed listener for fallback
         // This only fires if the panoId fails to load (expired/invalid)
         if (panoramaRef.current) {
+          let fallbackTriggered = false;
+
+          const triggerFallback = (status: string) => {
+            if (fallbackTriggered) return;
+            fallbackTriggered = true;
+
+            // PanoId is invalid — fallback to coords-based resolution
+            console.warn(`[Nav] Pano ID expired (status=${status}), resolving from coords: ${panoPackage.locationName}`);
+            // v4: This IS a real getPanorama call — count it
+            navigationMetrics.resolveFromCoordsCallCountPerRound++;
+            navigationMetrics.fallbackMetadataCallCount++;
+            logCostMetrics("fallbackResolve", { reason: "panoExpired", status });
+
+            streetViewServiceRef.current!.getPanorama(
+              {
+                location: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
+                radius: 1000,
+                preference: google.maps.StreetViewPreference.NEAREST,
+                source: google.maps.StreetViewSource.OUTDOOR,
+              },
+              (data, freshStatus) => {
+                if (freshStatus === google.maps.StreetViewStatus.OK && data?.location?.pano) {
+                  const freshPanoId = data.location.pano;
+                  console.log(`[Nav] Fresh pano resolved: ${freshPanoId.substring(0, 20)}...`);
+
+                  // Update all tracking refs
+                  startPanoIdRef.current = freshPanoId;
+                  lastPanoIdRef.current = freshPanoId;
+                  visitedPanosRef.current.add(freshPanoId);
+                  expectedPanoRef.current = freshPanoId;
+
+                  if (panoramaRef.current) {
+                    panoramaRef.current.setPano(freshPanoId);
+                    panoramaRef.current.setPov({ heading, pitch: 0 });
+                    navigationMetrics.setPanoCallCount++;
+                    navigationMetrics.googleInternalMetadataEstimate++; // setPano triggers Google-internal
+                  }
+
+                  logCostMetrics("fallbackSuccess", { pano: freshPanoId.substring(0, 12) });
+                } else {
+                  console.error(`[Nav] Could not resolve pano from coords for ${panoPackage.locationName}`);
+                  setError("Konum yüklenemedi");
+                }
+              }
+            );
+          };
+
           const statusListener = panoramaRef.current.addListener("status_changed", () => {
             if (!panoramaRef.current) return;
             const status = panoramaRef.current.getStatus();
 
             if (status !== google.maps.StreetViewStatus.OK) {
-              // PanoId is invalid — fallback to coords-based resolution
-              console.warn(`[Nav] Pano ID expired (status=${status}), resolving from coords: ${panoPackage.locationName}`);
-              // v4: This IS a real getPanorama call — count it
-              navigationMetrics.resolveFromCoordsCallCountPerRound++;
-              navigationMetrics.fallbackMetadataCallCount++;
-              logCostMetrics("fallbackResolve", { reason: "panoExpired", status });
-
-              streetViewServiceRef.current!.getPanorama(
-                {
-                  location: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
-                  radius: 1000,
-                  preference: google.maps.StreetViewPreference.NEAREST,
-                  source: google.maps.StreetViewSource.OUTDOOR,
-                },
-                (data, freshStatus) => {
-                  if (freshStatus === google.maps.StreetViewStatus.OK && data?.location?.pano) {
-                    const freshPanoId = data.location.pano;
-                    console.log(`[Nav] Fresh pano resolved: ${freshPanoId.substring(0, 20)}...`);
-
-                    // Update all tracking refs
-                    startPanoIdRef.current = freshPanoId;
-                    lastPanoIdRef.current = freshPanoId;
-                    visitedPanosRef.current.add(freshPanoId);
-                    expectedPanoRef.current = freshPanoId;
-
-                    if (panoramaRef.current) {
-                      panoramaRef.current.setPano(freshPanoId);
-                      panoramaRef.current.setPov({ heading, pitch: 0 });
-                      navigationMetrics.setPanoCallCount++;
-                      navigationMetrics.googleInternalMetadataEstimate++; // setPano triggers Google-internal
-                    }
-
-                    logCostMetrics("fallbackSuccess", { pano: freshPanoId.substring(0, 12) });
-                  } else {
-                    console.error(`[Nav] Could not resolve pano from coords for ${panoPackage.locationName}`);
-                    setError("Konum yüklenemedi");
-                  }
-                }
-              );
+              triggerFallback(String(status));
             }
 
             // Remove this one-time listener
             google.maps.event.removeListener(statusListener);
           });
+
+          // P1.2 FIX: Close race window — check status immediately after attaching listener.
+          // If the panorama already resolved before listener was attached, status_changed
+          // won't fire again. This catches the case where setPano already completed.
+          const immediateStatus = panoramaRef.current.getStatus();
+          if (immediateStatus && immediateStatus !== google.maps.StreetViewStatus.OK) {
+            triggerFallback(String(immediateStatus));
+            google.maps.event.removeListener(statusListener);
+          }
         }
 
         setIsLoading(false);

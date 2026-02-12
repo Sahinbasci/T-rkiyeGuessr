@@ -300,6 +300,7 @@ async function getLocationNameFromCoords(lat: number, lng: number, fallbackCity:
   }
 
   try {
+    sessionApiCallCount++;
     const geocoder = new google.maps.Geocoder();
     const result = await new Promise<google.maps.GeocoderResult[] | null>((resolve) => {
       geocoder.geocode(
@@ -380,6 +381,10 @@ function calculateHeading(fromLat: number, fromLng: number, toLat: number, toLng
 let usedLocationHashes: Set<string> = new Set();
 let streetViewService: google.maps.StreetViewService | null = null;
 
+// Session API call ceiling — prevents runaway costs
+const MAX_SESSION_API_CALLS = 50;
+let sessionApiCallCount = 0;
+
 /**
  * Street View servisini başlat
  */
@@ -411,6 +416,8 @@ async function findStreetViewPano(
     console.warn("Street View service not initialized");
     return null;
   }
+
+  sessionApiCallCount++;
 
   return new Promise((resolve) => {
     streetViewService!.getPanorama(
@@ -494,6 +501,12 @@ async function findBranchPanos(
  * Dinamik olarak yeni bir pano paketi oluştur
  */
 export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPackage | null> {
+  // Session ceiling check — switch to static-only if exceeded
+  if (sessionApiCallCount >= MAX_SESSION_API_CALLS) {
+    console.log(`[DynamicPano] Session API ceiling reached (${sessionApiCallCount}/${MAX_SESSION_API_CALLS}) — static-only mode`);
+    return null;
+  }
+
   // Street View servisi yoksa başlat
   if (!streetViewService && typeof google !== 'undefined') {
     initStreetViewService();
@@ -595,6 +608,10 @@ export function resetUsedLocations(): void {
  */
 export function getUsedLocationCount(): number {
   return usedLocationHashes.size;
+}
+
+export function getSessionApiCallCount(): number {
+  return sessionApiCallCount;
 }
 
 // ==================== FALLBACK: STATİK PANO HAVUZU ====================
@@ -707,6 +724,7 @@ export async function onNewGameStart(roomId?: string): Promise<void> {
   resetStaticUsage();
   resetProvinceBag();
   resetLocationEngine();
+  sessionApiCallCount = 0;
 
   // Initialize dynamic generator (if Google Maps loaded)
   initDynamicGenerator();

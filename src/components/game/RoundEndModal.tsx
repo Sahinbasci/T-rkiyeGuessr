@@ -35,10 +35,10 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
         <div className="space-y-2 sm:space-y-3 mb-5">
           {sortedResults.map((result, i) => (
             <div
-              key={result.odlayerId}
+              key={result.playerId}
               className={`flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl transition-all ${
                 i === 0 ? "bg-yellow-500/20 border border-yellow-500/50" : "bg-gray-800/50"
-              } ${result.odlayerId === playerId ? "ring-2 ring-red-500/50" : ""}`}
+              } ${result.playerId === playerId ? "ring-2 ring-red-500/50" : ""}`}
             >
               <span className="text-xl sm:text-2xl font-bold w-7 sm:w-8">
                 {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}
@@ -46,7 +46,7 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm sm:text-base truncate">
                   {result.playerName}
-                  {result.odlayerId === playerId && (
+                  {result.playerId === playerId && (
                     <span className="text-gray-400 text-xs ml-1">(Sen)</span>
                   )}
                 </p>

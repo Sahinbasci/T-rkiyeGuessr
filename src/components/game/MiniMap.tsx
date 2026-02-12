@@ -1,4 +1,4 @@
-import { RefObject } from "react";
+import { RefObject, useRef, useCallback, useEffect } from "react";
 import { Maximize2, Minimize2, Check } from "lucide-react";
 import { Coordinates } from "@/types";
 
@@ -25,12 +25,65 @@ export function MiniMap({
   playerCount,
   onSubmitGuess,
 }: MiniMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isTogglingRef = useRef(false);
+  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const triggerMapResize = useCallback(() => {
+    if (typeof google !== "undefined" && guessMapRef.current) {
+      const mapInstance = (guessMapRef.current as any).__gm_map;
+      if (mapInstance) {
+        google.maps.event.trigger(mapInstance, "resize");
+      }
+    }
+  }, [guessMapRef]);
+
+  const finishToggle = useCallback(() => {
+    isTogglingRef.current = false;
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+    triggerMapResize();
+  }, [triggerMapResize]);
+
+  // Listen for transitionend on the container
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTransitionEnd = (e: TransitionEvent) => {
+      // Only handle transitions on the container itself, not children
+      if (e.target === container) {
+        finishToggle();
+      }
+    };
+
+    container.addEventListener("transitionend", handleTransitionEnd);
+    return () => container.removeEventListener("transitionend", handleTransitionEnd);
+  }, [finishToggle]);
+
+  const handleToggle = useCallback(() => {
+    if (isTogglingRef.current) return; // no-op during transition
+    isTogglingRef.current = true;
+    setMapExpanded(!mapExpanded);
+
+    // Fallback: if transitionend never fires (no CSS transition), unset after 350ms
+    fallbackTimerRef.current = setTimeout(() => {
+      fallbackTimerRef.current = null;
+      if (isTogglingRef.current) {
+        finishToggle();
+      }
+    }, 350);
+  }, [mapExpanded, setMapExpanded, finishToggle]);
+
   return (
     <div
+      ref={containerRef}
       className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}
       onClick={(e) => {
         e.stopPropagation();
-        !mapExpanded && setMapExpanded(true);
+        if (!mapExpanded) handleToggle();
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -38,7 +91,7 @@ export function MiniMap({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          setMapExpanded(!mapExpanded);
+          handleToggle();
         }}
         className="map-expand-btn"
         aria-label={mapExpanded ? "Haritayı küçült" : "Haritayı büyüt"}

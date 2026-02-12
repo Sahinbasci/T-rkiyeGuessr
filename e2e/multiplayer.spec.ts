@@ -40,26 +40,26 @@ async function createPlayer(
 }
 
 async function fillPlayerName(page: Page, name: string) {
-  // Wait for React hydration: the "Yeni Oda Oluştur" button starts disabled (no name),
-  // and only becomes interactive once React has hydrated and onChange works.
-  // We fill, check if the button responds, and retry if React wasn't ready.
   const input = page.locator('input[placeholder="Adını gir..."]');
   await input.waitFor({ state: 'visible', timeout: 30000 });
 
-  // Retry fill up to 3 times — first fill may land before React hydration
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Fill the name — may need retry if React hasn't hydrated yet (prod SSR race)
+  for (let attempt = 1; attempt <= 3; attempt++) {
     await input.fill(name);
-    // If name is accepted by React, the "Yeni Oda Oluştur" button enables
     const btn = page.locator('button:has-text("Yeni Oda Oluştur")');
     const enabled = await btn.isEnabled({ timeout: 5000 }).catch(() => false);
     if (enabled) return;
-    // React didn't pick up the fill — clear and retry after a short wait
-    console.log(`      fillPlayerName: attempt ${attempt + 1} — button still disabled, retrying`);
-    await input.clear();
-    await page.waitForTimeout(2000);
+    // React didn't pick up fill — retry with keyboard input
+    if (attempt < 3) {
+      await input.clear();
+      await page.waitForTimeout(1000 * attempt);
+      await input.click();
+      await page.keyboard.type(name, { delay: 50 });
+      const enabled2 = await btn.isEnabled({ timeout: 3000 }).catch(() => false);
+      if (enabled2) return;
+      await input.clear();
+    }
   }
-  // Final attempt — if still fails, proceed and let the test fail with clear error
-  await input.fill(name);
 }
 
 async function createRoom(page: Page): Promise<string> {

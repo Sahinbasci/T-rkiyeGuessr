@@ -22,8 +22,8 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
   const markersRef = useRef<google.maps.Marker[]>([]);
   const polylineRef = useRef<google.maps.Polyline | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const polylinesRef = useRef<google.maps.Polyline[]>([]);
   const onLocationSelectRef = useRef(onLocationSelect);
-  const isInitializedRef = useRef(false);
 
   // Callback'i ref'te tut - listener her zaman güncel fonksiyonu çağırır
   onLocationSelectRef.current = onLocationSelect;
@@ -97,8 +97,6 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
           strictBounds: false,
         },
       });
-
-      isInitializedRef.current = true;
     }
 
     // KRITIK FIX: Listener'ı HER ZAMAN yeniden bağla
@@ -126,6 +124,8 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
     markersRef.current = [];
 
     // Polyline'ları temizle
+    polylinesRef.current.forEach((p) => p.setMap(null));
+    polylinesRef.current = [];
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
       polylineRef.current = null;
@@ -199,7 +199,7 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
         strokeWeight: 2,
         map: mapRef.current,
       });
-      markersRef.current.push(line as any);
+      polylinesRef.current.push(line);
     });
 
     mapRef.current.fitBounds(bounds, 50);

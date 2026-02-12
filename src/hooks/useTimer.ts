@@ -40,6 +40,7 @@ export function useTimer({
   const [isTimeUp, setIsTimeUp] = useState(false);
   const onTimeUpRef = useRef(onTimeUp);
   const hasCalledTimeUp = useRef(false);
+  const localStartTimeRef = useRef<number | null>(null);
 
   // onTimeUp callback'ini güncelle
   useEffect(() => {
@@ -56,14 +57,23 @@ export function useTimer({
     return remaining;
   }, [serverStartTime, initialTime]); // timeRemaining kaldırıldı - dependency cycle önleme
 
+  // Local fallback: compute remaining from Date.now() instead of decrement
+  const calculateLocalRemainingTime = useCallback(() => {
+    if (!localStartTimeRef.current) return initialTime;
+    const elapsed = Math.floor((Date.now() - localStartTimeRef.current) / 1000);
+    return Math.max(0, initialTime - elapsed);
+  }, [initialTime]);
+
   // Page Visibility API - arka plandan döndüğünde sync ol
   useEffect(() => {
-    if (!serverStartTime || !isRunning) return;
+    if (!isRunning) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Arka plandan döndük - server timestamp'a göre sync ol
-        const remaining = calculateRemainingTime();
+        // Arka plandan döndük - sync ol
+        const remaining = serverStartTime
+          ? calculateRemainingTime()
+          : calculateLocalRemainingTime();
         setTimeRemaining(remaining);
 
         // Süre bittiyse onTimeUp çağır
@@ -82,7 +92,7 @@ export function useTimer({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [serverStartTime, isRunning, calculateRemainingTime]);
+  }, [serverStartTime, isRunning, calculateRemainingTime, calculateLocalRemainingTime]);
 
   // serverStartTime değiştiğinde timer'ı sync et ve YENİDEN BAŞLAT
   // Bu effect yeni round başladığında timer'ı otomatik olarak başlatır
@@ -96,6 +106,7 @@ export function useTimer({
       // Timer'ı sıfırla ve yeniden başlat
       hasCalledTimeUp.current = false;
       setIsTimeUp(false);
+      localStartTimeRef.current = Date.now();
 
       const remaining = calculateRemainingTime();
       setTimeRemaining(remaining);
@@ -133,35 +144,25 @@ export function useTimer({
           });
         }
       } else {
-        // Fallback: local countdown (eski davranış)
-        setTimeRemaining((prev) => {
-          if (prev <= 0) return 0;
+        // Fallback: Date.now()-based countdown (drift-proof in background tabs)
+        const remaining = calculateLocalRemainingTime();
+        setTimeRemaining(remaining);
 
-          const newTime = prev - 1;
-
-          if (newTime <= 0) {
-            setIsRunning(false);
-            setIsTimeUp(true);
-
-            if (!hasCalledTimeUp.current) {
-              hasCalledTimeUp.current = true;
-              queueMicrotask(() => {
-                onTimeUpRef.current();
-              });
-            }
-
-            return 0;
-          }
-
-          return newTime;
-        });
+        if (remaining <= 0 && !hasCalledTimeUp.current) {
+          hasCalledTimeUp.current = true;
+          setIsRunning(false);
+          setIsTimeUp(true);
+          queueMicrotask(() => {
+            onTimeUpRef.current();
+          });
+        }
       }
     }, 1000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [isRunning, serverStartTime, calculateRemainingTime]);
+  }, [isRunning, serverStartTime, calculateRemainingTime, calculateLocalRemainingTime]);
 
   // Formatlanmış zaman (MM:SS)
   const formattedTime = `${Math.floor(timeRemaining / 60)
@@ -174,6 +175,7 @@ export function useTimer({
   // Başlat
   const start = useCallback(() => {
     if (timeRemaining > 0) {
+      localStartTimeRef.current = Date.now();
       setIsRunning(true);
       setIsTimeUp(false);
     }
@@ -191,6 +193,7 @@ export function useTimer({
       setIsRunning(false);
       setIsTimeUp(false);
       hasCalledTimeUp.current = false;
+      localStartTimeRef.current = null;
     },
     [initialTime]
   );

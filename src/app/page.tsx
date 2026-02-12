@@ -7,6 +7,8 @@ import { getRandomPanoPackage, onNewGameStart, initStreetViewService } from "@/s
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { LobbyScreen } from "@/components/screens/LobbyScreen";
 import { GameScreen } from "@/components/screens/GameScreen";
+import { GameErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { trackError } from "@/utils/telemetry";
 
 export default function HomePage() {
   // ==================== STATE ====================
@@ -23,7 +25,7 @@ export default function HomePage() {
   // ==================== HOOKS ====================
   const {
     room, playerId, currentPlayer, isHost, players, error, isLoading,
-    notifications, dismissNotification,
+    connectionState, notifications, dismissNotification,
     createRoom, joinRoom, setGameMode, startGame, startGameWithPanoPackage,
     submitGuess, checkAllGuessed, handleTimeUp, nextRound, nextRoundWithPanoPackage,
     leaveRoom, restartGame,
@@ -169,6 +171,46 @@ export default function HomePage() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [screen, room]);
 
+  // Global unhandled promise rejection handler
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      const error = event.reason;
+
+      // WHITELIST: Firebase RTDB internal transaction abort
+      // When update() and runTransaction() target overlapping paths concurrently,
+      // Firebase SDK internally calls repoAbortTransactionsOnNode which creates
+      // Error("set") and rejects the transaction's internal promise. This is NOT
+      // catchable by our code — it's a Firebase SDK implementation detail.
+      // Stack: repoAbortTransactionsOnNode → repoAbortTransactions → repoUpdate → update → updatePresence
+      // Match criteria: Error with message "set" AND stack containing "repoAbortTransactionsOnNode"
+      const isFirebaseInternalAbort =
+        error instanceof Error &&
+        error.message === "set" &&
+        error.stack?.includes("repoAbortTransactionsOnNode");
+
+      if (isFirebaseInternalAbort) {
+        // Count separately — not an app error
+        if ((window as any).__mpCounters) {
+          (window as any).__mpCounters.firebaseInternalAbortCount++;
+        }
+        console.warn("[FirebaseInternalAbort] SDK transaction abort (safe to ignore)", error.stack?.split("\n")[1]?.trim());
+        event.preventDefault(); // Suppress browser error reporting for this known SDK behavior
+        return;
+      }
+
+      console.error("[UnhandledRejection]", error);
+      trackError(error instanceof Error ? error : String(error), "unhandledRejection");
+      // Increment CHAOS counter if available
+      if ((window as any).__mpCounters) {
+        (window as any).__mpCounters.unhandledRejectionCount++;
+      }
+      setShowToast("Beklenmeyen bir hata oluştu");
+      setTimeout(() => setShowToast(null), 3000);
+    };
+    window.addEventListener("unhandledrejection", handler);
+    return () => window.removeEventListener("unhandledrejection", handler);
+  }, []);
+
   // ==================== HANDLERS ====================
 
   const handleCreateRoom = async () => {
@@ -306,26 +348,29 @@ export default function HomePage() {
 
   if (screen === "lobby" && room) {
     return (
-      <LobbyScreen
-        room={room}
-        playerId={playerId}
-        players={players}
-        isHost={isHost}
-        streetViewLoading={streetViewLoading}
-        copied={copied}
-        showToast={showToast}
-        onCopyRoomCode={copyRoomCode}
-        onShareWhatsApp={shareWhatsApp}
-        onSetGameMode={setGameMode}
-        onStartGame={handleStartGame}
-        onLeaveRoom={handleLeaveRoom}
-      />
+      <GameErrorBoundary onReturnToMenu={handleReturnToMenu}>
+        <LobbyScreen
+          room={room}
+          playerId={playerId}
+          players={players}
+          isHost={isHost}
+          streetViewLoading={streetViewLoading}
+          copied={copied}
+          showToast={showToast}
+          onCopyRoomCode={copyRoomCode}
+          onShareWhatsApp={shareWhatsApp}
+          onSetGameMode={setGameMode}
+          onStartGame={handleStartGame}
+          onLeaveRoom={handleLeaveRoom}
+        />
+      </GameErrorBoundary>
     );
   }
 
   if (screen === "game") {
     return (
-      <GameScreen
+      <GameErrorBoundary onReturnToMenu={handleReturnToMenu}>
+        <GameScreen
         room={room}
         playerId={playerId}
         currentPlayer={currentPlayer}
@@ -344,6 +389,7 @@ export default function HomePage() {
         setMapExpanded={setMapExpanded}
         guessLocation={guessLocation}
         showToast={showToast}
+        connectionState={connectionState}
         notifications={notifications}
         dismissNotification={dismissNotification}
         onSubmitGuess={handleSubmitGuess}
@@ -353,6 +399,7 @@ export default function HomePage() {
         returnToStart={returnToStart}
         onReturnToMenu={handleReturnToMenu}
       />
+      </GameErrorBoundary>
     );
   }
 

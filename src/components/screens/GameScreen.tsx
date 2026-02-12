@@ -1,5 +1,5 @@
 import { RefObject } from "react";
-import { RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCw, AlertTriangle, WifiOff } from "lucide-react";
 import { Room, Player, Coordinates, RoundResult } from "@/types";
 import { GameNotification } from "@/hooks";
 import { GameHeader } from "@/components/game/GameHeader";
@@ -38,6 +38,8 @@ interface GameScreenProps {
   // Notifications
   notifications: GameNotification[];
   dismissNotification: (id: string) => void;
+  // Connection
+  connectionState: 'online' | 'reconnecting' | 'lost';
   // Handlers
   onSubmitGuess: () => void;
   onNextRound: () => void;
@@ -68,6 +70,7 @@ export function GameScreen({
   showToast,
   notifications,
   dismissNotification,
+  connectionState,
   onSubmitGuess,
   onNextRound,
   onRestart,
@@ -216,6 +219,34 @@ export function GameScreen({
           <div className="glass rounded-xl px-4 py-2.5 flex items-center gap-2 bg-red-500/20 border-red-500/50">
             <AlertTriangle size={16} className="text-red-400 flex-shrink-0" />
             <span className="text-sm text-red-300 font-medium">Hareket hakkın bitti!</span>
+          </div>
+        </div>
+      )}
+
+      {/* Reconnecting Banner */}
+      {connectionState === 'reconnecting' && (
+        <div className="absolute top-14 inset-x-0 z-50 flex justify-center pointer-events-none" aria-live="polite">
+          <div className="bg-yellow-500/90 text-black px-4 py-2 rounded-b-lg flex items-center gap-2 text-sm font-medium">
+            <WifiOff size={16} />
+            <span>Bağlantı yeniden kuruluyor...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Connection Lost Modal */}
+      {connectionState === 'lost' && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Bağlantı koptu">
+          <div className="modal-content glass p-6 w-full sm:max-w-sm text-center">
+            <div className="w-14 h-14 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <WifiOff size={28} className="text-red-400" />
+            </div>
+            <h2 className="text-xl font-bold mb-2">Bağlantı Koptu</h2>
+            <p className="text-gray-400 text-sm mb-6">Sunucuyla bağlantı kurulamıyor</p>
+            <div className="flex gap-3">
+              <button onClick={onReturnToMenu} className="flex-1 py-3 rounded-xl bg-gray-700 hover:bg-gray-600 text-white font-medium text-sm transition-colors">
+                Ana Menüye Dön
+              </button>
+            </div>
           </div>
         </div>
       )}
