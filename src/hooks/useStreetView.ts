@@ -461,15 +461,28 @@ export function useStreetView(roomId?: string, playerId?: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const panoAny = panoramaRef.current as any;
       const hasGetDiv = panoAny && typeof panoAny.getDiv === 'function';
+      const panoDiv = hasGetDiv ? panoAny.getDiv() : null;
       const containerChanged = hasGetDiv && streetViewRef.current &&
-        panoAny.getDiv() !== streetViewRef.current;
+        panoDiv !== streetViewRef.current;
       const containerDetached = hasGetDiv &&
-        panoAny.getDiv() &&
-        !document.body.contains(panoAny.getDiv());
+        panoDiv &&
+        !document.body.contains(panoDiv);
 
-      if (containerChanged || containerDetached) {
-        console.log(`[Nav] Panorama container stale (changed=${!!containerChanged}, detached=${!!containerDetached}), hard recreate`);
-        google.maps.event.clearInstanceListeners(panoramaRef.current!);
+      // BUG-2 PRIMARY FIX: Detect orphaned panorama after screen transitions.
+      // When GameScreen unmounts (game→lobby), the <div ref={streetViewRef}> is
+      // removed from DOM. On re-mount, React assigns a NEW div to streetViewRef.
+      // The old panorama rendered to the old div, so the new div has 0 children.
+      // getDiv() is NOT available on all Google Maps versions (returns undefined),
+      // so containerChanged/containerDetached may not fire — this check is reliable.
+      const containerEmpty = streetViewRef.current &&
+        panoramaRef.current &&
+        streetViewRef.current.children.length === 0;
+
+      if (containerChanged || containerDetached || containerEmpty) {
+        console.log(`[Nav] Panorama container stale (changed=${!!containerChanged}, detached=${!!containerDetached}, empty=${!!containerEmpty}), hard recreate`);
+        if (panoramaRef.current) {
+          google.maps.event.clearInstanceListeners(panoramaRef.current);
+        }
         panoramaRef.current = null;
         panoramaConstructedRef.current = false;
       }
@@ -886,17 +899,14 @@ export function useStreetView(roomId?: string, playerId?: string) {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && panoramaRef.current && streetViewRef.current) {
-        // Check if container is still in DOM
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pano = panoramaRef.current as any;
-        const div = typeof pano.getDiv === 'function' ? pano.getDiv() : null;
-        if (div && !document.body.contains(div)) {
-          console.log("[Nav] Visibility resume: panorama container detached, marking for recreate");
+        // Check if container is orphaned (empty div = panorama rendered to different element)
+        if (streetViewRef.current.children.length === 0) {
+          console.log("[Nav] Visibility resume: panorama container empty, marking for recreate");
           google.maps.event.clearInstanceListeners(panoramaRef.current);
           panoramaRef.current = null;
           panoramaConstructedRef.current = false;
-        } else if (div && panoramaRef.current && startPanoIdRef.current) {
-          // Container exists but tiles may be corrupted after background — re-trigger setPano
+        } else if (startPanoIdRef.current) {
+          // Container has content but tiles may be corrupted after background — re-trigger setPano
           const currentPano = panoramaRef.current.getPano();
           if (currentPano) {
             console.log("[Nav] Visibility resume: refreshing panorama tiles");
