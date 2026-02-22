@@ -24,6 +24,7 @@ import {
   isDynamicGeneratorReady,
 } from "./dynamicUrbanGenerator";
 import { initPersistentHistory } from "./persistentHistory";
+import { getPoolManager } from "./poolManager";
 
 // ==================== TÜRKİYE BÖLGE VERİLERİ ====================
 // Her bölge için koordinat sınırları ve ağırlıklar
@@ -656,6 +657,22 @@ export function resetStaticUsage(): void {
  * All clients receive the same pano package via room state.
  */
 export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promise<PanoPackage> {
+  // PHASE 0: Pre-computed pool draw — $0 cost, O(1) amortized
+  try {
+    const poolManager = getPoolManager();
+    poolManager.setRoomId(roomId);
+    const poolPackage = await poolManager.drawPackage(mode);
+    if (poolPackage) {
+      console.log(`[PanoService] Phase 0 HIT: pool package ${poolPackage.locationName} (mode=${mode})`);
+      incrementRoundCount();
+      return poolPackage;
+    }
+    console.log(`[PanoService] Phase 0 MISS: pool empty or exhausted (mode=${mode}), falling through`);
+  } catch (err) {
+    console.warn(`[PanoService] Phase 0 ERROR: pool draw failed (mode=${mode}):`, err);
+    // Fall through to existing phases
+  }
+
   if (mode === "urban") {
     // PHASE 1: Get target province from locationEngine's province bag
     const provinceName = getNextProvince();
@@ -732,7 +749,19 @@ export async function onNewGameStart(roomId?: string): Promise<void> {
   // Initialize persistent anti-repeat history
   await initPersistentHistory(roomId);
 
+  // Initialize pre-computed pool (Phase 0)
+  const poolManager = getPoolManager();
+  poolManager.setRoomId(roomId);
+  poolManager.reset();
+  // Fire-and-forget prewarm — loads first chunk blocking, rest in background
+  poolManager.ensurePoolLoaded("urban").catch((err) => {
+    console.warn("[PanoService] Pool prewarm failed for urban:", err);
+  });
+  poolManager.ensurePoolLoaded("geo").catch((err) => {
+    console.warn("[PanoService] Pool prewarm failed for geo:", err);
+  });
+
   // Generate enrichment report on first game (lazy)
   getEnrichmentReport();
-  console.log("Yeni oyun: Tüm pano kullanımları, province bag, persistent history sıfırlandı");
+  console.log("Yeni oyun: Tüm pano kullanımları, province bag, persistent history, pool sıfırlandı");
 }
