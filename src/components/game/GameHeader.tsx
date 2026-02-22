@@ -1,4 +1,4 @@
-import { MapPin, Timer, Target, Trophy, Footprints } from "lucide-react";
+import { MapPin, Timer, Target, Trophy, Footprints, AlertTriangle } from "lucide-react";
 import { Room, Player } from "@/types";
 
 interface GameHeaderProps {
@@ -20,6 +20,9 @@ export function GameHeader({
   isRoundEnd,
   isGameOver,
 }: GameHeaderProps) {
+  const isUrgent = timeRemaining <= 10;
+  const isAlmostUp = timeRemaining <= 2;
+
   return (
     <header className="game-header">
       <div className="flex items-center justify-between">
@@ -32,39 +35,62 @@ export function GameHeader({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* BUG-011: header-stats class enables flex-wrap on mobile */}
+        <div className="flex items-center gap-2 header-stats">
           {!isRoundEnd && !isGameOver && (
             <div
-              className={`stat-badge ${timeRemaining <= 10 ? "countdown-critical" : ""}`}
-              aria-live={timeRemaining <= 10 ? "assertive" : "off"}
+              className={`stat-badge ${isUrgent ? "countdown-critical" : ""}`}
+              role="timer"
+              aria-live={isUrgent ? "assertive" : "off"}
               aria-label={`Kalan süre: ${formattedTime}`}
+              aria-atomic="true"
             >
-              <Timer size={14} className={timeRemaining <= 10 ? "text-red-400" : "text-blue-400"} />
-              <span className={`font-mono ${timeRemaining <= 10 ? "text-red-400" : "text-white"}`}>
+              {/* BUG-017: Non-color cue for low time */}
+              {isUrgent ? (
+                <AlertTriangle size={14} className="text-red-400 animate-pulse" aria-hidden="true" />
+              ) : (
+                <Timer size={14} className="text-blue-400" aria-hidden="true" />
+              )}
+              <span className={`font-mono ${isUrgent ? "text-red-400" : "text-white"}`}>
                 {formattedTime}
               </span>
+              {/* BUG-017: Text cue visible at <= 2s */}
+              {isAlmostUp && (
+                <span className="text-red-400 text-xs font-bold ml-1">Acil!</span>
+              )}
             </div>
           )}
 
-          <div className="stat-badge">
-            <Target size={14} className="text-yellow-400" />
+          <div className="stat-badge" aria-label={`Tur ${room.currentRound}/${room.totalRounds}`}>
+            <Target size={14} className="text-yellow-400" aria-hidden="true" />
             <span>{room.currentRound}/{room.totalRounds}</span>
           </div>
 
-          <div className="stat-badge">
-            <Trophy size={14} className="text-yellow-400" />
+          {/* BUG-011: Score always visible (even on mobile) */}
+          <div className="stat-badge" aria-live="polite" aria-label={`Puan: ${currentPlayer?.totalScore || 0}`}>
+            <Trophy size={14} className="text-yellow-400" aria-hidden="true" />
             <span>{currentPlayer?.totalScore || 0}</span>
           </div>
 
+          {/* BUG-011: Moves always visible (even on mobile) */}
           {!isRoundEnd && !isGameOver && (
-            <div className={`stat-badge ${movesRemaining <= 1 ? "bg-orange-500/20 border-orange-500/50" : ""}`}>
-              <Footprints size={14} className={movesRemaining <= 1 ? "text-orange-400" : "text-green-400"} />
+            <div
+              className={`stat-badge ${movesRemaining <= 1 ? "bg-orange-500/20 border-orange-500/50" : ""}`}
+              aria-label={`Hareket: ${movesRemaining}/${room?.moveLimit || 3}`}
+            >
+              <Footprints size={14} className={movesRemaining <= 1 ? "text-orange-400" : "text-green-400"} aria-hidden="true" />
               <span className={movesRemaining <= 1 ? "text-orange-400" : ""}>
                 {movesRemaining}/{room?.moveLimit || 3}
               </span>
             </div>
           )}
         </div>
+      </div>
+
+      {/* BUG-013: Aria-live region for round transitions */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {isRoundEnd && `Tur ${room.currentRound} bitti.`}
+        {isGameOver && "Oyun bitti!"}
       </div>
     </header>
   );

@@ -5,3 +5,4 @@ export { getNavigationMetrics, resetNavigationMetrics } from "./useStreetView";
 export type { NavigationMetrics } from "./useStreetView";
 export { useGuessMap } from "./useGuessMap";
 export { useTimer } from "./useTimer";
+export { useAsyncLock } from "./useAsyncLock";

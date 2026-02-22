@@ -94,7 +94,7 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
         styles: MAPS_CONFIG.darkMapStyles,
         restriction: {
           latLngBounds: TURKEY_MAP_RESTRICTION,
-          strictBounds: false,
+          strictBounds: true, // BUG-008: Strict Turkey bounds restriction
         },
       });
     }

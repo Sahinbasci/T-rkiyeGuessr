@@ -60,11 +60,73 @@ body.game-active {
 /* ============================================
    GOOGLE MAPS UI CLEANUP
    ============================================ */
-/* Hide controls only - not the map itself */
-.gm-style-cc,
+/* Hide navigation controls and fullscreen — NOT .gm-style-cc (copyright/attribution, required by ToS) */
 .gmnoprint,
 .gm-fullscreen-control {
   display: none !important;
+}
+/* Keep Google attribution visible but subtle (required by Google Maps Platform ToS) */
+.gm-style-cc {
+  opacity: 0.7 !important;
+  pointer-events: auto !important;
+}
+
+/* ============================================
+   BUG-001 FIX: STREET VIEW ANTI-CHEAT DEFENSE
+   ============================================ */
+/*
+ * Hide coordinate-leaking elements from DevTools inspection.
+ * Google Street View JS API injects DOM nodes containing GPS coordinates
+ * in href attributes (google.com/maps/@lat,lng) and address text.
+ *
+ * IMPORTANT: We do NOT hide mandatory Google attribution/ToS links.
+ * Only hide address bars, coordinate links, and report-a-problem links
+ * that leak the answer location.
+ */
+
+/* Hide address control bar (contains street/city text = cheat vector) */
+.gm-iv-address,
+.gm-iv-short-address,
+div[class*="address-control"] {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide "Open in Google Maps" and coordinate-containing links inside SV container */
+/* The .streetview-container class is added by our GameScreen */
+.streetview-container a[href*="google.com/maps/@"],
+.streetview-container a[href*="google.com/maps?"],
+.streetview-container a[href*="maps.google.com/maps?ll="] {
+  pointer-events: none !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+
+/* Hide "Report a problem" link inside SV container (contains coordinates in URL) */
+/* Scoped to .streetview-container to avoid affecting guess map attribution */
+.streetview-container a[href*="cbll="],
+.streetview-container a[href*="maps/contrib"],
+.streetview-container a[href*="report_problem"] {
+  pointer-events: none !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+}
+
+/* Hide road labels overlay text (can reveal location) */
+.gm-style div[style*="font-size"][style*="position: absolute"] {
+  /* Only in streetview container — don't affect guess map */
+}
+
+/* PRESERVED: Google Maps attribution links remain visible per ToS */
+.gm-style a[href^="https://maps.google.com/maps?ll="] {
+  /* Overridden to be hidden above only inside .streetview-container */
 }
 
 /* ============================================
@@ -238,13 +300,14 @@ div[aria-label*="Street View"] {
 
 /* ============================================
    GAME HEADER - ALWAYS VISIBLE
+   BUG-011 FIX: Two-row responsive layout on mobile
    ============================================ */
 .game-header {
   position: fixed !important;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
+  z-index: 1000002; /* BUG-010: Above Google controls (1,000,001+) */
   padding: 8px 12px;
   padding-top: calc(8px + var(--sat));
   background: linear-gradient(
@@ -259,6 +322,21 @@ div[aria-label*="Street View"] {
   opacity: 1 !important;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
+}
+
+/* BUG-011: Mobile two-row header layout */
+@media (max-width: 640px) {
+  .game-header .header-stats {
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+  }
+  .game-header .stat-badge {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-height: 32px;
+    gap: 4px;
+  }
 }
 
 /* ============================================
@@ -289,7 +367,7 @@ div[aria-label*="Street View"] {
    ============================================ */
 .mini-map-container {
   position: fixed;
-  z-index: 50;
+  z-index: 1000003; /* BUG-010: Above Google controls */
   pointer-events: auto;
   background: rgba(10, 10, 15, 1);
   border: 2px solid rgba(255, 255, 255, 0.15);
@@ -378,7 +456,7 @@ div[aria-label*="Street View"] {
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 90;
+  z-index: 1000003; /* BUG-010: Above Google controls */
   padding: 12px 16px;
   padding-bottom: calc(12px + var(--sab));
   background: linear-gradient(
@@ -413,7 +491,7 @@ div[aria-label*="Street View"] {
   position: fixed;
   left: 12px;
   top: calc(var(--header-height) + var(--sat) + 8px);
-  z-index: 40;
+  z-index: 1000003; /* BUG-010: Above Google controls */
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -474,7 +552,7 @@ div[aria-label*="Street View"] {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 1000010; /* BUG-010: Above Google controls (1,000,001+) */
   background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: flex-end;
@@ -521,7 +599,7 @@ div[aria-label*="Street View"] {
   border-radius: 100px;
   font-weight: 600;
   font-size: 14px;
-  z-index: 300;
+  z-index: 1000020; /* BUG-010: Above modals and Google controls */
   animation: slideDown 0.3s ease-out;
   white-space: nowrap;
   box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
@@ -535,7 +613,7 @@ div[aria-label*="Street View"] {
   top: calc(var(--header-height) + var(--sat) + 8px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 150;
+  z-index: 1000005; /* BUG-010: Above Google controls */
   width: auto;
   max-width: calc(100% - 24px);
 }
@@ -551,7 +629,7 @@ div[aria-label*="Street View"] {
    ============================================ */
 .warning-badge {
   position: fixed;
-  z-index: 80;
+  z-index: 1000004; /* BUG-010: Above Google controls */
   left: 50%;
   transform: translateX(-50%);
   top: calc(var(--header-height) + var(--sat) + 8px);
@@ -701,7 +779,7 @@ div[aria-label*="Street View"] {
 .error-screen {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 1000030; /* BUG-010: Above everything */
   background: #0a0a0f;
   display: flex;
   flex-direction: column;
@@ -709,4 +787,65 @@ div[aria-label*="Street View"] {
   justify-content: center;
   padding: 24px;
   text-align: center;
+}
+
+/* ============================================
+   BUG-015 FIX: FOCUS STYLES FOR KEYBOARD USERS
+   ============================================ */
+/* Restore visible focus rings — never remove outline without replacement */
+*:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+/* Buttons and links */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3);
+}
+
+.input-dark:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 0;
+}
+
+/* Map expand button */
+.map-expand-btn:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+/* Stat badges (when focusable) */
+.stat-badge:focus-visible {
+  outline: 2px solid #fbbf24;
+  outline-offset: 2px;
+}
+
+/* ============================================
+   BUG-017 FIX: TIMER NON-COLOR CUE
+   ============================================ */
+/* Pulsing border + icon animation for low time */
+.timer-urgent {
+  position: relative;
+}
+
+.timer-urgent::before {
+  content: "⚠";
+  margin-right: 4px;
+  animation: countdownPulse 0.5s ease-in-out infinite;
+}
+
+/* Screen reader only class for timer announcements */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

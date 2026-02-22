@@ -58,5 +58,19 @@ export default defineConfig({
       testMatch: 'multiplayer.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
+
+    // =========================================================
+    // Production Hardening Tests (BUG fixes)
+    // =========================================================
+    {
+      name: 'Hardening - Desktop',
+      testMatch: 'hardening.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Hardening - Mobile',
+      testMatch: 'hardening.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
   ],
 });

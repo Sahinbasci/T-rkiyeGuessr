@@ -62,7 +62,7 @@
         },
 
         "roundStartTime": {
-          ".validate": "!newData.exists() || (newData.isNumber() && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.isNumber() && (newData.parent().child('hostId').val() == auth.uid || !data.exists()) && (!data.exists() || !data.isNumber() || newData.val() >= data.val()))"
         },
 
         "createdAt": {
@@ -82,7 +82,7 @@
         },
 
         "roundVersion": {
-          ".validate": "!newData.exists() || ((newData.isNumber() && newData.val() >= 0) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.isNumber() && newData.val() >= 0 && (!data.exists() || !data.isNumber() || newData.val() >= data.val())) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "activePlayerCount": {
@@ -94,7 +94,7 @@
         },
 
         "currentGuesses": {
-          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.parent().child('hostId').val() == auth.uid || newData.val() == data.val() + 1))"
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.parent().child('hostId').val() == auth.uid || (newData.val() == data.val() + 1 && newData.parent().child('status').val() == 'playing')))"
         },
 
         "locationHistory": {
@@ -102,7 +102,16 @@
         },
 
         "roundEndLock": {
-          ".validate": "!newData.exists() || (newData.hasChild('lockedBy') && newData.hasChild('roundId') && newData.hasChild('lockedAt') && newData.child('lockedBy').isString() && newData.child('roundId').isNumber() && newData.child('lockedAt').isNumber() && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.hasChild('lockedBy') && newData.hasChild('roundId') && newData.hasChild('lockedAt') && newData.child('lockedBy').isString() && newData.child('roundId').isNumber() && newData.child('lockedAt').isNumber() && newData.child('lockedBy').val() == auth.uid && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+        },
+
+        "meta": {
+          "serverNow": {
+            ".validate": "newData.parent().parent().child('hostId').val() == auth.uid"
+          },
+          "$other": {
+            ".validate": false
+          }
         },
 
         "$other": {
@@ -132,11 +141,11 @@
             },
 
             "currentGuess": {
-              ".validate": "!newData.exists() || (newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0)"
+              ".validate": "!newData.exists() || (newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0 && (!data.exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid))"
             },
 
             "hasGuessed": {
-              ".validate": "newData.isBoolean() && (newData.val() == false || newData.parent().child('currentGuess').exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid)"
+              ".validate": "newData.isBoolean() && (newData.val() == false || newData.parent().child('currentGuess').exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid) && (newData.val() == true || newData.parent().parent().parent().child('hostId').val() == auth.uid)"
             },
 
             "roundScores": {

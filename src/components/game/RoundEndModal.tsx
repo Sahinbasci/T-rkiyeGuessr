@@ -8,9 +8,13 @@ interface RoundEndModalProps {
   isHost: boolean;
   sortedResults: RoundResult[];
   onNextRound: () => void;
+  // BUG-004: Loading state for next round button
+  isNextRoundLoading?: boolean;
 }
 
-export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRound }: RoundEndModalProps) {
+export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRound, isNextRoundLoading }: RoundEndModalProps) {
+  const buttonLabel = room.currentRound >= room.totalRounds ? "Sonuçları Gör" : "Sonraki Tur";
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={`Tur ${room.currentRound} Sonuçları`}>
       <div className="modal-content glass p-5 sm:p-6 w-full sm:max-w-md">
@@ -32,7 +36,8 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
           </div>
         )}
 
-        <div className="space-y-2 sm:space-y-3 mb-5">
+        {/* BUG-012: Improved results layout for 375px */}
+        <div className="space-y-2 sm:space-y-3 mb-5" aria-live="polite">
           {sortedResults.map((result, i) => (
             <div
               key={result.playerId}
@@ -40,11 +45,11 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
                 i === 0 ? "bg-yellow-500/20 border border-yellow-500/50" : "bg-gray-800/50"
               } ${result.playerId === playerId ? "ring-2 ring-red-500/50" : ""}`}
             >
-              <span className="text-xl sm:text-2xl font-bold w-7 sm:w-8">
+              <span className="text-xl sm:text-2xl font-bold w-7 sm:w-8 flex-shrink-0">
                 {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm sm:text-base truncate">
+                <p className="font-medium text-sm sm:text-base truncate" title={result.playerName}>
                   {result.playerName}
                   {result.playerId === playerId && (
                     <span className="text-gray-400 text-xs ml-1">(Sen)</span>
@@ -54,7 +59,7 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
                   {formatDistance(result.distance)}
                 </p>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-yellow-400">
+              <span className="text-lg sm:text-xl font-bold text-yellow-400 flex-shrink-0">
                 +{result.score}
               </span>
             </div>
@@ -64,10 +69,21 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
         {isHost ? (
           <button
             onClick={onNextRound}
+            disabled={!!isNextRoundLoading}
             className="btn-primary w-full py-3.5 sm:py-4 flex items-center justify-center gap-2 text-base"
+            aria-busy={!!isNextRoundLoading}
           >
-            {room.currentRound >= room.totalRounds ? "Sonuçları Gör" : "Sonraki Tur"}
-            <ArrowRight size={18} />
+            {isNextRoundLoading ? (
+              <>
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Yükleniyor...
+              </>
+            ) : (
+              <>
+                {buttonLabel}
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
         ) : (
           <div className="text-center py-3">

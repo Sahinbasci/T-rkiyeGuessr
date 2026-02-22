@@ -1,5 +1,5 @@
 import { MapPin, Check } from "lucide-react";
-import { Coordinates, Player } from "@/types";
+import { Coordinates } from "@/types";
 
 interface MobileActionBarProps {
   hasGuessed: boolean;
@@ -7,6 +7,9 @@ interface MobileActionBarProps {
   guessedCount: number;
   playerCount: number;
   onSubmitGuess: () => void;
+  // BUG-002/004: submit state
+  isTimeCritical?: boolean;
+  isSubmitting?: boolean;
 }
 
 export function MobileActionBar({
@@ -15,6 +18,8 @@ export function MobileActionBar({
   guessedCount,
   playerCount,
   onSubmitGuess,
+  isTimeCritical,
+  isSubmitting,
 }: MobileActionBarProps) {
   if (hasGuessed) {
     return (
@@ -36,23 +41,40 @@ export function MobileActionBar({
     );
   }
 
+  // BUG-002/004: Disable submit when time critical or submitting
+  const isSubmitDisabled = !guessLocation || !!isTimeCritical || !!isSubmitting;
+
+  let buttonLabel: React.ReactNode = "Haritadan konum seç";
+  if (guessLocation && isSubmitting) {
+    buttonLabel = (
+      <>
+        <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        Gönderiliyor...
+      </>
+    );
+  } else if (guessLocation && isTimeCritical) {
+    buttonLabel = "Süre dolmak üzere!";
+  } else if (guessLocation) {
+    buttonLabel = (
+      <>
+        <MapPin size={20} />
+        TAHMİN ET
+      </>
+    );
+  }
+
   return (
     <div className="mobile-action-bar">
       <button
         onClick={onSubmitGuess}
-        disabled={!guessLocation}
+        disabled={isSubmitDisabled}
         className={`btn-primary w-full py-4 text-base font-bold flex items-center justify-center gap-2 ${
-          guessLocation ? "" : "opacity-70"
+          guessLocation && !isSubmitDisabled ? "" : "opacity-70"
         }`}
+        aria-busy={!!isSubmitting}
+        aria-disabled={isSubmitDisabled}
       >
-        {guessLocation ? (
-          <>
-            <MapPin size={20} />
-            TAHMİN ET
-          </>
-        ) : (
-          "Haritadan konum seç"
-        )}
+        {buttonLabel}
       </button>
     </div>
   );

@@ -23,6 +23,26 @@ import {
   PanoPackage,
   GAME_MODE_CONFIG,
 } from "@/types";
+
+// ==================== SERVER TIME OFFSET ====================
+// Firebase exposes `.info/serverTimeOffset` — the estimated delta between
+// client clock and server clock (ms). serverNow ≈ Date.now() + offset.
+let _serverTimeOffset = 0;
+let _offsetListenerAttached = false;
+
+function attachServerTimeOffsetListener() {
+  if (_offsetListenerAttached) return;
+  _offsetListenerAttached = true;
+  const offsetRef = ref(database, ".info/serverTimeOffset");
+  onValue(offsetRef, (snap) => {
+    _serverTimeOffset = snap.val() || 0;
+  });
+}
+
+/** Returns best-estimate of server time (ms since epoch). */
+function getServerNowMs(): number {
+  return Date.now() + _serverTimeOffset;
+}
 import {
   generateRoomCode,
   calculateDistance,
@@ -149,6 +169,9 @@ export function useRoom() {
   const [playerName, setPlayerName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Attach server time offset listener once
+  useEffect(() => { attachServerTimeOffsetListener(); }, []);
 
   // Notification system
   const [notifications, setNotifications] = useState<GameNotification[]>([]);
@@ -1504,148 +1527,259 @@ export function useRoom() {
     [room, playerId]
   );
 
-  // --- Start Game with PanoPackage ---
+  // --- Start Game with PanoPackage (Transaction-Guarded) ---
+  // Uses runTransaction to guarantee exactly-once semantics:
+  //   - Aborts if status is not 'waiting' (prevents double-start)
+  //   - Reads fresh player list from transaction data (no stale closure)
+  //   - Uses server time offset for roundStartTime
   const startGameWithPanoPackage = useCallback(
     async (panoPackage: PanoPackage) => {
       if (!room || playerId !== room.hostId) return;
 
-      const onlinePlayers = Object.values(room.players || {}).filter(
-        (p) => !p.status || p.status === 'online'
-      );
-      const onlinePlayerCount = onlinePlayers.length;
+      const roomId = room.id;
+      const roomRef = ref(database, `rooms/${roomId}`);
+      const serverNow = getServerNowMs();
 
-      const updatedPlayers: { [key: string]: Player } = {};
-      Object.values(room.players || {}).forEach((player) => {
-        updatedPlayers[player.id] = {
-          ...player,
-          currentGuess: null,
-          hasGuessed: false,
-          movesUsed: 0,
+      let committed = false;
+      await runTransaction(roomRef, (currentRoom) => {
+        if (!currentRoom) return currentRoom;
+
+        // Guard: Only transition from 'waiting' to 'playing'
+        if (currentRoom.status !== "waiting") {
+          console.log(`[MP] startGame TX abort: status=${currentRoom.status} (expected waiting)`);
+          return; // abort
+        }
+
+        // Guard: Caller must be host
+        if (currentRoom.hostId !== playerId) {
+          console.log(`[MP] startGame TX abort: not host`);
+          return; // abort
+        }
+
+        // Read fresh players from transaction data
+        const freshPlayers = currentRoom.players || {};
+        const onlineCount = Object.values(freshPlayers).filter(
+          (p: any) => !p.status || p.status === 'online'
+        ).length;
+
+        // Reset all players for new round
+        const updatedPlayers: { [key: string]: any } = {};
+        Object.values(freshPlayers).forEach((player: any) => {
+          updatedPlayers[player.id] = {
+            ...player,
+            currentGuess: null,
+            hasGuessed: false,
+            movesUsed: 0,
+          };
+        });
+
+        committed = true;
+        return {
+          ...currentRoom,
+          status: "playing",
+          currentRound: 1,
+          currentPanoPackageId: panoPackage.id,
+          currentPanoPackage: panoPackage,
+          currentLocation: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
+          currentLocationName: panoPackage.locationName,
+          players: updatedPlayers,
+          roundResults: null,
+          roundStartTime: serverNow,
+          roundState: 'active',
+          roundVersion: (currentRoom.roundVersion || 0) + 1,
+          activePlayerCount: onlineCount,
+          expectedGuesses: onlineCount,
+          currentGuesses: 0,
+          roundEndLock: null,
         };
       });
 
-      const now = Date.now();
-
-      await update(ref(database, `rooms/${room.id}`), {
-        status: "playing",
-        currentRound: 1,
-        currentPanoPackageId: panoPackage.id,
-        currentPanoPackage: panoPackage,
-        currentLocation: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
-        currentLocationName: panoPackage.locationName,
-        players: updatedPlayers,
-        roundResults: null,
-        roundStartTime: now,
-        roundState: 'active',
-        roundVersion: (room.roundVersion || 0) + 1,
-        activePlayerCount: onlinePlayerCount,
-        expectedGuesses: onlinePlayerCount,
-        currentGuesses: 0,
-        roundEndLock: null, // Clear lock for new round
-      });
-
-      trackEvent("roundStart", { roundId: 1, panoPackageId: panoPackage.id });
+      if (committed) {
+        trackEvent("roundStart", { roundId: 1, panoPackageId: panoPackage.id });
+        console.log(`[MP] startGame COMMITTED: pano=${panoPackage.id}`);
+      } else {
+        console.warn(`[MP] startGame NOT committed — transaction aborted`);
+      }
     },
     [room, playerId]
   );
 
-  // --- Start Game (legacy) ---
+  // --- Start Game (legacy, transaction-guarded) ---
   const startGame = useCallback(
     async (location: Coordinates, panoId: string, locationName?: string) => {
       if (!room || playerId !== room.hostId) return;
 
-      const onlinePlayers = Object.values(room.players || {}).filter(
-        (p) => !p.status || p.status === 'online'
-      );
-      const onlinePlayerCount = onlinePlayers.length;
+      const roomId = room.id;
+      const roomRef = ref(database, `rooms/${roomId}`);
+      const serverNow = getServerNowMs();
 
-      const updatedPlayers: { [key: string]: Player } = {};
-      Object.values(room.players || {}).forEach((player) => {
-        updatedPlayers[player.id] = {
-          ...player,
-          currentGuess: null,
-          hasGuessed: false,
-          movesUsed: 0,
+      let committed = false;
+      await runTransaction(roomRef, (currentRoom) => {
+        if (!currentRoom) return currentRoom;
+
+        if (currentRoom.status !== "waiting") {
+          console.log(`[MP] startGame(legacy) TX abort: status=${currentRoom.status}`);
+          return; // abort
+        }
+        if (currentRoom.hostId !== playerId) return; // abort
+
+        const freshPlayers = currentRoom.players || {};
+        const onlineCount = Object.values(freshPlayers).filter(
+          (p: any) => !p.status || p.status === 'online'
+        ).length;
+
+        const updatedPlayers: { [key: string]: any } = {};
+        Object.values(freshPlayers).forEach((player: any) => {
+          updatedPlayers[player.id] = {
+            ...player,
+            currentGuess: null,
+            hasGuessed: false,
+            movesUsed: 0,
+          };
+        });
+
+        committed = true;
+        return {
+          ...currentRoom,
+          status: "playing",
+          currentRound: 1,
+          currentLocation: location,
+          currentPanoPackageId: panoId,
+          currentLocationName: locationName || null,
+          players: updatedPlayers,
+          roundResults: null,
+          roundStartTime: serverNow,
+          roundState: 'active',
+          roundVersion: (currentRoom.roundVersion || 0) + 1,
+          activePlayerCount: onlineCount,
+          expectedGuesses: onlineCount,
+          currentGuesses: 0,
+          roundEndLock: null,
         };
       });
 
-      const now = Date.now();
-
-      await update(ref(database, `rooms/${room.id}`), {
-        status: "playing",
-        currentRound: 1,
-        currentLocation: location,
-        currentPanoPackageId: panoId,
-        currentLocationName: locationName || null,
-        players: updatedPlayers,
-        roundResults: null,
-        roundStartTime: now,
-        roundState: 'active',
-        roundVersion: (room.roundVersion || 0) + 1,
-        activePlayerCount: onlinePlayerCount,
-        expectedGuesses: onlinePlayerCount,
-        currentGuesses: 0,
-        roundEndLock: null,
-      });
+      if (committed) {
+        console.log(`[MP] startGame(legacy) COMMITTED`);
+      }
     },
     [room, playerId]
   );
 
-  // --- Submit Guess ---
+  // --- Submit Guess (Two-Phase Atomic) ---
+  // BUG-002 FIX: Server-time enforced, transaction-guarded submission.
+  //
+  // Architecture: RTDB security rules have host-only validation on room-level fields,
+  // so non-host players cannot do a room-level transaction. Instead:
+  //   Phase 0: Pre-read room state + server time validation (TOCTOU accepted,
+  //            mitigated by roundEndLock elector and player-level transaction guard)
+  //   Phase 1: runTransaction on player node — atomic write with hasGuessed idempotency
+  //   Phase 2: runTransaction on currentGuesses — atomic increment
+  //
+  // The tiny race window between phases only affects "all guessed" early-detection
+  // timing. Actual round-end scoring uses fresh reads via acquireAndWriteRoundEnd.
   const submitGuess = useCallback(
-    async (guess: Coordinates) => {
-      if (!room || !playerId) return;
+    async (guess: Coordinates): Promise<{ accepted: boolean; reason?: string }> => {
+      if (!room || !playerId) return { accepted: false, reason: "no_room" };
 
       // SYNCHRONOUS double-submit guard (not React state — immune to stale closures)
       if (isSubmittingGuessRef.current) {
         console.log("[MP] submitGuess: submission in-flight, skipping");
-        return;
+        return { accepted: false, reason: "in_flight" };
       }
 
       const currentPlayer = room.players?.[playerId];
       if (currentPlayer?.hasGuessed) {
-        console.log("[MP] submitGuess: already guessed, skipping");
-        return;
+        console.log("[MP] submitGuess: already guessed (local), skipping");
+        return { accepted: false, reason: "already_guessed" };
       }
 
       if (!canSubmitGuess(playerId, room.currentRound)) {
         setError(ERROR_MESSAGES.RATE_LIMIT_EXCEEDED);
-        return;
+        return { accepted: false, reason: "rate_limited" };
       }
 
       if (!isValidTurkeyCoordinate(guess.lat, guess.lng)) {
         setError(ERROR_MESSAGES.INVALID_COORDINATES);
-        return;
+        return { accepted: false, reason: "invalid_coords" };
       }
+
+      // Capture round context BEFORE lock (avoid stale closure)
+      const roomId = room.id;
+      const expectedRound = room.currentRound;
+      const timeLimit = room.timeLimit || 90;
 
       isSubmittingGuessRef.current = true;
 
       try {
-        recordPlayerActivity(room.id, playerId);
+        // === Phase 0: Pre-read room state + server time validation ===
+        const serverNowMs = getServerNowMs();
+        const roomSnap = await get(ref(database, `rooms/${roomId}`));
+        const roomData = roomSnap.val() as Room | null;
 
-        await update(ref(database, `rooms/${room.id}/players/${playerId}`), {
-          currentGuess: guess,
-          hasGuessed: true,
-          lastActiveAt: Date.now(),
-        });
+        if (!roomData || roomData.status !== "playing") {
+          console.warn(`[MP] submitGuess REJECTED: not_playing (status=${roomData?.status})`);
+          setError("Bu tur sona erdi.");
+          return { accepted: false, reason: "not_playing" };
+        }
+        if (roomData.currentRound !== expectedRound) {
+          console.warn(`[MP] submitGuess REJECTED: round_mismatch (db=${roomData.currentRound} expected=${expectedRound})`);
+          setError("Bu tur sona erdi.");
+          return { accepted: false, reason: "round_mismatch" };
+        }
+        if (roomData.roundState !== 'active') {
+          console.warn(`[MP] submitGuess REJECTED: round_not_active (state=${roomData.roundState})`);
+          setError("Bu tur sona erdi.");
+          return { accepted: false, reason: "round_not_active" };
+        }
 
-        // Atomic increment with hasGuessed pre-check to prevent counter drift
-        const roomRef = ref(database, `rooms/${room.id}`);
-        await runTransaction(roomRef, (currentRoom) => {
-          if (!currentRoom) return currentRoom;
-          // Double-check: if this player already has hasGuessed=true in Firebase, don't increment
-          const playerInDb = currentRoom.players?.[playerId];
-          if (playerInDb?.hasGuessed && playerInDb?.currentGuess) {
-            // Player already submitted — this is a duplicate; return unchanged
-            return currentRoom;
-          }
+        // Server time check: reject if time expired (2s grace for network latency)
+        const roundEndMs = (roomData.roundStartTime || 0) + timeLimit * 1000;
+        if (serverNowMs > roundEndMs + 2000) {
+          console.warn(`[MP] submitGuess REJECTED: time_expired (serverNow=${serverNowMs} roundEnd=${roundEndMs})`);
+          setError("Süre doldu! Tahmin kabul edilmedi.");
+          return { accepted: false, reason: "time_expired" };
+        }
+
+        recordPlayerActivity(roomId, playerId);
+
+        // === Phase 1: Atomic player guess write ===
+        // Transaction on player node — idempotent via hasGuessed guard
+        const playerRef = ref(database, `rooms/${roomId}/players/${playerId}`);
+        let guessWritten = false;
+
+        await runTransaction(playerRef, (player) => {
+          if (!player) return player;
+          // Idempotent: if already guessed, return unchanged (no-op)
+          if (player.hasGuessed) return player;
+          guessWritten = true;
           return {
-            ...currentRoom,
-            currentGuesses: (currentRoom.currentGuesses || 0) + 1,
+            ...player,
+            currentGuess: guess,
+            hasGuessed: true,
+            lastActiveAt: Date.now(),
           };
         });
 
-        trackEvent("submitGuess", { roundId: room.currentRound, lat: guess.lat, lng: guess.lng });
+        if (!guessWritten) {
+          // Player already guessed in DB — treat as success for UI
+          console.log(`[MP] submitGuess: already guessed in DB (idempotent)`);
+          return { accepted: true, reason: "already_guessed_db" };
+        }
+
+        // === Phase 2: Atomic counter increment ===
+        const counterRef = ref(database, `rooms/${roomId}/currentGuesses`);
+        await runTransaction(counterRef, (current) => {
+          return (current || 0) + 1;
+        });
+
+        trackEvent("submitGuess", { roundId: expectedRound, lat: guess.lat, lng: guess.lng });
+        console.log(`[MP] submitGuess ACCEPTED: round=${expectedRound} serverNow=${serverNowMs}`);
+        return { accepted: true, reason: "accepted" };
+      } catch (err) {
+        console.error("[MP] submitGuess error:", err);
+        trackError(err instanceof Error ? err : String(err), "submitGuess");
+        setError("Tahmin gönderilemedi. Lütfen tekrar deneyin.");
+        return { accepted: false, reason: "error" };
       } finally {
         isSubmittingGuessRef.current = false;
       }
@@ -1678,7 +1812,9 @@ export function useRoom() {
     }
   }, [room, playerId]);
 
-  // --- Handle Time Up ---
+  // --- Handle Time Up (Server-Time Enforced) ---
+  // BUG-002 FIX: Validates elapsed time via server offset before allowing roundEnd.
+  // Prevents premature roundEnd from client clock skew.
   const hasHandledTimeUpRef = useRef<number | null>(null);
 
   const handleTimeUp = useCallback(async () => {
@@ -1694,8 +1830,21 @@ export function useRoom() {
       return;
     }
 
+    // Server time enforcement: verify time actually expired
+    const serverNow = getServerNowMs();
+    const roundStartTime = room.roundStartTime || 0;
+    const timeLimit = room.timeLimit || 90;
+    const elapsedMs = serverNow - roundStartTime;
+    const timeLimitMs = timeLimit * 1000;
+
+    // Allow 1s early tolerance (client timer may fire slightly before server time)
+    if (elapsedMs < timeLimitMs - 1000) {
+      console.warn(`[MP] handleTimeUp: server time says ${(elapsedMs / 1000).toFixed(1)}s elapsed, limit=${timeLimit}s — NOT expired yet, skipping`);
+      return;
+    }
+
     mpCounters.roundEndLockAcquireAttempts++;
-    console.log(`[MP] handleTimeUp: round=${room.currentRound}`);
+    console.log(`[MP] handleTimeUp: round=${room.currentRound} elapsed=${(elapsedMs / 1000).toFixed(1)}s serverNow=${serverNow}`);
 
     isProcessingRoundRef.current = true;
     hasHandledTimeUpRef.current = room.currentRound;
@@ -1707,7 +1856,8 @@ export function useRoom() {
         null, // use all current players
         room.currentLocation,
         playerId,
-        "timeUp"
+        "timeUp",
+        { serverNow }
       );
     } catch (err) {
       console.error("[MP] handleTimeUp error:", err);
@@ -1717,27 +1867,64 @@ export function useRoom() {
     }
   }, [room, playerId]);
 
-  // --- Next Round with PanoPackage ---
+  // --- Next Round with PanoPackage (Transaction-Guarded) ---
+  // Uses runTransaction for exactly-once semantics:
+  //   - Guards: status must be 'roundEnd', caller must be host, roundVersion must match
+  //   - Reads fresh player list from transaction data (no stale closure)
+  //   - Uses server time offset for roundStartTime
   const nextRoundWithPanoPackage = useCallback(
     async (panoPackage: PanoPackage) => {
       if (!room || playerId !== room.hostId) return;
 
-      const isGameOver = room.currentRound >= room.totalRounds;
+      const roomId = room.id;
+      const roomRef = ref(database, `rooms/${roomId}`);
+      const expectedRoundVersion = room.roundVersion || 0;
+      const serverNow = getServerNowMs();
 
-      if (isGameOver) {
-        await update(ref(database, `rooms/${room.id}`), {
-          status: "gameOver",
-          roundState: 'ended',
-        });
-        trackEvent("gameEnd", { totalRounds: room.totalRounds });
-      } else {
-        const onlinePlayers = Object.values(room.players || {}).filter(
-          (p) => !p.status || p.status === 'online'
-        );
-        const onlinePlayerCount = onlinePlayers.length;
+      let committed = false;
+      let isGameOver = false;
 
-        const updatedPlayers: { [key: string]: Player } = {};
-        Object.values(room.players || {}).forEach((player) => {
+      await runTransaction(roomRef, (currentRoom) => {
+        if (!currentRoom) return currentRoom;
+
+        // Guard: caller must be host
+        if (currentRoom.hostId !== playerId) {
+          console.log(`[MP] nextRound TX abort: not host`);
+          return; // abort
+        }
+
+        // Guard: status must be roundEnd
+        if (currentRoom.status !== "roundEnd") {
+          console.log(`[MP] nextRound TX abort: status=${currentRoom.status} (expected roundEnd)`);
+          return; // abort
+        }
+
+        // Guard: roundVersion must match (prevents double-advance)
+        if ((currentRoom.roundVersion || 0) !== expectedRoundVersion) {
+          console.log(`[MP] nextRound TX abort: roundVersion=${currentRoom.roundVersion} (expected ${expectedRoundVersion})`);
+          return; // abort
+        }
+
+        committed = true;
+
+        // Check game over
+        if (currentRoom.currentRound >= currentRoom.totalRounds) {
+          isGameOver = true;
+          return {
+            ...currentRoom,
+            status: "gameOver",
+            roundState: 'ended',
+          };
+        }
+
+        // Read fresh players from transaction data
+        const freshPlayers = currentRoom.players || {};
+        const onlineCount = Object.values(freshPlayers).filter(
+          (p: any) => !p.status || p.status === 'online'
+        ).length;
+
+        const updatedPlayers: { [key: string]: any } = {};
+        Object.values(freshPlayers).forEach((player: any) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -1746,52 +1933,79 @@ export function useRoom() {
           };
         });
 
-        const now = Date.now();
-
-        await update(ref(database, `rooms/${room.id}`), {
+        return {
+          ...currentRoom,
           status: "playing",
-          currentRound: room.currentRound + 1,
+          currentRound: currentRoom.currentRound + 1,
           currentPanoPackageId: panoPackage.id,
           currentPanoPackage: panoPackage,
           currentLocation: { lat: panoPackage.pano0.lat, lng: panoPackage.pano0.lng },
           currentLocationName: panoPackage.locationName,
           players: updatedPlayers,
           roundResults: null,
-          roundStartTime: now,
+          roundStartTime: serverNow,
           roundState: 'active',
-          roundVersion: (room.roundVersion || 0) + 1,
-          activePlayerCount: onlinePlayerCount,
-          expectedGuesses: onlinePlayerCount,
+          roundVersion: (currentRoom.roundVersion || 0) + 1,
+          activePlayerCount: onlineCount,
+          expectedGuesses: onlineCount,
           currentGuesses: 0,
-          roundEndLock: null, // Clear lock for new round
-        });
+          roundEndLock: null,
+        };
+      });
 
-        trackEvent("roundStart", { roundId: room.currentRound + 1, panoPackageId: panoPackage.id });
+      if (committed) {
+        if (isGameOver) {
+          trackEvent("gameEnd", { totalRounds: room.totalRounds });
+          console.log(`[MP] nextRound → gameOver COMMITTED`);
+        } else {
+          trackEvent("roundStart", { roundId: room.currentRound + 1, panoPackageId: panoPackage.id });
+          console.log(`[MP] nextRound COMMITTED: round=${room.currentRound + 1} pano=${panoPackage.id}`);
+        }
+      } else {
+        console.warn(`[MP] nextRound NOT committed — transaction aborted`);
       }
     },
     [room, playerId]
   );
 
-  // --- Next Round (legacy) ---
+  // --- Next Round (legacy, transaction-guarded) ---
   const nextRound = useCallback(
     async (location: Coordinates, panoId: string, locationName?: string) => {
       if (!room || playerId !== room.hostId) return;
 
-      const isGameOver = room.currentRound >= room.totalRounds;
+      const roomId = room.id;
+      const roomRef = ref(database, `rooms/${roomId}`);
+      const expectedRoundVersion = room.roundVersion || 0;
+      const serverNow = getServerNowMs();
 
-      if (isGameOver) {
-        await update(ref(database, `rooms/${room.id}`), {
-          status: "gameOver",
-          roundState: 'ended',
-        });
-      } else {
-        const onlinePlayers = Object.values(room.players || {}).filter(
-          (p) => !p.status || p.status === 'online'
-        );
-        const onlinePlayerCount = onlinePlayers.length;
+      let committed = false;
+      let isGameOver = false;
 
-        const updatedPlayers: { [key: string]: Player } = {};
-        Object.values(room.players || {}).forEach((player) => {
+      await runTransaction(roomRef, (currentRoom) => {
+        if (!currentRoom) return currentRoom;
+
+        if (currentRoom.hostId !== playerId) return; // abort
+        if (currentRoom.status !== "roundEnd") return; // abort
+        if ((currentRoom.roundVersion || 0) !== expectedRoundVersion) return; // abort
+
+        committed = true;
+
+        if (currentRoom.currentRound >= currentRoom.totalRounds) {
+          isGameOver = true;
+          return {
+            ...currentRoom,
+            status: "gameOver",
+            roundState: 'ended',
+          };
+        }
+
+        const freshPlayers = currentRoom.players || {};
+        const onlineCount = Object.values(freshPlayers).filter(
+          (p: any) => !p.status || p.status === 'online'
+        ).length;
+
+        const updatedPlayers: { [key: string]: any } = {};
+        Object.values(freshPlayers).forEach((player: any) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -1800,24 +2014,27 @@ export function useRoom() {
           };
         });
 
-        const now = Date.now();
-
-        await update(ref(database, `rooms/${room.id}`), {
+        return {
+          ...currentRoom,
           status: "playing",
-          currentRound: room.currentRound + 1,
+          currentRound: currentRoom.currentRound + 1,
           currentLocation: location,
           currentPanoPackageId: panoId,
           currentLocationName: locationName || null,
           players: updatedPlayers,
           roundResults: null,
-          roundStartTime: now,
+          roundStartTime: serverNow,
           roundState: 'active',
-          roundVersion: (room.roundVersion || 0) + 1,
-          activePlayerCount: onlinePlayerCount,
-          expectedGuesses: onlinePlayerCount,
+          roundVersion: (currentRoom.roundVersion || 0) + 1,
+          activePlayerCount: onlineCount,
+          expectedGuesses: onlineCount,
           currentGuesses: 0,
           roundEndLock: null,
-        });
+        };
+      });
+
+      if (committed && isGameOver) {
+        trackEvent("gameEnd", { totalRounds: room.totalRounds });
       }
     },
     [room, playerId]

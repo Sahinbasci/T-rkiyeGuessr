@@ -12,6 +12,9 @@ interface MiniMapProps {
   waitingCount: number;
   playerCount: number;
   onSubmitGuess: () => void;
+  // BUG-002/004: submit state props
+  isTimeCritical?: boolean;
+  isSubmitting?: boolean;
 }
 
 export function MiniMap({
@@ -24,6 +27,8 @@ export function MiniMap({
   waitingCount,
   playerCount,
   onSubmitGuess,
+  isTimeCritical,
+  isSubmitting,
 }: MiniMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isTogglingRef = useRef(false);
@@ -53,7 +58,6 @@ export function MiniMap({
     if (!container) return;
 
     const handleTransitionEnd = (e: TransitionEvent) => {
-      // Only handle transitions on the container itself, not children
       if (e.target === container) {
         finishToggle();
       }
@@ -64,11 +68,10 @@ export function MiniMap({
   }, [finishToggle]);
 
   const handleToggle = useCallback(() => {
-    if (isTogglingRef.current) return; // no-op during transition
+    if (isTogglingRef.current) return;
     isTogglingRef.current = true;
     setMapExpanded(!mapExpanded);
 
-    // Fallback: if transitionend never fires (no CSS transition), unset after 350ms
     fallbackTimerRef.current = setTimeout(() => {
       fallbackTimerRef.current = null;
       if (isTogglingRef.current) {
@@ -77,13 +80,30 @@ export function MiniMap({
     }, 350);
   }, [mapExpanded, setMapExpanded, finishToggle]);
 
+  // BUG-002/004: Determine if submit should be disabled
+  const isSubmitDisabled = !guessLocation || !!isTimeCritical || !!isSubmitting;
+
+  // Submit button label
+  let submitLabel = "Haritaya Tıkla";
+  if (guessLocation && isSubmitting) {
+    submitLabel = "Gönderiliyor...";
+  } else if (guessLocation && isTimeCritical) {
+    submitLabel = "Süre dolmak üzere!";
+  } else if (guessLocation) {
+    submitLabel = "📍 TAHMİN ET";
+  }
+
   return (
     <div
       ref={containerRef}
       className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}
       onClick={(e) => {
         e.stopPropagation();
-        if (!mapExpanded) handleToggle();
+        // BUG-007: Only expand the map, do NOT let click propagate to guess map
+        if (!mapExpanded) {
+          e.preventDefault();
+          handleToggle();
+        }
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -106,10 +126,15 @@ export function MiniMap({
         <div className="desktop-submit-btn absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
           <button
             onClick={onSubmitGuess}
-            disabled={!guessLocation}
+            disabled={isSubmitDisabled}
             className="btn-primary w-full py-3 text-sm font-bold"
+            aria-busy={!!isSubmitting}
+            aria-disabled={isSubmitDisabled}
           >
-            {guessLocation ? "📍 TAHMİN ET" : "Haritaya Tıkla"}
+            {isSubmitting && (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block mr-2" />
+            )}
+            {submitLabel}
           </button>
         </div>
       )}

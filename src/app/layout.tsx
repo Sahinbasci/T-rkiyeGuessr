@@ -85,11 +85,10 @@ export const metadata: Metadata = {
   classification: "Games > Geography > Trivia",
 };
 
+// BUG-016: Removed maximumScale=1 and userScalable=false to allow pinch-to-zoom
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
   themeColor: "#0a0a0f",
 };

@@ -13,11 +13,12 @@ interface MenuScreenProps {
   isLoading: boolean;
   onCreateRoom: () => void;
   onJoinRoom: () => void;
+  // BUG-005: validation error for name
+  nameError?: string | null;
 }
 
 /* ==========================================
    SEO LANDING TEASER — Kompakt on-page SEO
-   Detaylı içerik alt sayfalara taşındı
    ========================================== */
 function SEOLandingContent() {
   return (
@@ -55,6 +56,7 @@ export function MenuScreen({
   isLoading,
   onCreateRoom,
   onJoinRoom,
+  nameError,
 }: MenuScreenProps) {
   return (
     <main className="min-h-screen overflow-y-auto py-8 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
@@ -84,21 +86,31 @@ export function MenuScreen({
 
         {/* Form */}
         <div className="glass rounded-2xl p-5 sm:p-6 space-y-4">
+          {/* BUG-014: Proper label association with htmlFor + id */}
           <div>
-            <label className="block text-gray-400 text-sm mb-2">Oyuncu Adı</label>
+            <label htmlFor="player-name-input" className="block text-gray-400 text-sm mb-2">Oyuncu Adı</label>
             <input
+              id="player-name-input"
               type="text"
               placeholder="Adını gir..."
               value={nameInput}
               onChange={(e) => setNameInput(e.target.value)}
-              className="input-dark text-lg"
-              maxLength={15}
+              className={`input-dark text-lg ${nameError ? "border-red-500" : ""}`}
+              maxLength={20}
+              aria-invalid={!!nameError}
+              aria-describedby={nameError ? "name-error" : undefined}
             />
+            {/* BUG-005: Explicit validation error for empty name */}
+            {nameError && (
+              <p id="name-error" className="text-red-400 text-xs mt-1" role="alert">
+                {nameError}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="block text-gray-400 text-sm mb-2">Oyun Modu</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="block text-gray-400 text-sm mb-2" id="game-mode-label">Oyun Modu</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="game-mode-label">
               {(["urban", "geo"] as GameMode[]).map((mode) => {
                 const config = GAME_MODE_CONFIG[mode];
                 return (
@@ -110,6 +122,8 @@ export function MenuScreen({
                         ? "border-red-500 bg-red-500/10"
                         : "border-gray-700 bg-gray-800/50 hover:border-gray-600"
                     }`}
+                    role="radio"
+                    aria-checked={selectedMode === mode}
                   >
                     <div className="text-2xl mb-1">{config.icon}</div>
                     <div className="font-medium text-sm">{config.name}</div>
@@ -146,9 +160,11 @@ export function MenuScreen({
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent" />
           </div>
 
+          {/* BUG-014: Proper label association */}
           <div>
-            <label className="block text-gray-400 text-sm mb-2">Oda Kodu</label>
+            <label htmlFor="room-code-input" className="block text-gray-400 text-sm mb-2">Oda Kodu</label>
             <input
+              id="room-code-input"
               type="text"
               placeholder="ABC123"
               value={roomInput}
@@ -181,7 +197,7 @@ export function MenuScreen({
           </button>
 
           {error && (
-            <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-center">
+            <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 text-center" role="alert">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
@@ -203,7 +219,7 @@ export function MenuScreen({
           </p>
         </footer>
 
-        {/* SEO Power Section — On-Page Content for Google */}
+        {/* SEO Power Section */}
         <SEOLandingContent />
       </div>
     </main>
