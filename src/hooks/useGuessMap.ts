@@ -11,7 +11,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Coordinates } from "@/types";
 import { MAPS_CONFIG, TURKEY_MAP_RESTRICTION } from "@/config/maps";
-import { getTurkeyCenter, getTurkeyZoom } from "@/utils";
+import { getTurkeyCenter, getTurkeyZoom, isLikelyInTurkey, trackEvent } from "@/utils";
 import { isValidTurkeyCoordinate } from "@/config/production";
 
 export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => void) {
@@ -38,8 +38,12 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
 
-    // Türkiye sınırları dışındaki tıklamaları reddet (deniz, komşu ülkeler)
-    if (!isValidTurkeyCoordinate(lat, lng)) return;
+    // 2 aşamalı geofence: hızlı bounding box + deniz/komşu ülke exclusion
+    if (!isValidTurkeyCoordinate(lat, lng)) return; // Aşama 1: fast pre-check
+    if (!isLikelyInTurkey({ lat, lng })) {           // Aşama 2: authoritative
+      trackEvent("guessRejected", { lat, lng, reason: "outside_turkey" });
+      return;
+    }
 
     const coord: Coordinates = { lat, lng };
 

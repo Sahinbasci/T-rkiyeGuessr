@@ -35,8 +35,9 @@ export const DRIFT_THRESHOLD_DEG = 0.1;
 /**
  * Maximum accumulated drift before correction kicks in (non-drag / momentum).
  * Small drifts are tolerated. Correction fires when total > this.
+ * Lowered from 0.8 → 0.3 to correct before visible creep (BUG-001 fix).
  */
-export const DRIFT_CORRECTION_THRESHOLD_DEG = 0.8;
+export const DRIFT_CORRECTION_THRESHOLD_DEG = 0.3;
 
 /**
  * Max pitch deviation allowed during a horizontal-only drag.
@@ -122,6 +123,10 @@ export interface DriftTrackerState {
   preDragPitch: number;
   /** Heading before the current drag started (for horizontal detection) */
   preDragHeading: number;
+  /** Timestamp of last correction (for time-based suppression) */
+  lastCorrectionTime: number;
+  /** Flag: next pov_changed is self-induced by our setPov call — skip drift detection */
+  isSelfInducedChange: boolean;
 }
 
 /**
@@ -137,8 +142,21 @@ export function createDriftTracker(initialPitch: number = 0): DriftTrackerState 
     isDragging: false,
     preDragPitch: initialPitch,
     preDragHeading: 0,
+    lastCorrectionTime: 0,
+    isSelfInducedChange: false,
   };
 }
+
+/**
+ * Mark next pov_changed as self-induced (our setPov correction).
+ * Caller should set this BEFORE calling setPov.
+ */
+export function markSelfInducedChange(state: DriftTrackerState): DriftTrackerState {
+  return { ...state, isSelfInducedChange: true };
+}
+
+/** Time window (ms) to suppress drift detection after a correction */
+const CORRECTION_SUPPRESSION_MS = 150;
 
 /**
  * Record a new POV sample and detect drift.
@@ -174,6 +192,33 @@ export function processPovChange(
   }
   const newWriteIndex = (state.writeIndex + 1) % DRIFT_WINDOW_SIZE;
 
+  // Self-induced suppression: skip drift detection for our own setPov corrections
+  if (state.isSelfInducedChange) {
+    return {
+      newState: {
+        ...state,
+        samples: newSamples,
+        writeIndex: newWriteIndex,
+        isSelfInducedChange: false, // Consume the flag
+      },
+      correctedPitch: null,
+      driftDetected: false,
+    };
+  }
+
+  // Time-based suppression: skip drift detection shortly after a correction
+  if (state.lastCorrectionTime > 0 && (now - state.lastCorrectionTime) < CORRECTION_SUPPRESSION_MS) {
+    return {
+      newState: {
+        ...state,
+        samples: newSamples,
+        writeIndex: newWriteIndex,
+      },
+      correctedPitch: null,
+      driftDetected: false,
+    };
+  }
+
   // If user is actively dragging, don't correct — just track samples
   // IMPORTANT: Do NOT update anchorPitch here. Drift during drag would be
   // absorbed into anchor, making it invisible to post-drag correction.
@@ -201,6 +246,7 @@ export function processPovChange(
         anchorPitch: clamped,
         accumulatedDrift: 0,
         correctionCount: state.correctionCount + 1,
+        lastCorrectionTime: now,
       },
       correctedPitch: clamped,
       driftDetected: true,
@@ -241,6 +287,7 @@ export function processPovChange(
             writeIndex: newWriteIndex,
             accumulatedDrift: 0,
             correctionCount: state.correctionCount + 1,
+            lastCorrectionTime: now,
           },
           correctedPitch: state.anchorPitch,
           driftDetected: true,

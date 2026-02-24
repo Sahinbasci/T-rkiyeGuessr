@@ -98,6 +98,7 @@ export interface Room {
   // Round State Machine - Disconnect handling için
   roundState: 'waiting' | 'active' | 'ending' | 'ended';
   roundVersion: number;             // Optimistic concurrency control
+  gameInstanceId?: string;          // BUG-006 FIX: Unique per game session — stale listener guard
   activePlayerCount: number;        // Round başında snapshot
   expectedGuesses: number;          // Round başında online oyuncu sayısı
   currentGuesses: number;           // Atomic counter - kaç kişi guess yaptı

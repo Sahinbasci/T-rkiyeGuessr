@@ -22,7 +22,32 @@ export type TelemetryEvent =
   | "serverMoveAccepted"
   | "serverMoveRejected"
   | "rateLimitTriggered"
-  | "duplicatePanoPrevented";
+  | "duplicatePanoPrevented"
+  // BUG-002: Geofence rejection
+  | "guessRejected"
+  // BUG-006: Game restart lifecycle
+  | "gameRestart"
+  // BUG-007: Black screen detection & recovery
+  | "blackScreenDetected"
+  | "blackScreenRecovery"
+  | "bfcacheRestore"
+  // BUG-008: Watchdog telemetry
+  | "watchdogTick"
+  | "watchdogForceRecovery"
+  | "watchdogRecoverySkipped"
+  // BUG-005: Rejoin
+  | "rejoin"
+  // Ad lifecycle
+  | "adRenderAttempt"
+  | "adRenderSuccess"
+  | "adRenderFailed"
+  | "adBlockerDetected"
+  | "interstitialShown"
+  | "interstitialSkipped"
+  // Consent actions
+  | "consentAcceptAll"
+  | "consentRequiredOnly"
+  | "consentModalSaved";
 
 // Event data structure
 interface TelemetryEventData {
@@ -94,6 +119,24 @@ export function initTelemetry(): void {
       serverMoveRejected: 0,
       rateLimitTriggered: 0,
       duplicatePanoPrevented: 0,
+      guessRejected: 0,
+      gameRestart: 0,
+      blackScreenDetected: 0,
+      blackScreenRecovery: 0,
+      bfcacheRestore: 0,
+      watchdogTick: 0,
+      watchdogForceRecovery: 0,
+      watchdogRecoverySkipped: 0,
+      rejoin: 0,
+      adRenderAttempt: 0,
+      adRenderSuccess: 0,
+      adRenderFailed: 0,
+      adBlockerDetected: 0,
+      interstitialShown: 0,
+      interstitialSkipped: 0,
+      consentAcceptAll: 0,
+      consentRequiredOnly: 0,
+      consentModalSaved: 0,
     },
     duplicateAttempts: {
       roundEnd: [],

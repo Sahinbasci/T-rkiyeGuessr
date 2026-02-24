@@ -15,7 +15,7 @@ import {
   GameMode,
   GAME_MODE_CONFIG,
 } from "@/types";
-import { calculateDistance, calculateScore } from "@/utils";
+import { calculateDistance, calculateScore, isLikelyInTurkey } from "@/utils";
 import { isValidPlayerName, isValidTurkeyCoordinate, ROOM_LIFECYCLE } from "@/config/production";
 
 // Re-export RoundEndLock type for use in tests
@@ -476,9 +476,12 @@ export function validateGuessSubmission(
     return { accepted: false, reason: "already_guessed" };
   }
 
-  // Guard 4: Coordinate bounds
+  // Guard 4: 2-aşamalı coordinate bounds (pre-check + authoritative)
   if (!isValidTurkeyCoordinate(guess.lat, guess.lng)) {
     return { accepted: false, reason: "invalid_coords" };
+  }
+  if (!isLikelyInTurkey(guess)) {
+    return { accepted: false, reason: "outside_turkey" };
   }
 
   // Guard 5: Room status
@@ -491,10 +494,11 @@ export function validateGuessSubmission(
     return { accepted: false, reason: "round_not_active" };
   }
 
-  // Guard 7: Server time check (2s grace)
+  // Guard 7: Server time check (3s grace — harmonized with useRoom GUESS_GRACE_PERIOD_MS)
+  const GUESS_GRACE_MS = 3000;
   const timeLimit = room.timeLimit || 90;
   const roundEndMs = (room.roundStartTime || 0) + timeLimit * 1000;
-  if (serverNowMs > roundEndMs + 2000) {
+  if (serverNowMs > roundEndMs + GUESS_GRACE_MS) {
     return { accepted: false, reason: "time_expired" };
   }
 

@@ -110,8 +110,13 @@ const CLEANUP_INTERVAL = 10000;          // 10s cleanup cycle
 const ROUND_END_RECOVERY_BUFFER = 3;     // seconds past time limit before recovery kicks in
 const WATCHDOG_INTERVAL = 5000;          // 5s watchdog tick
 const WATCHDOG_BUFFER = 5;              // seconds past timeLimit before watchdog acts
-const WATCHDOG_MAX_ATTEMPTS = 3;         // max resolution attempts before escalation
+const WATCHDOG_MAX_ATTEMPTS = 8;         // BUG-008 FIX: raised from 3 → 8 for more resilience
 const WATCHDOG_LOCK_STALE_THRESHOLD = 10000; // 10s — lock older than this is considered stale
+/** BUG-004 FIX: Harmonized grace period for both submitGuess and handleTimeUp.
+ * submitGuess accepts guesses up to roundEnd + GUESS_GRACE_PERIOD_MS.
+ * handleTimeUp waits until roundEnd + GUESS_GRACE_PERIOD_MS before triggering.
+ * This closes the race window where guesses are accepted but roundEnd already fired. */
+const GUESS_GRACE_PERIOD_MS = 3000;
 
 // ==================== INSTRUMENTATION ====================
 
@@ -224,6 +229,9 @@ export function useRoom() {
   // Watchdog refs (Effect 6)
   const watchdogIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const watchdogAttemptsRef = useRef<number>(0);
+
+  // BUG-006 FIX: gameInstanceId guard — detects restart and resets stale in-flight state
+  const localGameInstanceIdRef = useRef<string | null>(null);
 
   // Client resync watchdog refs (Effect 7) — non-host stuck detection
   const clientResyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -513,6 +521,17 @@ export function useRoom() {
         const currentPlayerIds = Object.keys(roomData.players || {});
         const currentPlayerNames: Record<string, string> = {};
         Object.values(roomData.players || {}).forEach(p => { currentPlayerNames[p.id] = p.name; });
+
+        // --- BUG-006 FIX: gameInstanceId change detection → reset stale in-flight state ---
+        const incomingGid = roomData.gameInstanceId || null;
+        if (incomingGid && localGameInstanceIdRef.current && incomingGid !== localGameInstanceIdRef.current) {
+          logger.debug(`[MP] gameInstanceId changed: ${localGameInstanceIdRef.current} → ${incomingGid} — resetting in-flight state`);
+          isProcessingRoundRef.current = false;
+          processingRoundIdRef.current = null;
+          watchdogAttemptsRef.current = 0;
+          isMigratingHostRef.current = null;
+        }
+        if (incomingGid) localGameInstanceIdRef.current = incomingGid;
 
         // --- Status change logging ---
         if (lastStatusRef.current !== null && lastStatusRef.current !== roomData.status) {
@@ -1074,23 +1093,62 @@ export function useRoom() {
       // c. Increment attempts
       watchdogAttemptsRef.current++;
 
-      // d. Max attempts exceeded — escalate
+      // d. Max attempts exceeded — BUG-008 FIX: forced recovery with fresh read + idempotency + telemetry
       if (watchdogAttemptsRef.current > WATCHDOG_MAX_ATTEMPTS) {
         mpCounters.watchdogFailureCount++;
-        logger.error(`[MP] Watchdog FAILURE: max attempts (${WATCHDOG_MAX_ATTEMPTS}) exceeded`, {
-          attempt: watchdogAttemptsRef.current,
-          freshStatus: freshRoom.status,
-          freshHostId: freshRoom.hostId,
-          roundEndLock: (freshRoom as any).roundEndLock,
-          isProcessingRound: isProcessingRoundRef.current,
-          elapsed: elapsed.toFixed(1),
-          timeLimit,
-        });
-        // Just return — do NOT clearInterval from inside tick
+        logger.error(`[MP] Watchdog FAILURE: max attempts (${WATCHDOG_MAX_ATTEMPTS}) exceeded — attempting forced recovery`);
+
+        try {
+          // 1. Fresh read (not stale)
+          const emergencySnap = await get(ref(database, `rooms/${roomId}`));
+          const emergencyRoom = emergencySnap.val() as Room | null;
+
+          // 2. Idempotency: already resolved?
+          if (!emergencyRoom || emergencyRoom.status !== "playing") {
+            trackEvent("watchdogRecoverySkipped", { reason: "already_resolved", status: emergencyRoom?.status });
+            return;
+          }
+
+          // 3. Stale watchdog guard: round already advanced?
+          if (emergencyRoom.currentRound !== expectedRound) {
+            trackEvent("watchdogRecoverySkipped", { reason: "round_mismatch", dbRound: emergencyRoom.currentRound, expected: expectedRound });
+            return;
+          }
+
+          // 4. Score calculation (not blind update) + write
+          const emergencyPlayers = Object.values(emergencyRoom.players || {});
+          const emergencyLocation = emergencyRoom.currentLocation;
+          if (emergencyLocation && emergencyPlayers.length > 0) {
+            const results = computeRoundResults(emergencyPlayers, emergencyLocation);
+            const updatedPlayers = updatePlayersAfterRound(emergencyRoom.players || {}, results);
+
+            await update(ref(database, `rooms/${roomId}`), {
+              status: "roundEnd",
+              roundState: "ended",
+              roundResults: results,
+              players: updatedPlayers,
+              roundEndLock: { lockedBy: playerId, roundId: expectedRound, lockedAt: Date.now() },
+            });
+
+            trackEvent("watchdogForceRecovery", {
+              round: expectedRound,
+              attempt: watchdogAttemptsRef.current,
+              playerCount: emergencyPlayers.length,
+              guessCount: results.filter(r => r.distance < 9999).length,
+            });
+            logger.error(`[MP] Watchdog FORCED roundEnd: round=${expectedRound} players=${emergencyPlayers.length}`);
+          } else {
+            trackEvent("watchdogRecoverySkipped", { reason: "no_location_or_players" });
+          }
+        } catch (forceErr) {
+          logger.error("[MP] Watchdog forced recovery error:", forceErr);
+          trackError(forceErr instanceof Error ? forceErr : String(forceErr), "watchdogForceRecovery");
+        }
         return;
       }
 
       // e. Attempt resolution
+      trackEvent("watchdogTick", { attempt: watchdogAttemptsRef.current, elapsed: parseFloat(elapsed.toFixed(1)), status: freshRoom.status, staleLock: staleLockDetected });
       isProcessingRoundRef.current = true;
       try {
         mpCounters.watchdogFiredCount++;
@@ -1098,6 +1156,7 @@ export function useRoom() {
         await acquireAndWriteRoundEnd(roomId, expectedRound, null, freshRoom.currentLocation, playerId, "watchdog", { serverNow: meta?.serverNow }, staleLockDetected);
       } catch (err) {
         logger.error("[MP] Watchdog acquireAndWriteRoundEnd error:", err);
+        trackError(err instanceof Error ? err : String(err), "watchdogResolution");
       } finally {
         isProcessingRoundRef.current = false;
       }
@@ -1235,7 +1294,7 @@ export function useRoom() {
         logger.debug(`[MP] EarlyFinish: ${earlyFinishByMs}ms before timer expiry (source=${timeSource}, trigger=${trigger})`);
       }
 
-      trackEvent("roundEnd", { roundId, trigger });
+      trackEvent("roundEnd", { roundId, trigger, guessCount: results.filter(r => r.distance < 9999).length, gracePeriod: GUESS_GRACE_PERIOD_MS });
       logger.debug(`[MP] RoundEnd COMMITTED: round=${roundId} trigger=${trigger} by=${ownerId.substring(0, 8)}`);
       logger.debug({
         "Round": roundId,
@@ -1361,20 +1420,21 @@ export function useRoom() {
   }, []);
 
   // --- Join Room ---
-  const joinRoom = useCallback(async (roomCode: string, name: string) => {
+  // BUG-005 FIX: Return type enriched with roomStatus + playerState for derived state restoration
+  const joinRoom = useCallback(async (roomCode: string, name: string): Promise<{ success: boolean; roomStatus?: string; playerState?: { hasGuessed: boolean; currentGuess: Coordinates | null } }> => {
     setIsLoading(true);
     setError(null);
 
     if (!canJoinRoom()) {
       setError(ERROR_MESSAGES.RATE_LIMIT_EXCEEDED);
       setIsLoading(false);
-      return false;
+      return { success: false };
     }
 
     if (!isValidPlayerName(name)) {
       setError("Geçersiz oyuncu adı (1-20 karakter)");
       setIsLoading(false);
-      return false;
+      return { success: false };
     }
 
     try {
@@ -1384,7 +1444,7 @@ export function useRoom() {
 
       if (!snapshot.exists()) {
         setError(ERROR_MESSAGES.ROOM_NOT_FOUND);
-        return false;
+        return { success: false };
       }
 
       const roomData = snapshot.val() as Room;
@@ -1408,19 +1468,31 @@ export function useRoom() {
             name: name.trim(),
           });
 
+          // BUG-005 FIX: Fresh read after update to avoid stale state
+          const freshSnap = await get(roomRef);
+          const freshRoomData = freshSnap.val() as Room | null;
+          const finalRoom = freshRoomData || roomData;
+
           setPlayerId(matchingPlayer.id);
           setPlayerName(name.trim());
-          setRoom({ ...roomData, id: normalizedRoomCode });
+          setRoom({ ...finalRoom, id: normalizedRoomCode });
 
           setTelemetryContext({
             roomId: normalizedRoomCode,
             playerId: matchingPlayer.id,
             playerName: name.trim(),
           });
-          trackEvent("join", { action: "rejoin" });
 
-          previousPlayersRef.current = Object.keys(roomData.players || {});
-          previousHostIdRef.current = roomData.hostId;
+          // BUG-005 FIX: Derive player state for caller to restore local UI
+          const playerInRoom = finalRoom.players?.[matchingPlayer.id];
+          trackEvent("rejoin", {
+            roomStatus: finalRoom.status,
+            hasGuessed: playerInRoom?.hasGuessed,
+            round: finalRoom.currentRound,
+          });
+
+          previousPlayersRef.current = Object.keys(finalRoom.players || {});
+          previousHostIdRef.current = finalRoom.hostId;
           isFirstLoadRef.current = true;
           notifiedJoinedRef.current.clear();
           notifiedLeftRef.current.clear();
@@ -1428,20 +1500,27 @@ export function useRoom() {
           recordPlayerActivity(normalizedRoomCode, matchingPlayer.id);
 
           setIsLoading(false);
-          return true;
+          return {
+            success: true,
+            roomStatus: finalRoom.status,
+            playerState: {
+              hasGuessed: playerInRoom?.hasGuessed || false,
+              currentGuess: playerInRoom?.currentGuess || null,
+            },
+          };
         }
       }
 
       // --- NEW PLAYER JOIN ---
       if (roomData.status !== "waiting") {
         setError(ERROR_MESSAGES.GAME_ALREADY_STARTED);
-        return false;
+        return { success: false };
       }
 
       const playerCount = Object.keys(roomData.players || {}).length;
       if (playerCount >= 8) {
         setError(ERROR_MESSAGES.ROOM_FULL);
-        return false;
+        return { success: false };
       }
 
       const authUid = await getAuthUid();
@@ -1495,12 +1574,12 @@ export function useRoom() {
 
       recordPlayerActivity(normalizedRoomCode, authUid);
 
-      return true;
+      return { success: true, roomStatus: "waiting" };
     } catch (err) {
       logger.error("Odaya katılma hatası:", err);
       trackError(err instanceof Error ? err : String(err), "joinRoom");
       setError("Odaya katılınamadı. Lütfen tekrar deneyin.");
-      return false;
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
@@ -1728,9 +1807,9 @@ export function useRoom() {
           return { accepted: false, reason: "round_not_active" };
         }
 
-        // Server time check: reject if time expired (5s grace for network latency + host roundEnd delay)
+        // Server time check: reject if time expired (GUESS_GRACE_PERIOD_MS grace — harmonized with handleTimeUp)
         const roundEndMs = (roomData.roundStartTime || 0) + timeLimit * 1000;
-        if (serverNowMs > roundEndMs + 5000) {
+        if (serverNowMs > roundEndMs + GUESS_GRACE_PERIOD_MS) {
           logger.warn(`[MP] submitGuess REJECTED: time_expired (serverNow=${serverNowMs} roundEnd=${roundEndMs})`);
           setError("Süre doldu! Tahmin kabul edilmedi.");
           return { accepted: false, reason: "time_expired" };
@@ -1836,9 +1915,9 @@ export function useRoom() {
     const elapsedMs = serverNow - roundStartTime;
     const timeLimitMs = timeLimit * 1000;
 
-    // Wait until 2s AFTER nominal timer end to give players grace for last-second guesses
-    if (elapsedMs < timeLimitMs + 2000) {
-      logger.warn(`[MP] handleTimeUp: server time says ${(elapsedMs / 1000).toFixed(1)}s elapsed, limit=${timeLimit}s — grace period, skipping`);
+    // BUG-004 FIX: Wait until GUESS_GRACE_PERIOD_MS AFTER nominal timer end (harmonized with submitGuess)
+    if (elapsedMs < timeLimitMs + GUESS_GRACE_PERIOD_MS) {
+      logger.warn(`[MP] handleTimeUp: server time says ${(elapsedMs / 1000).toFixed(1)}s elapsed, limit=${timeLimit}s — grace period (${GUESS_GRACE_PERIOD_MS}ms), skipping`);
       return;
     }
 
@@ -2120,42 +2199,59 @@ export function useRoom() {
   }, [room, playerId]);
 
   // --- Restart Game ---
+  // BUG-006 FIX: Use runTransaction for atomicity + gameInstanceId for stale listener guard
   const restartGame = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
 
-    const updatedPlayers: { [key: string]: Player } = {};
+    const newGameInstanceId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    // BUG-006 FIX: Update local ref immediately so listener ignores stale events
+    localGameInstanceIdRef.current = newGameInstanceId;
+
+    // Reset guess limits for all players
     Object.values(room.players || {}).forEach((player) => {
-      updatedPlayers[player.id] = {
-        ...player,
-        totalScore: 0,
-        currentGuess: null,
-        hasGuessed: false,
-        movesUsed: 0,
-        roundScores: [],
-      };
       resetGuessLimit(player.id);
     });
 
-    await update(ref(database, `rooms/${room.id}`), {
-      status: "waiting",
-      currentRound: 0,
-      currentLocation: null,
-      currentPanoPackageId: null,
-      currentPanoPackage: null,
-      currentLocationName: null,
-      roundResults: null,
-      roundStartTime: null,
-      players: updatedPlayers,
-      lastActivityAt: Date.now(),
-      roundState: 'waiting',
-      // roundVersion: NOT reset — Firebase rule requires monotonic increase.
-      // startGameWithPanoPackage uses (currentRoom.roundVersion || 0) + 1 so any value works.
-      activePlayerCount: 0,
-      expectedGuesses: 0,
-      currentGuesses: 0,
-      roundEndLock: null,
+    await runTransaction(ref(database, `rooms/${room.id}`), (currentRoom) => {
+      if (!currentRoom) return currentRoom;
+      if (currentRoom.hostId !== playerId) return; // abort — not host
+      if (currentRoom.status !== "gameOver") return; // abort — stale click guard
+
+      const updatedPlayers: { [key: string]: Player } = {};
+      Object.entries(currentRoom.players || {}).forEach(([id, player]: [string, any]) => {
+        updatedPlayers[id] = {
+          ...player,
+          totalScore: 0,
+          currentGuess: null,
+          hasGuessed: false,
+          movesUsed: 0,
+          roundScores: [],
+        };
+      });
+
+      return {
+        ...currentRoom,
+        status: "waiting",
+        currentRound: 0,
+        gameInstanceId: newGameInstanceId,
+        currentLocation: null,
+        currentPanoPackageId: null,
+        currentPanoPackage: null,
+        currentLocationName: null,
+        roundResults: null,
+        roundStartTime: null,
+        players: updatedPlayers,
+        lastActivityAt: Date.now(),
+        roundState: 'waiting',
+        // roundVersion: NOT reset — Firebase rule requires monotonic increase.
+        activePlayerCount: 0,
+        expectedGuesses: 0,
+        currentGuesses: 0,
+        roundEndLock: null,
+      };
     });
 
+    trackEvent("gameRestart", { newGameInstanceId, previousStatus: room?.status });
     setupRoomCleanup({ ...room, status: "waiting" });
   }, [room, playerId]);
 

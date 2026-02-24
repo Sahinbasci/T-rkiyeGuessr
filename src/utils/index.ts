@@ -47,16 +47,45 @@ export function generateRandomCoordinates(): Coordinates {
   };
 }
 
+/**
+ * 2-aşamalı Türkiye sınır doğrulaması.
+ * Aşama 1: Dikdörtgen bounding box (hızlı eleme)
+ * Aşama 2: Deniz/komşu ülke exclusion kuralları (authoritative)
+ *
+ * Kullanım: Client-side pin validation + server-side guess validation
+ */
 export function isLikelyInTurkey(coord: Coordinates): boolean {
   const { lat, lng } = coord;
-  if (lat < 36 || lat > 42 || lng < 26 || lng > 45) return false;
+
+  // Aşama 1: Bounding box (hızlı eleme)
+  if (lat < 35.8 || lat > 42.1 || lng < 25.5 || lng > 44.8) return false;
+
+  // Aşama 2: Deniz ve komşu ülke exclusion kuralları
+  // Karadeniz kuzey açıkları
   if (lat > 41.5 && lng < 32) return false;
-  if (lat > 41.8 && lng > 32 && lng < 37) return false;
+  if (lat > 41.8 && lng >= 32 && lng < 37) return false;
+  if (lat > 42.1 && lng >= 32 && lng < 41) return false;
+
+  // Trakya - Bulgaristan sınırı dışı
+  if (lat > 41.2 && lng < 28.5) return false;
+
+  // Ege Denizi - batı kıyı dışı
   if (lng < 27 && lat < 40) return false;
+  // Ege güneyi / Yunan adaları
+  if (lat < 36.8 && lng < 29) return false;
+
+  // Akdeniz - güney kıyı dışı
   if (lat < 36.2 && lng < 32) return false;
-  if (lat < 36.5 && lng > 35) return false;
+  if (lat < 36.0 && lng >= 32 && lng < 36) return false;
+
+  // Güneydoğu - Suriye / Irak sınır dışı
+  if (lat < 36.5 && lng > 35 && lng < 36) return false;
+  if (lat < 36.5 && lng >= 36 && lng < 42) return false;
+
+  // Doğu - İran / Gürcistan sınır dışı
   if (lng > 43.5 && lat > 41) return false;
-  if (lat < 36.5 && lng > 36 && lng < 42) return false;
+  if (lng > 44.5 && lat < 40) return false;
+
   return true;
 }
 

@@ -73,6 +73,8 @@ export default function HomePage() {
   const prevStatusRef = useRef<string | null>(null);
   const lastShownPanoRoundRef = useRef<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // BUG-006 FIX: Suppress screen-transition effect during restart
+  const isRestartingRef = useRef(false);
 
   // ==================== HELPERS ====================
 
@@ -139,10 +141,19 @@ export default function HomePage() {
       const savedName = localStorage.getItem("turkiye_guessr_player_name");
       if (savedName) {
         setNameInput(savedName);
-        // Auto-rejoin attempt
-        joinRoom(urlRoom, savedName).then((success) => {
-          if (success) {
-            setScreen("lobby");
+        // BUG-005 FIX: Auto-rejoin with derived state restoration
+        joinRoom(urlRoom, savedName).then((result) => {
+          if (result.success) {
+            // Screen routing based on room status
+            if (result.roomStatus === "playing" || result.roomStatus === "roundEnd") {
+              setScreen("game");
+            } else {
+              setScreen("lobby");
+            }
+            // Derived state restore: pin location
+            if (result.playerState?.hasGuessed && result.playerState.currentGuess) {
+              setGuessLocation(result.playerState.currentGuess);
+            }
           }
         }).catch(() => {
           showTrackedToast("Yeniden bağlanılamadı");
@@ -251,6 +262,8 @@ export default function HomePage() {
 
   // Navigate to game/lobby on status change
   useEffect(() => {
+    // BUG-006 FIX: Don't fight with handleRestartGame during restart transition
+    if (isRestartingRef.current) return;
     if (room?.status === "playing" || room?.status === "roundEnd") {
       setScreen("game");
     } else if (room?.status === "waiting" && screen === "game") {
@@ -341,8 +354,14 @@ export default function HomePage() {
   const handleJoinRoom = async () => {
     if (!validateName(nameInput)) return;
     await runLocked(async () => {
-      const success = await joinRoom(roomInput, nameInput);
-      if (success) setScreen("lobby");
+      const result = await joinRoom(roomInput, nameInput);
+      if (result.success) {
+        if (result.roomStatus === "playing" || result.roomStatus === "roundEnd") {
+          setScreen("game");
+        } else {
+          setScreen("lobby");
+        }
+      }
     }, "joinRoom");
   };
 
@@ -439,12 +458,18 @@ export default function HomePage() {
 
   const handleRestartGame = async () => {
     await runLocked(async () => {
+      // BUG-006 FIX: Suppress screen-transition effect during restart
+      isRestartingRef.current = true;
       lastShownPanoRoundRef.current = null;
+      prevRoundRef.current = null;
+      prevStatusRef.current = null;
       resetMap();
       setGuessLocation(null);
       resetMoves();
       await restartGame();
       setScreen("lobby");
+      // Release after a tick so status-change effect doesn't race
+      setTimeout(() => { isRestartingRef.current = false; }, 100);
     }, "restartGame");
   };
 

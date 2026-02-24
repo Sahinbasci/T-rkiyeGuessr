@@ -1,4 +1,4 @@
-import { RefObject, useRef, useCallback, useEffect } from "react";
+import { RefObject, useRef, useCallback } from "react";
 import { Maximize2, Minimize2, Check } from "lucide-react";
 import { Coordinates } from "@/types";
 
@@ -30,9 +30,7 @@ export function MiniMap({
   isTimeCritical,
   isSubmitting,
 }: MiniMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const isTogglingRef = useRef(false);
-  const fallbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerMapResize = useCallback(() => {
     if (typeof google !== "undefined" && guessMapRef.current) {
@@ -43,42 +41,17 @@ export function MiniMap({
     }
   }, [guessMapRef]);
 
-  const finishToggle = useCallback(() => {
-    isTogglingRef.current = false;
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
-    }
-    triggerMapResize();
-  }, [triggerMapResize]);
-
-  // Listen for transitionend on the container
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleTransitionEnd = (e: TransitionEvent) => {
-      if (e.target === container) {
-        finishToggle();
-      }
-    };
-
-    container.addEventListener("transitionend", handleTransitionEnd);
-    return () => container.removeEventListener("transitionend", handleTransitionEnd);
-  }, [finishToggle]);
-
+  // BUG-003 FIX: Simple timeout-based debounce instead of unreliable transitionend.
+  // transitionend can fail to fire when Google Maps DOM mutations interrupt CSS transitions.
   const handleToggle = useCallback(() => {
     if (isTogglingRef.current) return;
     isTogglingRef.current = true;
     setMapExpanded(!mapExpanded);
-
-    fallbackTimerRef.current = setTimeout(() => {
-      fallbackTimerRef.current = null;
-      if (isTogglingRef.current) {
-        finishToggle();
-      }
+    setTimeout(() => {
+      isTogglingRef.current = false;
+      triggerMapResize();
     }, 350);
-  }, [mapExpanded, setMapExpanded, finishToggle]);
+  }, [mapExpanded, setMapExpanded, triggerMapResize]);
 
   // BUG-002/004: Determine if submit should be disabled
   const isSubmitDisabled = !guessLocation || !!isTimeCritical || !!isSubmitting;
@@ -95,7 +68,6 @@ export function MiniMap({
 
   return (
     <div
-      ref={containerRef}
       className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}
       onClick={(e) => {
         e.stopPropagation();
@@ -121,7 +93,8 @@ export function MiniMap({
         {mapExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
 
-      <div ref={guessMapRef as React.RefObject<HTMLDivElement>} className="w-full h-full pointer-events-auto" style={{ position: 'relative', zIndex: 1 }} />
+      {/* BUG-003 FIX: Removed inline zIndex/position to prevent stacking context issues */}
+      <div ref={guessMapRef as React.RefObject<HTMLDivElement>} className="w-full h-full pointer-events-auto" />
 
       {!hasGuessed && (
         <div className="desktop-submit-btn absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 to-transparent">

@@ -437,12 +437,12 @@ div[aria-label*="Street View"] {
   }
 }
 
-/* Map expand button */
+/* Map expand button — BUG-003 FIX: z-index raised to stay above Google Maps overlays */
 .map-expand-btn {
   position: absolute;
   top: 6px;
   left: 6px;
-  z-index: 10000;
+  z-index: 99999;
   pointer-events: auto;
   isolation: isolate;
   width: 36px;

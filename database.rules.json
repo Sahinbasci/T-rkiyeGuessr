@@ -77,6 +77,10 @@
           ".validate": "!newData.exists() || newData.isNumber()"
         },
 
+        "gameInstanceId": {
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length >= 1 && newData.val().length <= 50 && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+        },
+
         "roundState": {
           ".validate": "!newData.exists() || ((newData.isString() && newData.val().matches(/^(waiting|active|ended)$/)) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },

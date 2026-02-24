@@ -44,11 +44,13 @@ import { database, ref, runTransaction } from "@/config/firebase";
 import rateLimiter from "@/utils/rateLimiter";
 import { RATE_LIMITS, FEATURE_FLAGS } from "@/config/production";
 import { logger } from "@/utils/logger";
+import { trackEvent } from "@/utils/telemetry";
 import {
   createDriftTracker,
   processPovChange,
   markDragStart,
   markDragEnd,
+  markSelfInducedChange,
   resetDriftTracker,
   type DriftTrackerState,
 } from "@/utils/cameraDrift";
@@ -773,10 +775,13 @@ export function useStreetView(roomId?: string, playerId?: string) {
           driftTrackerRef.current,
           pov.pitch,
           pov.heading,
+          Date.now(),
         );
         driftTrackerRef.current = result.newState;
 
         if (result.correctedPitch !== null) {
+          // Mark self-induced BEFORE setPov to suppress feedback loop
+          driftTrackerRef.current = markSelfInducedChange(driftTrackerRef.current);
           panoramaRef.current.setPov({
             heading: pov.heading,
             pitch: result.correctedPitch,
@@ -807,6 +812,8 @@ export function useStreetView(roomId?: string, playerId?: string) {
           const dragResult = markDragEnd(driftTrackerRef.current, currentPov.pitch, currentPov.heading);
           driftTrackerRef.current = dragResult.newState;
           if (dragResult.correctedPitch !== null) {
+            // Mark self-induced BEFORE setPov to suppress feedback loop
+            driftTrackerRef.current = markSelfInducedChange(driftTrackerRef.current);
             panoramaRef.current.setPov({
               heading: currentPov.heading,
               pitch: dragResult.correctedPitch,
@@ -1005,7 +1012,59 @@ export function useStreetView(roomId?: string, playerId?: string) {
     };
   }, []);
 
-  // BUG-2 FIX: Visibility/Pageshow handler — detect iOS Safari bfcache and tab resume
+  // BUG-007 FIX: Panorama integrity check — detects black/corrupt tiles
+  // Returns true if panorama container has visible canvas/img tiles.
+  const checkPanoramaIntegrity = useCallback((): boolean => {
+    if (!streetViewRef.current || !panoramaRef.current) return false;
+    // Check 1: container must have children
+    if (streetViewRef.current.children.length === 0) return false;
+    // Check 2: at least one canvas or img element inside the container
+    const hasCanvas = streetViewRef.current.querySelector("canvas") !== null;
+    const hasImg = streetViewRef.current.querySelector("img") !== null;
+    if (!hasCanvas && !hasImg) return false;
+    // Check 3: container must have non-zero dimensions
+    const rect = streetViewRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return false;
+    return true;
+  }, []);
+
+  // BUG-007 FIX: Hard recreate panorama — destroys and recreates from scratch
+  const hardRecreatePanorama = useCallback(() => {
+    if (!panoramaRef.current) return;
+    const panoId = startPanoIdRef.current;
+    const heading = startHeadingRef.current;
+    if (!panoId || !streetViewRef.current) return;
+
+    logger.debug("[Nav] BUG-007: Hard recreating panorama after integrity check failure");
+    trackEvent("blackScreenRecovery", { panoId: panoId.substring(0, 12), trigger: "integrityCheck" });
+
+    google.maps.event.clearInstanceListeners(panoramaRef.current);
+    panoramaRef.current = null;
+    panoramaConstructedRef.current = false;
+
+    // Recreate with current pano
+    panoramaRef.current = new google.maps.StreetViewPanorama(
+      streetViewRef.current,
+      {
+        pano: panoId,
+        pov: { heading, pitch: 0 },
+        addressControl: false,
+        fullscreenControl: false,
+        enableCloseButton: false,
+        showRoadLabels: false,
+        zoomControl: true,
+        linksControl: false,
+        motionTracking: false,
+        motionTrackingControl: false,
+        clickToGo: false,
+        disableDefaultUI: false,
+        scrollwheel: true,
+      }
+    );
+    panoramaConstructedRef.current = true;
+  }, []);
+
+  // BUG-007 FIX: Visibility/Pageshow handler — detect iOS Safari bfcache and tab resume
   // When page returns from background, check if panorama container is still valid.
   // If not, set flag so next showStreetView creates fresh instance.
   useEffect(() => {
@@ -1014,6 +1073,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
         // Check if container is orphaned (empty div = panorama rendered to different element)
         if (streetViewRef.current.children.length === 0) {
           logger.debug("[Nav] Visibility resume: panorama container empty, marking for recreate");
+          trackEvent("blackScreenDetected", { reason: "containerEmpty", trigger: "visibilityChange" });
           google.maps.event.clearInstanceListeners(panoramaRef.current);
           panoramaRef.current = null;
           panoramaConstructedRef.current = false;
@@ -1023,6 +1083,16 @@ export function useStreetView(roomId?: string, playerId?: string) {
           if (currentPano) {
             logger.debug("[Nav] Visibility resume: refreshing panorama tiles");
             panoramaRef.current.setPano(currentPano);
+
+            // BUG-007 FIX: Delayed integrity check after setPano refresh.
+            // If tiles didn't actually load (black screen), force hard recreate.
+            setTimeout(() => {
+              if (!checkPanoramaIntegrity()) {
+                logger.warn("[Nav] BUG-007: Post-refresh integrity check FAILED — hard recreating");
+                trackEvent("blackScreenDetected", { reason: "integrityFailed", trigger: "visibilityChange" });
+                hardRecreatePanorama();
+              }
+            }, 2000);
           }
         }
       }
@@ -1032,9 +1102,19 @@ export function useStreetView(roomId?: string, playerId?: string) {
       if (e.persisted && panoramaRef.current) {
         // Page restored from bfcache — panorama may be corrupted
         logger.debug("[Nav] Pageshow bfcache restore: refreshing panorama");
+        trackEvent("bfcacheRestore", { hasPano: !!startPanoIdRef.current });
         const currentPano = panoramaRef.current.getPano();
         if (currentPano && streetViewRef.current) {
           panoramaRef.current.setPano(currentPano);
+
+          // BUG-007 FIX: Delayed integrity check after bfcache restore
+          setTimeout(() => {
+            if (!checkPanoramaIntegrity()) {
+              logger.warn("[Nav] BUG-007: Post-bfcache integrity check FAILED — hard recreating");
+              trackEvent("blackScreenDetected", { reason: "integrityFailed", trigger: "bfcache" });
+              hardRecreatePanorama();
+            }
+          }, 2000);
         }
       }
     };
@@ -1045,7 +1125,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pageshow", handlePageShow);
     };
-  }, []);
+  }, [checkPanoramaIntegrity, hardRecreatePanorama]);
 
   /**
    * Show a pano package in the Street View panorama.
@@ -1182,10 +1262,21 @@ export function useStreetView(roomId?: string, playerId?: string) {
               panoLoadTimeoutRef.current = null;
               if (!loadSucceeded && !fallbackTriggered) {
                 logger.warn(`[Nav] setPano timeout (10s) — triggering fallback for [REDACTED]`);
+                trackEvent("blackScreenDetected", { reason: "setPanoTimeout", pano: panoId.substring(0, 12) });
                 triggerFallback("TIMEOUT");
               }
             }, 10000);
           }
+
+          // BUG-007 FIX: Post-load integrity check — detects silent black screen
+          // after status_changed reports OK but tiles didn't actually render
+          setTimeout(() => {
+            if (loadSucceeded && !fallbackTriggered && !checkPanoramaIntegrity()) {
+              logger.warn("[Nav] BUG-007: Post-load integrity check FAILED — tiles missing");
+              trackEvent("blackScreenDetected", { reason: "postLoadIntegrityFailed", pano: panoId.substring(0, 12) });
+              hardRecreatePanorama();
+            }
+          }, 3000);
         }
 
         setIsLoading(false);
@@ -1195,7 +1286,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
         setIsLoading(false);
       }
     },
-    [initializeGoogleMaps, showStreetView, resetMoves]
+    [initializeGoogleMaps, showStreetView, resetMoves, checkPanoramaIntegrity, hardRecreatePanorama]
   );
 
   const showStreetViewFromCoords = useCallback(
