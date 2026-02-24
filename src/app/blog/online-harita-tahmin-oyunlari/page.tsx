@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function OnlineHaritaTahminOyunlariPost() {
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: "En İyi Online Harita Tahmin Oyunları (2026)",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },

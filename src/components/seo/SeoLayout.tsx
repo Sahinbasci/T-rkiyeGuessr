@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { SeoFooter } from "./Footer";
+import { AdSlot } from "@/components/ads/AdSlot";
+import { AD_SLOTS } from "@/config/ads";
 
 interface SeoLayoutProps {
   children: React.ReactNode;
@@ -54,7 +56,12 @@ export function SeoLayout({ children, breadcrumbs }: SeoLayoutProps) {
       {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
 
       {/* Content */}
-      <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+      <main id="main-content" className="max-w-5xl mx-auto px-4 py-8">{children}</main>
+
+      {/* Ad — SEO page footer banner */}
+      <div className="max-w-5xl mx-auto px-4 pb-4">
+        <AdSlot slot={AD_SLOTS.banner} format="horizontal" />
+      </div>
 
       {/* Footer */}
       <SeoFooter />

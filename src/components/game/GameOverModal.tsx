@@ -1,6 +1,8 @@
 import { RotateCcw } from "lucide-react";
 import { Player } from "@/types";
 import { PLAYER_COLORS } from "@/constants/playerColors";
+import { AdSlot } from "@/components/ads/AdSlot";
+import { AD_SLOTS } from "@/config/ads";
 
 interface GameOverModalProps {
   players: Player[];
@@ -64,6 +66,11 @@ export function GameOverModal({ players, playerId, isHost, onRestart, onLeave }:
               </div>
             );
           })}
+        </div>
+
+        {/* Ad — game over banner */}
+        <div className="mb-4">
+          <AdSlot slot={AD_SLOTS.inContent} format="horizontal" roomStatus="gameOver" />
         </div>
 
         {isHost ? (

@@ -66,7 +66,10 @@ export function MobileActionBar({
   return (
     <div className="mobile-action-bar">
       <button
-        onClick={onSubmitGuess}
+        onClick={() => {
+          if (navigator.vibrate) navigator.vibrate(50);
+          onSubmitGuess();
+        }}
         disabled={isSubmitDisabled}
         className={`btn-primary w-full py-4 text-base font-bold flex items-center justify-center gap-2 ${
           guessLocation && !isSubmitDisabled ? "" : "opacity-70"

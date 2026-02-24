@@ -75,7 +75,15 @@ import {
   isValidTurkeyCoordinate,
   isValidPlayerName,
   ERROR_MESSAGES,
+  FEATURE_FLAGS,
 } from "@/config/production";
+import { logger } from "@/utils/logger";
+import {
+  electNewHost,
+  computeRoundResults,
+  updatePlayersAfterRound,
+  countOnlinePlayers as countOnline,
+} from "@/utils/roomLogic";
 
 // ==================== TYPES ====================
 
@@ -142,6 +150,7 @@ if (CHAOS_MODE && typeof window !== 'undefined') {
 }
 
 function roomStateDigest(room: Room, trigger: string, clientId: string): void {
+  if (!FEATURE_FLAGS.ENABLE_DEBUG_LOGS) return;
   const players = Object.values(room.players || {});
   const playerSummary = players.map(p => ({
     id: p.id.substring(0, 8),
@@ -152,13 +161,13 @@ function roomStateDigest(room: Room, trigger: string, clientId: string): void {
     guessPresent: !!p.currentGuess,
   }));
 
-  console.log(`[MP] ===== ROOM DIGEST (${trigger}) =====`);
-  console.log(`[MP] room=${room.id} client=${clientId.substring(0, 8)} status=${room.status} round=${room.currentRound}`);
-  console.log(`[MP] hostId=${room.hostId.substring(0, 8)} roundStartTime=${room.roundStartTime}`);
-  console.log(`[MP] expected=${room.expectedGuesses} current=${room.currentGuesses} active=${room.activePlayerCount}`);
-  console.log(`[MP] players=`, JSON.stringify(playerSummary));
-  console.log(`[MP] counters=`, JSON.stringify(mpCounters));
-  console.log(`[MP] ===================================`);
+  logger.debug(`[MP] ===== ROOM DIGEST (${trigger}) =====`);
+  logger.debug(`[MP] room=${room.id} client=${clientId.substring(0, 8)} status=${room.status} round=${room.currentRound}`);
+  logger.debug(`[MP] hostId=${room.hostId.substring(0, 8)} roundStartTime=${room.roundStartTime}`);
+  logger.debug(`[MP] expected=${room.expectedGuesses} current=${room.currentGuesses} active=${room.activePlayerCount}`);
+  logger.debug(`[MP] players=`, JSON.stringify(playerSummary));
+  logger.debug(`[MP] counters=`, JSON.stringify(mpCounters));
+  logger.debug(`[MP] ===================================`);
 }
 
 // ==================== HOOK ====================
@@ -369,7 +378,7 @@ export function useRoom() {
         // Case A: Explicitly 'disconnected' AND grace period exceeded → remove
         if (playerStatus === 'disconnected' && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
           mpCounters.ghostRemovedCount++;
-          console.log(`[MP] Ghost cleanup: removing ${player.name} (status=disconnected, ${timeSinceLastSeen}ms stale) [total: ${mpCounters.ghostRemovedCount}]`);
+          logger.debug(`[MP] Ghost cleanup: removing ${player.name} (status=disconnected, ${timeSinceLastSeen}ms stale) [total: ${mpCounters.ghostRemovedCount}]`);
 
           try {
             // Remove player node
@@ -389,19 +398,19 @@ export function useRoom() {
 
             roomStateDigest(freshRoom, `ghostRemoved:${player.name}`, playerId);
           } catch (err) {
-            console.warn("[MP] Ghost cleanup failed:", err);
+            logger.warn("[MP] Ghost cleanup failed:", err);
           }
         }
 
         // Case B: Still 'online' but stale heartbeat → mark as disconnected (triggers Case A next cycle)
         else if (playerStatus === 'online' && timeSinceLastSeen > STALE_HEARTBEAT_THRESHOLD) {
-          console.log(`[MP] Stale heartbeat: ${player.name} (${timeSinceLastSeen}ms, still 'online')`);
+          logger.debug(`[MP] Stale heartbeat: ${player.name} (${timeSinceLastSeen}ms, still 'online')`);
           try {
             await update(ref(database, `rooms/${roomId}/players/${player.id}`), {
               status: 'disconnected' as PlayerStatus,
             });
           } catch (err) {
-            console.warn("[MP] Failed to mark stale player:", err);
+            logger.warn("[MP] Failed to mark stale player:", err);
           }
         }
       }
@@ -449,11 +458,11 @@ export function useRoom() {
 
   useEffect(() => {
     if (!CHAOS_MODE) return;
-    console.log("[CHAOS] CHAOS_MODE enabled — logging every 30s");
+    logger.debug("[CHAOS] CHAOS_MODE enabled — logging every 30s");
 
     const chaosInterval = setInterval(() => {
-      console.log("[CHAOS] mpCounters:", JSON.stringify(mpCounters));
-      console.log("[CHAOS] Intervals:", JSON.stringify({
+      logger.debug("[CHAOS] mpCounters:", JSON.stringify(mpCounters));
+      logger.debug("[CHAOS] Intervals:", JSON.stringify({
         presence: !!presenceIntervalRef.current,
         cleanup: !!cleanupIntervalRef.current,
         watchdog: !!watchdogIntervalRef.current,
@@ -462,20 +471,20 @@ export function useRoom() {
       }));
       if (typeof performance !== 'undefined' && (performance as any).memory) {
         const mem = (performance as any).memory;
-        console.log(`[CHAOS] Heap: used=${(mem.usedJSHeapSize / 1048576).toFixed(1)}MB total=${(mem.totalJSHeapSize / 1048576).toFixed(1)}MB`);
+        logger.debug(`[CHAOS] Heap: used=${(mem.usedJSHeapSize / 1048576).toFixed(1)}MB total=${(mem.totalJSHeapSize / 1048576).toFixed(1)}MB`);
       }
       // Latency percentile (timer-expiry rounds only)
       const latencies = mpCounters.roundEndLatencies;
       if (latencies.length > 0) {
         const under3s = latencies.filter(l => l <= 3000).length;
-        console.log(`[CHAOS] RoundEndLatency (timeUp): ${under3s}/${latencies.length} under 3s (${((under3s / latencies.length) * 100).toFixed(1)}%) max=${Math.max(...latencies)}ms`);
+        logger.debug(`[CHAOS] RoundEndLatency (timeUp): ${under3s}/${latencies.length} under 3s (${((under3s / latencies.length) * 100).toFixed(1)}%) max=${Math.max(...latencies)}ms`);
       }
       const earlyFinishes = mpCounters.earlyFinishLatencies;
       if (earlyFinishes.length > 0) {
-        console.log(`[CHAOS] EarlyFinish (allGuessed): ${earlyFinishes.length} rounds, avg=${Math.round(earlyFinishes.reduce((a, b) => a + b, 0) / earlyFinishes.length)}ms early`);
+        logger.debug(`[CHAOS] EarlyFinish (allGuessed): ${earlyFinishes.length} rounds, avg=${Math.round(earlyFinishes.reduce((a, b) => a + b, 0) / earlyFinishes.length)}ms early`);
       }
       if (mpCounters.firebaseInternalAbortCount > 0) {
-        console.log(`[CHAOS] FirebaseInternalAborts: ${mpCounters.firebaseInternalAbortCount} (SDK-level, not app errors)`);
+        logger.debug(`[CHAOS] FirebaseInternalAborts: ${mpCounters.firebaseInternalAbortCount} (SDK-level, not app errors)`);
       }
     }, 30000);
 
@@ -563,19 +572,15 @@ export function useRoom() {
         }
 
         if ((!hostOnline || !currentPlayerIds.includes(roomData.hostId)) && currentPlayerIds.length > 0 && !isMigratingHostRef.current) {
-          // Deterministic election: lowest joinedAt among online players (excluding dead host)
-          const onlineCandidates = Object.values(roomData.players || {})
-            .filter((p) => (p.status === 'online' || !p.status) && p.id !== roomData.hostId)
-            .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-
-          const newHost = onlineCandidates[0];
+          // Deterministic election via pure function (tested in roomLogic.test.ts)
+          const newHost = electNewHost(roomData.players || {}, roomData.hostId);
 
           // Only the elected candidate writes migration (prevents race)
           if (newHost && newHost.id === playerId) {
             // Set migration guard SYNCHRONOUSLY before any async work
             isMigratingHostRef.current = roomData.hostId;
             mpCounters.hostMigrationCount++;
-            console.log(`[MP] Host migration: ${roomData.hostId.substring(0, 8)} → ${newHost.id.substring(0, 8)}`);
+            logger.debug(`[MP] Host migration: ${roomData.hostId.substring(0, 8)} → ${newHost.id.substring(0, 8)}`);
 
             // Transaction on whole room for atomicity.
             // Firebase rules now use root.child() (post-write state) instead of
@@ -602,9 +607,9 @@ export function useRoom() {
                 };
               });
               migrationCommitted = true;
-              console.log(`[MP] Host migration committed: ${newHost.id.substring(0, 8)} is now host`);
+              logger.debug(`[MP] Host migration committed: ${newHost.id.substring(0, 8)} is now host`);
             } catch (err) {
-              console.error("[MP] Host migration failed:", err);
+              logger.error("[MP] Host migration failed:", err);
             }
 
             // POST-MIGRATION RECOVERY: After becoming host, start a periodic
@@ -614,7 +619,7 @@ export function useRoom() {
             if (migrationCommitted && roomData.status === "playing") {
               const migrationRoomId = roomData.id;
               const migrationRound = roomData.currentRound;
-              console.log(`[MP] Post-migration recovery interval starting for room=${migrationRoomId} round=${migrationRound}`);
+              logger.debug(`[MP] Post-migration recovery interval starting for room=${migrationRoomId} round=${migrationRound}`);
 
               const recoveryCheck = async () => {
                 if (isProcessingRoundRef.current) return false; // busy, try again next tick
@@ -622,11 +627,11 @@ export function useRoom() {
                   const freshSnap = await get(ref(database, `rooms/${migrationRoomId}`));
                   const freshRoom = freshSnap.val() as Room | null;
                   if (!freshRoom || freshRoom.status !== "playing" || freshRoom.currentRound !== migrationRound) {
-                    console.log(`[MP] Post-migration recovery: room state changed, stopping`);
+                    logger.debug(`[MP] Post-migration recovery: room state changed, stopping`);
                     return true; // done, stop interval
                   }
                   if (freshRoom.hostId !== playerId) {
-                    console.log(`[MP] Post-migration recovery: no longer host, stopping`);
+                    logger.debug(`[MP] Post-migration recovery: no longer host, stopping`);
                     return true; // done
                   }
 
@@ -643,7 +648,7 @@ export function useRoom() {
 
                   if (allGuessedNow || timeExpired) {
                     const trigger = allGuessedNow ? "postMigrationAllGuessed" : "postMigrationTimeExpired";
-                    console.log(`[MP] Post-migration recovery: triggering roundEnd (${trigger}, elapsed=${elapsed.toFixed(1)}s, online=${freshOnline.length})`);
+                    logger.debug(`[MP] Post-migration recovery: triggering roundEnd (${trigger}, elapsed=${elapsed.toFixed(1)}s, online=${freshOnline.length})`);
                     isProcessingRoundRef.current = true;
                     try {
                       await acquireAndWriteRoundEnd(migrationRoomId, migrationRound, null, freshRoom.currentLocation, playerId, trigger);
@@ -652,10 +657,10 @@ export function useRoom() {
                     }
                     return true; // done
                   }
-                  console.log(`[MP] Post-migration recovery: waiting (allGuessed=${allGuessedNow}, elapsed=${elapsed.toFixed(0)}s/${tLimit}s, online=${freshOnline.length})`);
+                  logger.debug(`[MP] Post-migration recovery: waiting (allGuessed=${allGuessedNow}, elapsed=${elapsed.toFixed(0)}s/${tLimit}s, online=${freshOnline.length})`);
                   return false; // keep checking
                 } catch (err) {
-                  console.error("[MP] Post-migration recovery error:", err);
+                  logger.error("[MP] Post-migration recovery error:", err);
                   return false; // keep trying
                 }
               };
@@ -715,8 +720,15 @@ export function useRoom() {
           const playerList = Object.values(roomData.players);
           const now = Date.now();
           const onlinePlayers = playerList.filter((p) => {
-            // Explicitly disconnected → not online
-            if (p.status === 'disconnected') return false;
+            // Explicitly disconnected
+            if (p.status === 'disconnected') {
+              // Grace period: recently disconnected player who hasn't guessed yet
+              // may be refreshing — don't count them as "done" for allGuessed
+              if (!p.hasGuessed && p.lastSeen && (now - p.lastSeen) <= DISCONNECT_GRACE_PERIOD) {
+                return true; // keep in allGuessed check (prevents premature roundEnd)
+              }
+              return false;
+            }
             // Stale heartbeat (no update for 30s) → treat as disconnected
             if (p.lastSeen && (now - p.lastSeen) > STALE_HEARTBEAT_THRESHOLD) return false;
             // Online or no status set yet
@@ -740,7 +752,7 @@ export function useRoom() {
 
                 await acquireAndWriteRoundEnd(roomData.id, currentRoundId, snapshotPlayerIds, snapshotLocation, playerId, "allGuessed");
               } catch (err) {
-                console.error("[MP] allGuessed roundEnd error:", err);
+                logger.error("[MP] allGuessed roundEnd error:", err);
                 trackError(err instanceof Error ? err : String(err), "autoRoundEnd");
               } finally {
                 isProcessingRoundRef.current = false;
@@ -755,7 +767,7 @@ export function useRoom() {
             const timeLimit = roomData.timeLimit || 90;
 
             if (elapsed > timeLimit + ROUND_END_RECOVERY_BUFFER) {
-              console.log(`[MP] RoundEnd recovery: elapsed=${elapsed.toFixed(1)}s > limit=${timeLimit}s`);
+              logger.debug(`[MP] RoundEnd recovery: elapsed=${elapsed.toFixed(1)}s > limit=${timeLimit}s`);
               isProcessingRoundRef.current = true;
               const recoveryRoundId = roomData.currentRound;
 
@@ -763,7 +775,7 @@ export function useRoom() {
                 try {
                   await acquireAndWriteRoundEnd(roomData.id, recoveryRoundId, null, roomData.currentLocation, playerId, "recovery");
                 } catch (err) {
-                  console.error("[MP] RoundEnd recovery error:", err);
+                  logger.error("[MP] RoundEnd recovery error:", err);
                 } finally {
                   isProcessingRoundRef.current = false;
                 }
@@ -788,20 +800,20 @@ export function useRoom() {
           // something may be stuck. Force a fresh read.
           if (elapsed > timeLimit + 5) {
             if (!stuckRecoveryTimerRef.current) {
-              console.log(`[MP] Stuck recovery: client guessed but still playing after ${elapsed.toFixed(0)}s — scheduling fresh read`);
+              logger.debug(`[MP] Stuck recovery: client guessed but still playing after ${elapsed.toFixed(0)}s — scheduling fresh read`);
               stuckRecoveryTimerRef.current = setTimeout(async () => {
                 stuckRecoveryTimerRef.current = null;
                 try {
                   const freshSnap = await get(roomRef);
                   const freshData = freshSnap.val() as Room | null;
                   if (freshData && freshData.status !== "playing") {
-                    console.log(`[MP] Stuck recovery: Firebase shows status=${freshData.status}, forcing local update`);
+                    logger.debug(`[MP] Stuck recovery: Firebase shows status=${freshData.status}, forcing local update`);
                     setRoom(freshData);
                   } else if (freshData) {
-                    console.log(`[MP] Stuck recovery: Firebase still shows playing (round=${freshData.currentRound})`);
+                    logger.debug(`[MP] Stuck recovery: Firebase still shows playing (round=${freshData.currentRound})`);
                     // If we're host and room is truly stuck, try to trigger roundEnd
                     if (playerId === freshData.hostId && !isProcessingRoundRef.current) {
-                      console.log(`[MP] Stuck recovery: host forcing roundEnd for round ${freshData.currentRound}`);
+                      logger.debug(`[MP] Stuck recovery: host forcing roundEnd for round ${freshData.currentRound}`);
                       isProcessingRoundRef.current = true;
                       try {
                         await acquireAndWriteRoundEnd(
@@ -818,7 +830,7 @@ export function useRoom() {
                     }
                   }
                 } catch (err) {
-                  console.warn("[MP] Stuck recovery read failed:", err);
+                  logger.warn("[MP] Stuck recovery read failed:", err);
                 }
               }, 3000); // 3s delay to avoid hammering
             }
@@ -870,7 +882,7 @@ export function useRoom() {
       stuckRecoveryTimerRef.current = null;
     }
     clientGuessTimestampRef.current = null;
-    console.log("[MP] hardResync: local locks/guards reset");
+    logger.debug("[MP] hardResync: local locks/guards reset");
   }, []);
 
   // ==================== EFFECT 7: CLIENT RESYNC WATCHDOG ====================
@@ -924,7 +936,7 @@ export function useRoom() {
 
           // Case 1: Status changed (roundEnd, gameOver, waiting)
           if (freshRoom.status !== "playing") {
-            console.log(`[MP] ClientResync: status=${freshRoom.status} (was playing), forcing local update`);
+            logger.debug(`[MP] ClientResync: status=${freshRoom.status} (was playing), forcing local update`);
             hardResync();
             setRoom(freshRoom);
             return;
@@ -932,7 +944,7 @@ export function useRoom() {
 
           // Case 2: Round changed (we missed a round transition)
           if (freshRoom.currentRound !== expectedRound) {
-            console.log(`[MP] ClientResync: round=${freshRoom.currentRound} (expected ${expectedRound}), forcing local update`);
+            logger.debug(`[MP] ClientResync: round=${freshRoom.currentRound} (expected ${expectedRound}), forcing local update`);
             hardResync();
             setRoom(freshRoom);
             return;
@@ -940,13 +952,13 @@ export function useRoom() {
 
           // Case 3: roundResults appeared but status still "playing" (edge case)
           if (freshRoom.roundResults && Array.isArray(freshRoom.roundResults) && freshRoom.roundResults.length > 0) {
-            console.log(`[MP] ClientResync: roundResults present but status still playing, forcing local update`);
+            logger.debug(`[MP] ClientResync: roundResults present but status still playing, forcing local update`);
             hardResync();
             setRoom(freshRoom);
             return;
           }
         } catch (err) {
-          console.warn("[MP] ClientResync poll failed:", err);
+          logger.warn("[MP] ClientResync poll failed:", err);
         }
       }, 2000);
     }, 2000);
@@ -957,7 +969,7 @@ export function useRoom() {
       if (clientResyncIntervalRef.current) {
         clearInterval(clientResyncIntervalRef.current);
         clientResyncIntervalRef.current = null;
-        console.log("[MP] ClientResync: safety timeout (15s), stopping polling");
+        logger.debug("[MP] ClientResync: safety timeout (15s), stopping polling");
       }
     }, 15000);
 
@@ -1027,7 +1039,7 @@ export function useRoom() {
         elapsed = (meta.serverNow - roundStartTime) / 1000;
       } else {
         elapsed = (Date.now() - roundStartTime) / 1000;
-        console.log("[MP] Watchdog using client time fallback (serverNow missing)");
+        logger.debug("[MP] Watchdog using client time fallback (serverNow missing)");
       }
 
       // 7. Normal operation — timer hasn't expired yet
@@ -1051,12 +1063,12 @@ export function useRoom() {
         const lockAge = (meta?.serverNow || Date.now()) - existingLock.lockedAt;
         if (lockAge < WATCHDOG_LOCK_STALE_THRESHOLD) {
           // Recent lock — someone is actively processing, skip this tick
-          console.log(`[MP] Watchdog: lock held by ${existingLock.lockedBy.substring(0, 8)}, age=${lockAge}ms — waiting`);
+          logger.debug(`[MP] Watchdog: lock held by ${existingLock.lockedBy.substring(0, 8)}, age=${lockAge}ms — waiting`);
           return;
         }
         // Stale lock — holder may have crashed, force override
         staleLockDetected = true;
-        console.log(`[MP] Watchdog: stale lock detected (age=${lockAge}ms), forcing override`);
+        logger.debug(`[MP] Watchdog: stale lock detected (age=${lockAge}ms), forcing override`);
       }
 
       // c. Increment attempts
@@ -1065,7 +1077,7 @@ export function useRoom() {
       // d. Max attempts exceeded — escalate
       if (watchdogAttemptsRef.current > WATCHDOG_MAX_ATTEMPTS) {
         mpCounters.watchdogFailureCount++;
-        console.error(`[MP] Watchdog FAILURE: max attempts (${WATCHDOG_MAX_ATTEMPTS}) exceeded`, {
+        logger.error(`[MP] Watchdog FAILURE: max attempts (${WATCHDOG_MAX_ATTEMPTS}) exceeded`, {
           attempt: watchdogAttemptsRef.current,
           freshStatus: freshRoom.status,
           freshHostId: freshRoom.hostId,
@@ -1082,10 +1094,10 @@ export function useRoom() {
       isProcessingRoundRef.current = true;
       try {
         mpCounters.watchdogFiredCount++;
-        console.log(`[MP] Watchdog resolution: round=${expectedRound} elapsed=${elapsed.toFixed(1)}s attempt=${watchdogAttemptsRef.current} staleLock=${staleLockDetected}`);
+        logger.debug(`[MP] Watchdog resolution: round=${expectedRound} elapsed=${elapsed.toFixed(1)}s attempt=${watchdogAttemptsRef.current} staleLock=${staleLockDetected}`);
         await acquireAndWriteRoundEnd(roomId, expectedRound, null, freshRoom.currentLocation, playerId, "watchdog", { serverNow: meta?.serverNow }, staleLockDetected);
       } catch (err) {
-        console.error("[MP] Watchdog acquireAndWriteRoundEnd error:", err);
+        logger.error("[MP] Watchdog acquireAndWriteRoundEnd error:", err);
       } finally {
         isProcessingRoundRef.current = false;
       }
@@ -1115,25 +1127,25 @@ export function useRoom() {
     forceOverrideStaleLock: boolean = false
   ) {
     mpCounters.roundEndLockAcquireAttempts++;
-    console.log(`[MP] acquireAndWriteRoundEnd: ENTER trigger=${trigger} roundId=${roundId} owner=${ownerId.substring(0, 8)} attempt=#${mpCounters.roundEndLockAcquireAttempts}`);
+    logger.debug(`[MP] acquireAndWriteRoundEnd: ENTER trigger=${trigger} roundId=${roundId} owner=${ownerId.substring(0, 8)} attempt=#${mpCounters.roundEndLockAcquireAttempts}`);
 
     const roomRef = ref(database, `rooms/${roomId}`);
     const freshSnap = await get(roomRef);
     const freshRoom = freshSnap.val() as Room | null;
 
     if (!freshRoom || freshRoom.status !== "playing" || freshRoom.currentRound !== roundId) {
-      console.log(`[MP] roundEnd abort: stale state (status=${freshRoom?.status}, round=${freshRoom?.currentRound}, expected=${roundId}) trigger=${trigger}`);
+      logger.debug(`[MP] roundEnd abort: stale state (status=${freshRoom?.status}, round=${freshRoom?.currentRound}, expected=${roundId}) trigger=${trigger}`);
       return;
     }
 
     // Check lock — if already locked for this round, abort (unless forcing stale override)
     const existingLock = (freshRoom as any).roundEndLock as RoundEndLock | undefined;
     if (existingLock && existingLock.roundId === roundId && !forceOverrideStaleLock) {
-      console.log(`[MP] roundEnd abort: lock already held by ${existingLock.lockedBy.substring(0, 8)} for round ${roundId} trigger=${trigger}`);
+      logger.debug(`[MP] roundEnd abort: lock already held by ${existingLock.lockedBy.substring(0, 8)} for round ${roundId} trigger=${trigger}`);
       return;
     }
     if (existingLock && existingLock.roundId === roundId && forceOverrideStaleLock) {
-      console.log(`[MP] roundEnd: OVERRIDING stale lock held by ${existingLock.lockedBy.substring(0, 8)} (age=${Date.now() - existingLock.lockedAt}ms) trigger=${trigger}`);
+      logger.debug(`[MP] roundEnd: OVERRIDING stale lock held by ${existingLock.lockedBy.substring(0, 8)} (age=${Date.now() - existingLock.lockedAt}ms) trigger=${trigger}`);
     }
 
     // Acquire lock + write roundEnd in single transaction
@@ -1144,55 +1156,37 @@ export function useRoom() {
       .map(id => freshRoom.players?.[id])
       .filter((p): p is Player => p !== undefined && p !== null);
 
-    const results = playersToProcess
-      .filter(p => p.id && p.name)
-      .map((player) => {
-        const distance = player.currentGuess && location
-          ? calculateDistance(location, player.currentGuess)
-          : 9999;
-        const score = player.hasGuessed ? calculateScore(distance) : 0;
-        return {
-          playerId: player.id,
-          playerName: player.name || "Oyuncu",
-          guess: player.currentGuess || { lat: 0, lng: 0 },
-          distance: player.hasGuessed ? distance : 9999,
-          score,
-        };
-      });
+    // Score calculation via pure function (tested in roomLogic.test.ts)
+    const results = location
+      ? computeRoundResults(playersToProcess, location)
+      : playersToProcess.filter(p => p.id && p.name).map(p => ({
+          playerId: p.id,
+          playerName: p.name || "Oyuncu",
+          guess: p.currentGuess || { lat: 0, lng: 0 },
+          distance: 9999,
+          score: 0,
+        }));
 
-    // Build updated players
-    const updatedPlayers: { [key: string]: Player } = {};
-    Object.values(freshRoom.players || {}).forEach((player) => {
-      updatedPlayers[player.id] = player;
-    });
-    playersToProcess.forEach((player) => {
-      const result = results.find((r) => r.playerId === player.id);
-      const currentRoundScores = player.roundScores || [];
-      updatedPlayers[player.id] = {
-        ...player,
-        totalScore: (player.totalScore || 0) + (result?.score || 0),
-        roundScores: [...currentRoundScores, result?.score || 0],
-        hasGuessed: true,
-      };
-    });
+    // Build updated players via pure function (tested in roomLogic.test.ts)
+    const updatedPlayers = updatePlayersAfterRound(freshRoom.players || {}, results);
 
     // Atomic: acquire lock + transition to roundEnd
     let transactionCommitted = false;
     await runTransaction(roomRef, (currentRoom) => {
       if (!currentRoom) return currentRoom;
       if (currentRoom.status !== "playing") {
-        console.log(`[MP] roundEnd TX abort: status=${currentRoom.status} (expected playing) trigger=${trigger}`);
+        logger.debug(`[MP] roundEnd TX abort: status=${currentRoom.status} (expected playing) trigger=${trigger}`);
         return; // abort
       }
       if (currentRoom.currentRound !== roundId) {
-        console.log(`[MP] roundEnd TX abort: round=${currentRoom.currentRound} (expected ${roundId}) trigger=${trigger}`);
+        logger.debug(`[MP] roundEnd TX abort: round=${currentRoom.currentRound} (expected ${roundId}) trigger=${trigger}`);
         return; // abort
       }
 
       // Check lock inside transaction (skip if forcing stale override)
       const lock = currentRoom.roundEndLock as RoundEndLock | undefined;
       if (lock && lock.roundId === roundId && !forceOverrideStaleLock) {
-        console.log(`[MP] roundEnd TX abort: lock already held trigger=${trigger}`);
+        logger.debug(`[MP] roundEnd TX abort: lock already held trigger=${trigger}`);
         return; // abort — already locked
       }
 
@@ -1230,20 +1224,20 @@ export function useRoom() {
         mpCounters.roundEndLatencyMs = timeDelta;
         mpCounters.maxRoundEndLatencyMs = Math.max(mpCounters.maxRoundEndLatencyMs, timeDelta);
         mpCounters.roundEndLatencies.push(timeDelta);
-        console.log(`[MP] RoundEndLatency: ${timeDelta}ms (source=${timeSource}, trigger=${trigger})`);
+        logger.debug(`[MP] RoundEndLatency: ${timeDelta}ms (source=${timeSource}, trigger=${trigger})`);
         if (timeDelta > 3000) {
-          console.warn(`[MP] RoundEndLatency SLO breach: ${timeDelta}ms`);
+          logger.warn(`[MP] RoundEndLatency SLO breach: ${timeDelta}ms`);
         }
       } else {
         // allGuessed / postMigrationAllGuessed: earlyFinish = time BEFORE timer would expire (positive = early)
         const earlyFinishByMs = -timeDelta; // flip sign: negative delta → positive early finish
         mpCounters.earlyFinishLatencies.push(earlyFinishByMs);
-        console.log(`[MP] EarlyFinish: ${earlyFinishByMs}ms before timer expiry (source=${timeSource}, trigger=${trigger})`);
+        logger.debug(`[MP] EarlyFinish: ${earlyFinishByMs}ms before timer expiry (source=${timeSource}, trigger=${trigger})`);
       }
 
       trackEvent("roundEnd", { roundId, trigger });
-      console.log(`[MP] RoundEnd COMMITTED: round=${roundId} trigger=${trigger} by=${ownerId.substring(0, 8)}`);
-      console.table({
+      logger.debug(`[MP] RoundEnd COMMITTED: round=${roundId} trigger=${trigger} by=${ownerId.substring(0, 8)}`);
+      logger.debug({
         "Round": roundId,
         "Trigger": trigger,
         "Lock Attempts": mpCounters.roundEndLockAcquireAttempts,
@@ -1256,7 +1250,7 @@ export function useRoom() {
       });
       roomStateDigest({ ...freshRoom, status: "roundEnd" } as Room, `roundEnd:${trigger}`, ownerId);
     } else {
-      console.log(`[MP] RoundEnd NOT committed: round=${roundId} trigger=${trigger} — transaction aborted`);
+      logger.debug(`[MP] RoundEnd NOT committed: round=${roundId} trigger=${trigger} — transaction aborted`);
     }
   }
 
@@ -1357,7 +1351,7 @@ export function useRoom() {
 
       return roomCode;
     } catch (err) {
-      console.error("Oda oluşturma hatası:", err);
+      logger.error("Oda oluşturma hatası:", err);
       trackError(err instanceof Error ? err : String(err), "createRoom");
       setError("Oda oluşturulamadı. Lütfen tekrar deneyin.");
       return null;
@@ -1404,7 +1398,7 @@ export function useRoom() {
         );
 
         if (matchingPlayer) {
-          console.log(`[MP] Rejoin: ${matchingPlayer.name} reconnected`);
+          logger.debug(`[MP] Rejoin: ${matchingPlayer.name} reconnected`);
 
           const now = Date.now();
           await update(ref(database, `rooms/${normalizedRoomCode}/players/${matchingPlayer.id}`), {
@@ -1503,7 +1497,7 @@ export function useRoom() {
 
       return true;
     } catch (err) {
-      console.error("Odaya katılma hatası:", err);
+      logger.error("Odaya katılma hatası:", err);
       trackError(err instanceof Error ? err : String(err), "joinRoom");
       setError("Odaya katılınamadı. Lütfen tekrar deneyin.");
       return false;
@@ -1546,13 +1540,13 @@ export function useRoom() {
 
         // Guard: Only transition from 'waiting' to 'playing'
         if (currentRoom.status !== "waiting") {
-          console.log(`[MP] startGame TX abort: status=${currentRoom.status} (expected waiting)`);
+          logger.debug(`[MP] startGame TX abort: status=${currentRoom.status} (expected waiting)`);
           return; // abort
         }
 
         // Guard: Caller must be host
         if (currentRoom.hostId !== playerId) {
-          console.log(`[MP] startGame TX abort: not host`);
+          logger.debug(`[MP] startGame TX abort: not host`);
           return; // abort
         }
 
@@ -1596,10 +1590,12 @@ export function useRoom() {
 
       if (committed) {
         trackEvent("roundStart", { roundId: 1, panoPackageId: panoPackage.id });
-        console.log(`[MP] startGame COMMITTED: pano=${panoPackage.id}`);
+        logger.debug(`[MP] startGame COMMITTED: pano=${panoPackage.id}`);
       } else {
-        console.warn(`[MP] startGame NOT committed — transaction aborted`);
+        logger.warn(`[MP] startGame NOT committed — transaction aborted`);
       }
+
+      return committed;
     },
     [room, playerId]
   );
@@ -1618,7 +1614,7 @@ export function useRoom() {
         if (!currentRoom) return currentRoom;
 
         if (currentRoom.status !== "waiting") {
-          console.log(`[MP] startGame(legacy) TX abort: status=${currentRoom.status}`);
+          logger.debug(`[MP] startGame(legacy) TX abort: status=${currentRoom.status}`);
           return; // abort
         }
         if (currentRoom.hostId !== playerId) return; // abort
@@ -1659,7 +1655,7 @@ export function useRoom() {
       });
 
       if (committed) {
-        console.log(`[MP] startGame(legacy) COMMITTED`);
+        logger.debug(`[MP] startGame(legacy) COMMITTED`);
       }
     },
     [room, playerId]
@@ -1683,13 +1679,13 @@ export function useRoom() {
 
       // SYNCHRONOUS double-submit guard (not React state — immune to stale closures)
       if (isSubmittingGuessRef.current) {
-        console.log("[MP] submitGuess: submission in-flight, skipping");
+        logger.debug("[MP] submitGuess: submission in-flight, skipping");
         return { accepted: false, reason: "in_flight" };
       }
 
       const currentPlayer = room.players?.[playerId];
       if (currentPlayer?.hasGuessed) {
-        console.log("[MP] submitGuess: already guessed (local), skipping");
+        logger.debug("[MP] submitGuess: already guessed (local), skipping");
         return { accepted: false, reason: "already_guessed" };
       }
 
@@ -1717,54 +1713,57 @@ export function useRoom() {
         const roomData = roomSnap.val() as Room | null;
 
         if (!roomData || roomData.status !== "playing") {
-          console.warn(`[MP] submitGuess REJECTED: not_playing (status=${roomData?.status})`);
+          logger.warn(`[MP] submitGuess REJECTED: not_playing (status=${roomData?.status})`);
           setError("Bu tur sona erdi.");
           return { accepted: false, reason: "not_playing" };
         }
         if (roomData.currentRound !== expectedRound) {
-          console.warn(`[MP] submitGuess REJECTED: round_mismatch (db=${roomData.currentRound} expected=${expectedRound})`);
+          logger.warn(`[MP] submitGuess REJECTED: round_mismatch (db=${roomData.currentRound} expected=${expectedRound})`);
           setError("Bu tur sona erdi.");
           return { accepted: false, reason: "round_mismatch" };
         }
-        if (roomData.roundState !== 'active') {
-          console.warn(`[MP] submitGuess REJECTED: round_not_active (state=${roomData.roundState})`);
+        if (roomData.roundState !== 'active' && roomData.roundState !== 'ended') {
+          logger.warn(`[MP] submitGuess REJECTED: round_not_active (state=${roomData.roundState})`);
           setError("Bu tur sona erdi.");
           return { accepted: false, reason: "round_not_active" };
         }
 
-        // Server time check: reject if time expired (2s grace for network latency)
+        // Server time check: reject if time expired (5s grace for network latency + host roundEnd delay)
         const roundEndMs = (roomData.roundStartTime || 0) + timeLimit * 1000;
-        if (serverNowMs > roundEndMs + 2000) {
-          console.warn(`[MP] submitGuess REJECTED: time_expired (serverNow=${serverNowMs} roundEnd=${roundEndMs})`);
+        if (serverNowMs > roundEndMs + 5000) {
+          logger.warn(`[MP] submitGuess REJECTED: time_expired (serverNow=${serverNowMs} roundEnd=${roundEndMs})`);
           setError("Süre doldu! Tahmin kabul edilmedi.");
           return { accepted: false, reason: "time_expired" };
         }
 
         recordPlayerActivity(roomId, playerId);
 
-        // === Phase 1: Atomic player guess write ===
-        // Transaction on player node — idempotent via hasGuessed guard
+        // === Phase 1: Targeted field update ===
+        // BUG-FIX: Use update() instead of runTransaction() to avoid triggering
+        // validate rules on unchanged fields (e.g. totalScore rule blocks non-host
+        // players when totalScore > 0 after round 1).
+        // update() only validates the fields being written.
         const playerRef = ref(database, `rooms/${roomId}/players/${playerId}`);
-        let guessWritten = false;
 
-        await runTransaction(playerRef, (player) => {
-          if (!player) return player;
-          // Idempotent: if already guessed, return unchanged (no-op)
-          if (player.hasGuessed) return player;
-          guessWritten = true;
-          return {
-            ...player,
-            currentGuess: guess,
-            hasGuessed: true,
-            lastActiveAt: Date.now(),
-          };
-        });
+        // Pre-read for idempotency guard
+        const playerSnap = await get(playerRef);
+        const playerData = playerSnap.val();
 
-        if (!guessWritten) {
-          // Player already guessed in DB — treat as success for UI
-          console.log(`[MP] submitGuess: already guessed in DB (idempotent)`);
+        if (!playerData) {
+          logger.warn(`[MP] submitGuess: player node missing in DB`);
+          return { accepted: false, reason: "no_room" };
+        }
+
+        if (playerData.hasGuessed) {
+          logger.debug(`[MP] submitGuess: already guessed in DB (idempotent)`);
           return { accepted: true, reason: "already_guessed_db" };
         }
+
+        await update(playerRef, {
+          currentGuess: guess,
+          hasGuessed: true,
+          lastActiveAt: Date.now(),
+        });
 
         // === Phase 2: Atomic counter increment ===
         const counterRef = ref(database, `rooms/${roomId}/currentGuesses`);
@@ -1773,10 +1772,10 @@ export function useRoom() {
         });
 
         trackEvent("submitGuess", { roundId: expectedRound, lat: guess.lat, lng: guess.lng });
-        console.log(`[MP] submitGuess ACCEPTED: round=${expectedRound} serverNow=${serverNowMs}`);
+        logger.debug(`[MP] submitGuess ACCEPTED: round=${expectedRound} serverNow=${serverNowMs}`);
         return { accepted: true, reason: "accepted" };
       } catch (err) {
-        console.error("[MP] submitGuess error:", err);
+        logger.error("[MP] submitGuess error:", err);
         trackError(err instanceof Error ? err : String(err), "submitGuess");
         setError("Tahmin gönderilemedi. Lütfen tekrar deneyin.");
         return { accepted: false, reason: "error" };
@@ -1837,14 +1836,14 @@ export function useRoom() {
     const elapsedMs = serverNow - roundStartTime;
     const timeLimitMs = timeLimit * 1000;
 
-    // Allow 1s early tolerance (client timer may fire slightly before server time)
-    if (elapsedMs < timeLimitMs - 1000) {
-      console.warn(`[MP] handleTimeUp: server time says ${(elapsedMs / 1000).toFixed(1)}s elapsed, limit=${timeLimit}s — NOT expired yet, skipping`);
+    // Wait until 2s AFTER nominal timer end to give players grace for last-second guesses
+    if (elapsedMs < timeLimitMs + 2000) {
+      logger.warn(`[MP] handleTimeUp: server time says ${(elapsedMs / 1000).toFixed(1)}s elapsed, limit=${timeLimit}s — grace period, skipping`);
       return;
     }
 
     mpCounters.roundEndLockAcquireAttempts++;
-    console.log(`[MP] handleTimeUp: round=${room.currentRound} elapsed=${(elapsedMs / 1000).toFixed(1)}s serverNow=${serverNow}`);
+    logger.debug(`[MP] handleTimeUp: round=${room.currentRound} elapsed=${(elapsedMs / 1000).toFixed(1)}s serverNow=${serverNow}`);
 
     isProcessingRoundRef.current = true;
     hasHandledTimeUpRef.current = room.currentRound;
@@ -1860,7 +1859,7 @@ export function useRoom() {
         { serverNow }
       );
     } catch (err) {
-      console.error("[MP] handleTimeUp error:", err);
+      logger.error("[MP] handleTimeUp error:", err);
       trackError(err instanceof Error ? err : String(err), "handleTimeUp");
     } finally {
       isProcessingRoundRef.current = false;
@@ -1889,19 +1888,19 @@ export function useRoom() {
 
         // Guard: caller must be host
         if (currentRoom.hostId !== playerId) {
-          console.log(`[MP] nextRound TX abort: not host`);
+          logger.debug(`[MP] nextRound TX abort: not host`);
           return; // abort
         }
 
         // Guard: status must be roundEnd
         if (currentRoom.status !== "roundEnd") {
-          console.log(`[MP] nextRound TX abort: status=${currentRoom.status} (expected roundEnd)`);
+          logger.debug(`[MP] nextRound TX abort: status=${currentRoom.status} (expected roundEnd)`);
           return; // abort
         }
 
         // Guard: roundVersion must match (prevents double-advance)
         if ((currentRoom.roundVersion || 0) !== expectedRoundVersion) {
-          console.log(`[MP] nextRound TX abort: roundVersion=${currentRoom.roundVersion} (expected ${expectedRoundVersion})`);
+          logger.debug(`[MP] nextRound TX abort: roundVersion=${currentRoom.roundVersion} (expected ${expectedRoundVersion})`);
           return; // abort
         }
 
@@ -1956,14 +1955,16 @@ export function useRoom() {
       if (committed) {
         if (isGameOver) {
           trackEvent("gameEnd", { totalRounds: room.totalRounds });
-          console.log(`[MP] nextRound → gameOver COMMITTED`);
+          logger.debug(`[MP] nextRound → gameOver COMMITTED`);
         } else {
           trackEvent("roundStart", { roundId: room.currentRound + 1, panoPackageId: panoPackage.id });
-          console.log(`[MP] nextRound COMMITTED: round=${room.currentRound + 1} pano=${panoPackage.id}`);
+          logger.debug(`[MP] nextRound COMMITTED: round=${room.currentRound + 1} pano=${panoPackage.id}`);
         }
       } else {
-        console.warn(`[MP] nextRound NOT committed — transaction aborted`);
+        logger.warn(`[MP] nextRound NOT committed — transaction aborted`);
       }
+
+      return committed;
     },
     [room, playerId]
   );

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function GeoguessrTaktikleriPost() {
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },

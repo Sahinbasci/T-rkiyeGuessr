@@ -20,7 +20,8 @@
 export interface LocationFingerprint {
   panoId: string;
   locationHash: string;
-  province: string;
+  /** @deprecated province not stored in localStorage for privacy. In-memory only. */
+  province?: string;
   clusterId: string;
   timestamp: number;
 }
@@ -79,7 +80,13 @@ function saveToLocalStorage(fingerprints: LocationFingerprint[]): void {
 
   try {
     const state: PersistentHistoryState = {
-      fingerprints: fingerprints.slice(-HISTORY_WINDOW),
+      // Strip province from storage — only panoId/locationHash/clusterId needed for anti-repeat
+      fingerprints: fingerprints.slice(-HISTORY_WINDOW).map((fp) => ({
+        panoId: fp.panoId,
+        locationHash: fp.locationHash,
+        clusterId: fp.clusterId,
+        timestamp: fp.timestamp,
+      })),
       version: HISTORY_VERSION,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));

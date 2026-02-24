@@ -3,7 +3,7 @@ import Link from "next/link";
 export function SeoFooter() {
   return (
     <footer className="border-t border-gray-800 mt-16 pt-8 pb-12 px-4">
-      <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm">
+      <div className="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 text-sm">
         <div>
           <h4 className="text-gray-300 font-semibold mb-3">Oyun</h4>
           <ul className="space-y-2 text-gray-500">
@@ -38,11 +38,30 @@ export function SeoFooter() {
             <li><Link href="/blog" className="hover:text-white transition-colors">Blog</Link></li>
             <li><Link href="/sss" className="hover:text-white transition-colors">SSS</Link></li>
             <li><Link href="/hakkimizda" className="hover:text-white transition-colors">Hakkımızda</Link></li>
+            <li><Link href="/iletisim" className="hover:text-white transition-colors">İletişim</Link></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="text-gray-300 font-semibold mb-3">Yasal</h4>
+          <ul className="space-y-2 text-gray-500">
+            <li><Link href="/gizlilik-politikasi" className="hover:text-white transition-colors">Gizlilik Politikası</Link></li>
+            <li><Link href="/cerez-politikasi" className="hover:text-white transition-colors">Çerez Politikası</Link></li>
+            <li><Link href="/kullanim-kosullari" className="hover:text-white transition-colors">Kullanım Koşulları</Link></li>
+            <li><Link href="/kvkk" className="hover:text-white transition-colors">KVKK</Link></li>
+            <li>
+              <button
+                type="button"
+                id="open-cookie-preferences"
+                className="hover:text-white transition-colors text-left"
+              >
+                Çerez Tercihleri
+              </button>
+            </li>
           </ul>
         </div>
       </div>
       <div className="max-w-5xl mx-auto mt-8 pt-6 border-t border-gray-800/50 text-center text-xs text-gray-600">
-        <p>TürkiyeGuessr — Türkiye Konum Tahmin Oyunu. Ücretsiz, multiplayer, 81 il.</p>
+        <p>&copy; 2026 TürkiyeGuessr — Türkiye Konum Tahmin Oyunu. Ücretsiz, multiplayer, 81 il.</p>
       </div>
     </footer>
   );

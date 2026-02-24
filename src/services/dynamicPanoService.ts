@@ -8,6 +8,7 @@
  */
 
 import { PanoPackage, GameMode, PanoData } from "@/types";
+import { logger } from "@/utils/logger";
 import {
   selectStaticPackage,
   resetLocationEngine,
@@ -227,7 +228,7 @@ function ensureProvinceBag(mode: GameMode): void {
   // Urban mod: tüm iller dahil (her ilin şehir merkezi var)
   // Geo mod: tüm iller dahil
   provinceBag = shuffleArray([...TURKEY_CITIES]);
-  console.log(`[ProvinceBag] Bag refilled with ${provinceBag.length} provinces (mode=${mode})`);
+  logger.debug(`[ProvinceBag] Bag refilled with ${provinceBag.length} provinces (mode=${mode})`);
 }
 
 /**
@@ -356,7 +357,7 @@ async function getLocationNameFromCoords(lat: number, lng: number, fallbackCity:
 
     return fallbackCity;
   } catch (error) {
-    console.error("Geocoding error:", error);
+    logger.error("Geocoding error:", error);
     return fallbackCity;
   }
 }
@@ -414,7 +415,7 @@ async function findStreetViewPano(
   radius: number = 500
 ): Promise<{ panoId: string; lat: number; lng: number } | null> {
   if (!streetViewService) {
-    console.warn("Street View service not initialized");
+    logger.warn("Street View service not initialized");
     return null;
   }
 
@@ -504,7 +505,7 @@ async function findBranchPanos(
 export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPackage | null> {
   // Session ceiling check — switch to static-only if exceeded
   if (sessionApiCallCount >= MAX_SESSION_API_CALLS) {
-    console.log(`[DynamicPano] Session API ceiling reached (${sessionApiCallCount}/${MAX_SESSION_API_CALLS}) — static-only mode`);
+    logger.debug(`[DynamicPano] Session API ceiling reached (${sessionApiCallCount}/${MAX_SESSION_API_CALLS}) — static-only mode`);
     return null;
   }
 
@@ -514,7 +515,7 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
   }
 
   if (!streetViewService) {
-    console.error("Google Maps API not loaded");
+    logger.error("Google Maps API not loaded");
     return null;
   }
 
@@ -588,11 +589,11 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
       locationName: locationName
     };
 
-    console.log(`Dinamik pano oluşturuldu: ${locationName} (${mode})`);
+    logger.debug(`Dinamik pano oluşturuldu: [REDACTED] (${mode})`);
     return panoPackage;
   }
 
-  console.warn("Dinamik pano oluşturulamadı, maksimum deneme aşıldı");
+  logger.warn("Dinamik pano oluşturulamadı, maksimum deneme aşıldı");
   return null;
 }
 
@@ -601,7 +602,7 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
  */
 export function resetUsedLocations(): void {
   usedLocationHashes.clear();
-  console.log("Kullanılmış lokasyonlar sıfırlandı");
+  logger.debug("Kullanılmış lokasyonlar sıfırlandı");
 }
 
 /**
@@ -663,13 +664,13 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
     poolManager.setRoomId(roomId);
     const poolPackage = await poolManager.drawPackage(mode);
     if (poolPackage) {
-      console.log(`[PanoService] Phase 0 HIT: pool package ${poolPackage.locationName} (mode=${mode})`);
+      logger.debug(`[PanoService] Phase 0 HIT: pool package [REDACTED] (mode=${mode})`);
       incrementRoundCount();
       return poolPackage;
     }
-    console.log(`[PanoService] Phase 0 MISS: pool empty or exhausted (mode=${mode}), falling through`);
+    logger.debug(`[PanoService] Phase 0 MISS: pool empty or exhausted (mode=${mode}), falling through`);
   } catch (err) {
-    console.warn(`[PanoService] Phase 0 ERROR: pool draw failed (mode=${mode}):`, err);
+    logger.warn(`[PanoService] Phase 0 ERROR: pool draw failed (mode=${mode}):`, err);
     // Fall through to existing phases
   }
 
@@ -677,29 +678,29 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
     // PHASE 1: Get target province from locationEngine's province bag
     const provinceName = getNextProvince();
     const lastProv = getLastProvince();
-    console.log(`[Urban D2] Target province: ${provinceName}, last: ${lastProv}`);
+    logger.debug(`[Urban D2] Target province: [REDACTED], last: [REDACTED]`);
 
     // PHASE 2: Check if dynamic generation should be attempted
     const tryDynamic = isDynamicGeneratorReady() && shouldAttemptDynamic(provinceName);
 
     if (tryDynamic) {
-      console.log(`[Urban D2] Attempting dynamic mint for ${provinceName}`);
+      logger.debug(`[Urban D2] Attempting dynamic mint for [REDACTED]`);
       const mintResult = await mintDynamicPackage(provinceName, lastProv, roomId);
 
       if (mintResult.package) {
-        console.log(`[Urban D2] Dynamic mint SUCCESS: ${mintResult.package.locationName} (${mintResult.attemptsUsed} attempts)`);
+        logger.debug(`[Urban D2] Dynamic mint SUCCESS: [REDACTED] (${mintResult.attemptsUsed} attempts)`);
         // Record in locationEngine's anti-repeat state
         recordDynamicSelection(mintResult.package);
         return mintResult.package;
       }
 
-      console.log(`[Urban D2] Dynamic mint failed: ${mintResult.failReason} (${mintResult.attemptsUsed} attempts)`);
+      logger.debug(`[Urban D2] Dynamic mint failed: ${mintResult.failReason} (${mintResult.attemptsUsed} attempts)`);
     }
 
     // PHASE 3: Static selection via locationEngine (preferred province)
     const staticMatch = getStaticPanoPackage(mode, provinceName);
     if (staticMatch) {
-      console.log(`[Urban D2] Static match: ${staticMatch.locationName}`);
+      logger.debug(`[Urban D2] Static match: [REDACTED]`);
       incrementRoundCount();
       return staticMatch;
     }
@@ -707,14 +708,14 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
     // PHASE 4: Static fallback — any province via full engine
     const staticAny = getStaticPanoPackage(mode);
     if (staticAny) {
-      console.log(`[Urban D2] Static fallback: ${staticAny.locationName}`);
+      logger.debug(`[Urban D2] Static fallback: [REDACTED]`);
       incrementRoundCount();
       return staticAny;
     }
 
     // PHASE 5: Last resort — first urban package
     const fallback = URBAN_PACKAGES[0];
-    console.warn("[Urban D2] Last resort fallback:", fallback.id);
+    logger.warn("[Urban D2] Last resort fallback:", fallback.id);
     incrementRoundCount();
     return fallback;
   }
@@ -723,12 +724,12 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
   const dynamicPano = await generateDynamicPanoPackage(mode);
   if (dynamicPano) return dynamicPano;
 
-  console.log("Dinamik pano üretilemedi, statik havuz kullanılıyor");
+  logger.debug("Dinamik pano üretilemedi, statik havuz kullanılıyor");
   const staticPano = getStaticPanoPackage(mode);
   if (staticPano) return staticPano;
 
   const fallback = GEO_PACKAGES[0];
-  console.warn("Fallback pano kullanılıyor:", fallback.id);
+  logger.warn("Fallback pano kullanılıyor:", fallback.id);
   return fallback;
 }
 
@@ -755,13 +756,13 @@ export async function onNewGameStart(roomId?: string): Promise<void> {
   poolManager.reset();
   // Fire-and-forget prewarm — loads first chunk blocking, rest in background
   poolManager.ensurePoolLoaded("urban").catch((err) => {
-    console.warn("[PanoService] Pool prewarm failed for urban:", err);
+    logger.warn("[PanoService] Pool prewarm failed for urban:", err);
   });
   poolManager.ensurePoolLoaded("geo").catch((err) => {
-    console.warn("[PanoService] Pool prewarm failed for geo:", err);
+    logger.warn("[PanoService] Pool prewarm failed for geo:", err);
   });
 
   // Generate enrichment report on first game (lazy)
   getEnrichmentReport();
-  console.log("Yeni oyun: Tüm pano kullanımları, province bag, persistent history, pool sıfırlandı");
+  logger.debug("Yeni oyun: Tüm pano kullanımları, province bag, persistent history, pool sıfırlandı");
 }

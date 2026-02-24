@@ -2,6 +2,8 @@ import { Users, Crown, Copy, Check, Play, MessageCircle } from "lucide-react";
 import { Room, Player, GameMode, GAME_MODE_CONFIG } from "@/types";
 import { PLAYER_COLORS } from "@/constants/playerColors";
 import { Toast } from "@/components/shared/Toast";
+import { AdSlot } from "@/components/ads/AdSlot";
+import { AD_SLOTS } from "@/config/ads";
 
 interface LobbyScreenProps {
   room: Room;
@@ -35,7 +37,7 @@ export function LobbyScreen({
   const modeConfig = GAME_MODE_CONFIG[room.gameMode || "urban"];
 
   return (
-    <main className="min-h-screen overflow-y-auto py-6 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
+    <main id="main-content" className="min-h-screen overflow-y-auto py-6 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
       <div className="w-full max-w-lg mx-auto">
         <div className="glass rounded-2xl p-5 sm:p-6">
           {/* Room Code */}
@@ -193,6 +195,11 @@ export function LobbyScreen({
             Odadan Ayrıl
           </button>
         </div>
+      </div>
+
+      {/* Ad — lobby banner below card */}
+      <div className="w-full max-w-lg mx-auto mt-4">
+        <AdSlot slot={AD_SLOTS.banner} format="horizontal" roomStatus="waiting" />
       </div>
 
       <Toast message={showToast} />

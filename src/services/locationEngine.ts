@@ -25,6 +25,7 @@
 import { PanoPackage, GameMode } from "@/types";
 import { URBAN_PACKAGES, GEO_PACKAGES } from "@/data/panoPackages";
 import { TURKEY_CITIES } from "./dynamicPanoService";
+import { logger } from "@/utils/logger";
 
 // ==================== TYPES ====================
 
@@ -332,7 +333,7 @@ export function getEnrichmentReport(): string {
 
   const report = lines.join("\n");
   if (!enrichmentReportGenerated) {
-    console.log(report);
+    logger.debug(report);
     enrichmentReportGenerated = true;
   }
   return report;
@@ -446,7 +447,7 @@ function fillProvinceBag(): void {
   }
 
   provinceBag = shuffled;
-  console.log(`[ProvinceBag v3] Bag refilled with ${provinceBag.length} urban provinces`);
+  logger.debug(`[ProvinceBag v3] Bag refilled with ${provinceBag.length} urban provinces`);
 }
 
 /**
@@ -840,7 +841,7 @@ export function selectStaticPackage(mode: GameMode, preferredProvince?: string):
     if (preferredProvince) {
       // HARD: check back-to-back province
       if (isBackToBackProvince(preferredProvince)) {
-        console.log(`[LocationEngine] Rejected preferred province (back-to-back): ${preferredProvince}`);
+        logger.debug(`[LocationEngine] Rejected preferred province (back-to-back): ${preferredProvince}`);
         return null;
       }
 
@@ -913,7 +914,7 @@ export function resetLocationEngine(): void {
   lastBagProvince = null;
   sessionRoundCount = 0;
 
-  console.log("[LocationEngine v4] Reset complete");
+  logger.debug("[LocationEngine v4] Reset complete");
 }
 
 /**

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { MapPin, Users, ArrowRight } from "lucide-react";
 import { GameMode, GAME_MODE_CONFIG } from "@/types";
+import { AdSlot } from "@/components/ads/AdSlot";
+import { AD_SLOTS } from "@/config/ads";
 
 interface MenuScreenProps {
   nameInput: string;
@@ -59,7 +61,7 @@ export function MenuScreen({
   nameError,
 }: MenuScreenProps) {
   return (
-    <main className="min-h-screen overflow-y-auto py-8 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
+    <main id="main-content" className="min-h-screen overflow-y-auto py-8 px-4 bg-gradient-to-br from-[#0a0a0f] via-[#12121a] to-[#0a0a0f]">
       <div className="w-full max-w-md mx-auto">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -76,7 +78,7 @@ export function MenuScreen({
           >
             TürkiyeGuessr
           </h1>
-          <h2 className="text-gray-400 mt-2 text-sm sm:text-base font-normal">
+          <h2 className="text-gray-400 mt-2 text-base sm:text-lg font-normal">
             Arkadaşlarınla Türkiye&apos;yi Keşfet!
           </h2>
           <p className="text-gray-600 mt-1 text-xs">
@@ -124,6 +126,7 @@ export function MenuScreen({
                     }`}
                     role="radio"
                     aria-checked={selectedMode === mode}
+                    aria-label={`${config.name} — ${config.description}`}
                   >
                     <div className="text-2xl mb-1">{config.icon}</div>
                     <div className="font-medium text-sm">{config.name}</div>
@@ -153,6 +156,13 @@ export function MenuScreen({
               </>
             )}
           </button>
+
+          {!nameInput.trim() && (
+            <p className="text-gray-500 text-xs text-center -mt-2">Lütfen önce oyuncu adınızı girin</p>
+          )}
+          {roomInput.trim().length > 0 && nameInput.trim() && (
+            <p className="text-gray-500 text-xs text-center -mt-2">Oda kodu girildi — aşağıdan odaya katılın</p>
+          )}
 
           <div className="flex items-center gap-4 text-gray-500 py-2">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-600 to-transparent" />
@@ -213,11 +223,17 @@ export function MenuScreen({
             <Link href="/geoguessr-alternatifi" className="hover:text-gray-400 transition-colors">GeoGuessr Alternatifi</Link>
             <Link href="/sss" className="hover:text-gray-400 transition-colors">SSS</Link>
             <Link href="/hakkimizda" className="hover:text-gray-400 transition-colors">Hakkımızda</Link>
+            <Link href="/gizlilik-politikasi" className="hover:text-gray-400 transition-colors">Gizlilik</Link>
           </nav>
           <p className="text-gray-700">
             TürkiyeGuessr - Türkiye Sokak Görünümü Konum Tahmin Oyunu
           </p>
         </footer>
+
+        {/* Ad — menu footer banner */}
+        <div className="mt-6">
+          <AdSlot slot={AD_SLOTS.banner} format="horizontal" roomStatus="waiting" className="max-w-md mx-auto" />
+        </div>
 
         {/* SEO Power Section */}
         <SEOLandingContent />

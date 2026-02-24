@@ -124,6 +124,30 @@ div[class*="address-control"] {
   /* Only in streetview container — don't affect guess map */
 }
 
+/* Photographer attribution overlay (contains location hints) */
+.streetview-container .gm-iv-marker,
+.streetview-container div[class*="imagery-attribution"] {
+  display: none !important;
+}
+
+/* Google Maps internal address text container */
+.streetview-container .gm-iv-container {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Hide Google's jstcache address elements and Maps links inside SV */
+.streetview-container div[jstcache] a[href*="maps.google"],
+.streetview-container div[jscontroller] a[href*="maps.google"] {
+  pointer-events: none !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+}
+
 /* PRESERVED: Google Maps attribution links remain visible per ToS */
 .gm-style a[href^="https://maps.google.com/maps?ll="] {
   /* Overridden to be hidden above only inside .streetview-container */
@@ -418,7 +442,7 @@ div[aria-label*="Street View"] {
   position: absolute;
   top: 6px;
   left: 6px;
-  z-index: 10;
+  z-index: 50;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.8);
@@ -848,4 +872,44 @@ div[aria-label*="Street View"] {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ============================================
+   RESPONSIVE FIX: Extra-small screens (320px)
+   ============================================ */
+@media (max-width: 359px) {
+  .game-header .header-stats {
+    gap: 2px;
+  }
+  .game-header .stat-badge {
+    padding: 3px 5px;
+    font-size: 11px;
+    min-height: 28px;
+    gap: 2px;
+  }
+  h1 {
+    font-size: clamp(1.5rem, 8vw, 2.5rem) !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE FIX: Landscape orientation
+   ============================================ */
+@media (orientation: landscape) and (max-height: 500px) {
+  .game-header {
+    padding: 4px 12px;
+    padding-top: calc(4px + var(--sat));
+  }
+  .game-header .stat-badge {
+    padding: 3px 8px;
+    min-height: 28px;
+    font-size: 12px;
+  }
+  .mobile-action-bar {
+    padding: 6px 16px;
+    padding-bottom: calc(6px + var(--sab));
+  }
+  .mini-map-container {
+    bottom: calc(60px + var(--sab));
+  }
 }

@@ -11,6 +11,7 @@
 import { PrecomputedLocation } from "@/types/precomputed";
 import { GameMode } from "@/types";
 import { checkPersistentHistory } from "./persistentHistory";
+import { logger } from "@/utils/logger";
 
 // ==================== TYPES ====================
 
@@ -144,7 +145,7 @@ export class BagSelector {
     }
 
     // All attempts exhausted — return null, caller uses fallback
-    console.warn(`[BagSelector] All ${MAX_SKIP_ATTEMPTS} skip attempts exhausted for mode=${mode}`);
+    logger.warn(`[BagSelector] All ${MAX_SKIP_ATTEMPTS} skip attempts exhausted for mode=${mode}`);
     return null;
   }
 
@@ -180,7 +181,7 @@ export class BagSelector {
     bag.pointer = 0;
     bag.generation++;
 
-    console.log(
+    logger.debug(
       `[BagSelector] Reshuffled mode=${mode}: ${order.length} entries, gen=${bag.generation}, lastProvince=${bag.lastProvince}`
     );
   }
@@ -199,7 +200,7 @@ export class BagSelector {
   importState(state: SerializedBagSelector, poolVersion: number): boolean {
     // Validate pool version — if data changed, bag state is invalid
     if (state.urban.poolVersion !== poolVersion || state.geo.poolVersion !== poolVersion) {
-      console.log("[BagSelector] Pool version mismatch — discarding saved state");
+      logger.debug("[BagSelector] Pool version mismatch — discarding saved state");
       return false;
     }
 

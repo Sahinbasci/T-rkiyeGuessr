@@ -42,7 +42,16 @@ import { GOOGLE_MAPS_API_KEY } from "@/config/maps";
 import { generateRandomCoordinates, isLikelyInTurkey, getLocationName } from "@/utils";
 import { database, ref, runTransaction } from "@/config/firebase";
 import rateLimiter from "@/utils/rateLimiter";
-import { RATE_LIMITS } from "@/config/production";
+import { RATE_LIMITS, FEATURE_FLAGS } from "@/config/production";
+import { logger } from "@/utils/logger";
+import {
+  createDriftTracker,
+  processPovChange,
+  markDragStart,
+  markDragEnd,
+  resetDriftTracker,
+  type DriftTrackerState,
+} from "@/utils/cameraDrift";
 
 // Sabitler
 const MAX_ATTEMPTS = 50;
@@ -148,6 +157,7 @@ export function resetNavigationMetrics(): void {
  * Log cost metrics in consistent format.
  */
 function logCostMetrics(event: string, extra: Record<string, string | number> = {}): void {
+  if (!FEATURE_FLAGS.ENABLE_DEBUG_LOGS) return;
   const parts = [`[COST] event=${event}`];
   // v4: resolveFromCoords = OUR real getPanorama calls (should be 0 during navigation)
   parts.push(`resolveFromCoords=${navigationMetrics.resolveFromCoordsCallCountPerRound}`);
@@ -161,7 +171,7 @@ function logCostMetrics(event: string, extra: Record<string, string | number> = 
   for (const [k, v] of Object.entries(extra)) {
     parts.push(`${k}=${v}`);
   }
-  console.log(parts.join(" "));
+  logger.debug(parts.join(" "));
 }
 
 export function useStreetView(roomId?: string, playerId?: string) {
@@ -196,6 +206,9 @@ export function useStreetView(roomId?: string, playerId?: string) {
   const pendingPitchRef = useRef<number>(0);
   const lastClickTimeRef = useRef<number>(0);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Camera drift prevention
+  const driftTrackerRef = useRef<DriftTrackerState>(createDriftTracker(0));
 
   // FIX: Event listener cleanup tracking
   const cleanupFnRef = useRef<(() => void) | null>(null);
@@ -408,7 +421,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
       await initializeGoogleMaps();
 
       if (!streetViewRef.current) {
-        console.warn("[Nav] streetViewRef is null");
+        logger.warn("[Nav] streetViewRef is null");
         return;
       }
 
@@ -430,6 +443,9 @@ export function useStreetView(roomId?: string, playerId?: string) {
 
       // v3: Set expected pano for the initial load
       expectedPanoRef.current = panoId;
+
+      // Reset drift tracker for new pano
+      driftTrackerRef.current = resetDriftTracker(driftTrackerRef.current, 0);
 
       // Başlangıç pano'sunu cache'e ekle
       visitedPanosRef.current.add(panoId);
@@ -479,7 +495,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
         streetViewRef.current.children.length === 0;
 
       if (containerChanged || containerDetached || containerEmpty) {
-        console.log(`[Nav] Panorama container stale (changed=${!!containerChanged}, detached=${!!containerDetached}, empty=${!!containerEmpty}), hard recreate`);
+        logger.debug(`[Nav] Panorama container stale (changed=${!!containerChanged}, detached=${!!containerDetached}, empty=${!!containerEmpty}), hard recreate`);
         if (panoramaRef.current) {
           google.maps.event.clearInstanceListeners(panoramaRef.current);
         }
@@ -595,11 +611,12 @@ export function useStreetView(roomId?: string, playerId?: string) {
           // v3: Only revert if this was NOT an expected change
           // (Expected changes were already validated before setPano)
           if (!wasExpected) {
-            console.log("[Nav] Move limit reached - reverting pano");
+            logger.debug("[Nav] Move limit reached - reverting pano");
             navigationMetrics.moveRejectedCount++;
-            expectedPanoRef.current = lastPanoIdRef.current;
-            if (panoramaRef.current && lastPanoIdRef.current) {
-              panoramaRef.current.setPano(lastPanoIdRef.current);
+            const revertPanoId = lastPanoIdRef.current || startPanoIdRef.current;
+            expectedPanoRef.current = revertPanoId;
+            if (panoramaRef.current && revertPanoId) {
+              panoramaRef.current.setPano(revertPanoId);
               navigationMetrics.revertPanoCallCount++;
               navigationMetrics.setPanoCallCount++;
               navigationMetrics.googleInternalMetadataEstimate++;
@@ -616,9 +633,10 @@ export function useStreetView(roomId?: string, playerId?: string) {
 
         // CONCURRENT MOVE GUARD: Bekleyen transaction varsa revert
         if (isPendingMoveRef.current) {
-          if (!wasExpected && panoramaRef.current && lastPanoIdRef.current) {
-            expectedPanoRef.current = lastPanoIdRef.current;
-            panoramaRef.current.setPano(lastPanoIdRef.current);
+          const revertId = lastPanoIdRef.current || startPanoIdRef.current;
+          if (!wasExpected && panoramaRef.current && revertId) {
+            expectedPanoRef.current = revertId;
+            panoramaRef.current.setPano(revertId);
             navigationMetrics.revertPanoCallCount++;
             navigationMetrics.setPanoCallCount++;
             navigationMetrics.googleInternalMetadataEstimate++;
@@ -635,9 +653,10 @@ export function useStreetView(roomId?: string, playerId?: string) {
         if (!rateLimiter.check(moveRateKey1s, RATE_LIMITS.MOVE_PER_SECOND, 1000) ||
             !rateLimiter.check(moveRateKey10s, RATE_LIMITS.MOVE_PER_10_SECONDS, 10000)) {
           navigationMetrics.rateLimitTriggered++;
-          if (!wasExpected && panoramaRef.current && lastPanoIdRef.current) {
-            expectedPanoRef.current = lastPanoIdRef.current;
-            panoramaRef.current.setPano(lastPanoIdRef.current);
+          const rlRevertId = lastPanoIdRef.current || startPanoIdRef.current;
+          if (!wasExpected && panoramaRef.current && rlRevertId) {
+            expectedPanoRef.current = rlRevertId;
+            panoramaRef.current.setPano(rlRevertId);
             navigationMetrics.revertPanoCallCount++;
             navigationMetrics.setPanoCallCount++;
             navigationMetrics.googleInternalMetadataEstimate++;
@@ -683,11 +702,11 @@ export function useStreetView(roomId?: string, playerId?: string) {
                 isMovementLockedRef.current = true;
               }
 
-              console.log(`[Nav] Move: ${newMoveCount}/${limit} | pano=${currentPanoId.substring(0, 8)}... (server-approved)`);
+              logger.debug(`[Nav] Move: ${newMoveCount}/${limit} | pano=${currentPanoId.substring(0, 8)}... (server-approved)`);
               logCostMetrics("moveAccepted", { move: newMoveCount, limit });
             } else {
               // Server rejected — revert pano
-              console.log("[Nav] Server rejected move — reverting");
+              logger.debug("[Nav] Server rejected move — reverting");
               navigationMetrics.serverMoveRejected++;
               if (panoramaRef.current && lastPanoIdRef.current) {
                 expectedPanoRef.current = lastPanoIdRef.current;
@@ -705,7 +724,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
             }
           }).catch((err) => {
             // Network error — revert pano, log
-            console.warn("[Nav] Move transaction failed:", err);
+            logger.warn("[Nav] Move transaction failed:", err);
             navigationMetrics.serverMoveRejected++;
             if (panoramaRef.current && lastPanoIdRef.current) {
               expectedPanoRef.current = lastPanoIdRef.current;
@@ -736,8 +755,32 @@ export function useStreetView(roomId?: string, playerId?: string) {
             isMovementLockedRef.current = true;
           }
 
-          console.log(`[Nav] Move: ${newMoveCount}/${limit} | pano=${currentPanoId.substring(0, 8)}... (client-only)`);
+          logger.debug(`[Nav] Move: ${newMoveCount}/${limit} | pano=${currentPanoId.substring(0, 8)}... (client-only)`);
           logCostMetrics("moveAccepted", { move: newMoveCount, limit });
+        }
+      });
+
+      // ============================================
+      // CAMERA DRIFT PREVENTION — pov_changed pitch guard
+      // Google Maps SDK accumulates floating-point pitch errors during
+      // horizontal touch rotation on mobile. This listener detects and
+      // corrects that drift using the pure-function drift tracker.
+      // ============================================
+      panoramaRef.current.addListener("pov_changed", () => {
+        if (!panoramaRef.current) return;
+        const pov = panoramaRef.current.getPov();
+        const result = processPovChange(
+          driftTrackerRef.current,
+          pov.pitch,
+          pov.heading,
+        );
+        driftTrackerRef.current = result.newState;
+
+        if (result.correctedPitch !== null) {
+          panoramaRef.current.setPov({
+            heading: pov.heading,
+            pitch: result.correctedPitch,
+          });
         }
       });
 
@@ -748,9 +791,29 @@ export function useStreetView(roomId?: string, playerId?: string) {
 
       const handlePointerDown = (e: PointerEvent) => {
         pointerStartRef.current = { x: e.clientX, y: e.clientY };
+        // Mark drag start for drift tracker — saves pre-drag pitch/heading
+        if (panoramaRef.current) {
+          const pov = panoramaRef.current.getPov();
+          driftTrackerRef.current = markDragStart(driftTrackerRef.current, pov.pitch, pov.heading);
+        } else {
+          driftTrackerRef.current = markDragStart(driftTrackerRef.current, 0, 0);
+        }
       };
 
       const handlePointerUp = (e: PointerEvent) => {
+        // Mark drag end for drift tracker — detect horizontal-only drift and correct
+        if (panoramaRef.current) {
+          const currentPov = panoramaRef.current.getPov();
+          const dragResult = markDragEnd(driftTrackerRef.current, currentPov.pitch, currentPov.heading);
+          driftTrackerRef.current = dragResult.newState;
+          if (dragResult.correctedPitch !== null) {
+            panoramaRef.current.setPov({
+              heading: currentPov.heading,
+              pitch: dragResult.correctedPitch,
+            });
+          }
+        }
+
         // ============================================
         // FIX #3: STRICT null guard - no pointerdown = no navigation
         // This prevents ghost clicks from touch events that didn't register
@@ -838,7 +901,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
           // Target is cached — allow navigation (no budget consumed, enforced by pano_changed)
         }
 
-        console.log(`[Nav] Click navigate: heading=${nearestLink.heading?.toFixed(0)}°, pano=${nearestLink.pano?.substring(0, 8)}...`);
+        logger.debug(`[Nav] Click navigate: heading=${nearestLink.heading?.toFixed(0)}°, pano=${nearestLink.pano?.substring(0, 8)}...`);
         navigateToLink(nearestLink);
         setNavigationError(null);
       };
@@ -848,18 +911,67 @@ export function useStreetView(roomId?: string, playerId?: string) {
         e.preventDefault();
       };
 
+      // pointercancel: touch interrupted (e.g., phone notification, palm rejection, system gesture)
+      // Must reset drag state to prevent drift correction from being permanently suppressed
+      const handlePointerCancel = (e: PointerEvent) => {
+        if (panoramaRef.current) {
+          const currentPov = panoramaRef.current.getPov();
+          const cancelResult = markDragEnd(driftTrackerRef.current, currentPov.pitch, currentPov.heading);
+          driftTrackerRef.current = cancelResult.newState;
+          if (cancelResult.correctedPitch !== null) {
+            panoramaRef.current.setPov({
+              heading: currentPov.heading,
+              pitch: cancelResult.correctedPitch,
+            });
+          }
+        }
+        pointerStartRef.current = null;
+      };
+
       // Attach listeners
       container.addEventListener("pointerdown", handlePointerDown);
       container.addEventListener("pointerup", handlePointerUp);
+      container.addEventListener("pointercancel", handlePointerCancel);
       container.addEventListener("contextmenu", handleContextMenu);
       navigationMetrics.listenerAttachCount++;
+
+      // ============================================
+      // BUG-001 DEFENSE: MutationObserver — hide Google Maps coordinate links at runtime
+      // Google Maps dynamically injects <a> elements with coordinates in href.
+      // CSS handles static elements; this observer catches any late-injected ones.
+      // ============================================
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          const addedNodes = Array.from(mutation.addedNodes);
+          addedNodes.forEach((node) => {
+            if (!(node instanceof HTMLElement)) return;
+            // Hide any <a> with coordinate-leaking href
+            const links = node.matches?.('a[href*="google.com/maps"]')
+              ? [node]
+              : Array.from(node.querySelectorAll?.('a[href*="google.com/maps"]') ?? []);
+            links.forEach((link) => {
+              const el = link as HTMLElement;
+              el.style.pointerEvents = 'none';
+              el.style.opacity = '0';
+              el.style.position = 'absolute';
+              el.style.width = '1px';
+              el.style.height = '1px';
+              el.style.overflow = 'hidden';
+              el.style.clip = 'rect(0,0,0,0)';
+            });
+          });
+        });
+      });
+      observer.observe(container, { childList: true, subtree: true });
 
       // FIX #1 continued: Store cleanup function
       cleanupFnRef.current = () => {
         container.removeEventListener("pointerdown", handlePointerDown);
         container.removeEventListener("pointerup", handlePointerUp);
+        container.removeEventListener("pointercancel", handlePointerCancel);
         container.removeEventListener("contextmenu", handleContextMenu);
         pointerStartRef.current = null;
+        observer.disconnect();
       };
     },
     // FIX #5: isMovementLocked REMOVED from dependency array
@@ -901,7 +1013,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
       if (document.visibilityState === "visible" && panoramaRef.current && streetViewRef.current) {
         // Check if container is orphaned (empty div = panorama rendered to different element)
         if (streetViewRef.current.children.length === 0) {
-          console.log("[Nav] Visibility resume: panorama container empty, marking for recreate");
+          logger.debug("[Nav] Visibility resume: panorama container empty, marking for recreate");
           google.maps.event.clearInstanceListeners(panoramaRef.current);
           panoramaRef.current = null;
           panoramaConstructedRef.current = false;
@@ -909,7 +1021,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
           // Container has content but tiles may be corrupted after background — re-trigger setPano
           const currentPano = panoramaRef.current.getPano();
           if (currentPano) {
-            console.log("[Nav] Visibility resume: refreshing panorama tiles");
+            logger.debug("[Nav] Visibility resume: refreshing panorama tiles");
             panoramaRef.current.setPano(currentPano);
           }
         }
@@ -919,7 +1031,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted && panoramaRef.current) {
         // Page restored from bfcache — panorama may be corrupted
-        console.log("[Nav] Pageshow bfcache restore: refreshing panorama");
+        logger.debug("[Nav] Pageshow bfcache restore: refreshing panorama");
         const currentPano = panoramaRef.current.getPano();
         if (currentPano && streetViewRef.current) {
           panoramaRef.current.setPano(currentPano);
@@ -994,7 +1106,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
             clearTimeoutGuard();
 
             // PanoId is invalid — fallback to coords-based resolution
-            console.warn(`[Nav] Pano ID expired (status=${status}), resolving from coords: ${panoPackage.locationName}`);
+            logger.warn(`[Nav] Pano ID expired (status=${status}), resolving from coords: [REDACTED]`);
             // v4: This IS a real getPanorama call — count it
             navigationMetrics.resolveFromCoordsCallCountPerRound++;
             navigationMetrics.fallbackMetadataCallCount++;
@@ -1010,7 +1122,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
               (data, freshStatus) => {
                 if (freshStatus === google.maps.StreetViewStatus.OK && data?.location?.pano) {
                   const freshPanoId = data.location.pano;
-                  console.log(`[Nav] Fresh pano resolved: ${freshPanoId.substring(0, 20)}...`);
+                  logger.debug(`[Nav] Fresh pano resolved: ${freshPanoId.substring(0, 20)}...`);
 
                   // Update all tracking refs
                   startPanoIdRef.current = freshPanoId;
@@ -1028,7 +1140,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
                   loadSucceeded = true;
                   logCostMetrics("fallbackSuccess", { pano: freshPanoId.substring(0, 12) });
                 } else {
-                  console.error(`[Nav] Could not resolve pano from coords for ${panoPackage.locationName}`);
+                  logger.error(`[Nav] Could not resolve pano from coords for [REDACTED]`);
                   // BUG-2 FIX: Show user-visible failure state instead of silent black screen
                   setPanoLoadFailed(true);
                   setError("Street View yüklenemedi");
@@ -1069,7 +1181,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
             panoLoadTimeoutRef.current = setTimeout(() => {
               panoLoadTimeoutRef.current = null;
               if (!loadSucceeded && !fallbackTriggered) {
-                console.warn(`[Nav] setPano timeout (10s) — triggering fallback for ${panoPackage.locationName}`);
+                logger.warn(`[Nav] setPano timeout (10s) — triggering fallback for [REDACTED]`);
                 triggerFallback("TIMEOUT");
               }
             }, 10000);
@@ -1176,7 +1288,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
           }
         }
       } catch (err) {
-        console.log(`[Nav] Location search attempt ${attempt + 1} failed`);
+        logger.debug(`[Nav] Location search attempt ${attempt + 1} failed`);
       }
     }
 

@@ -8,6 +8,7 @@
  */
 
 import { PanoPackage, GameMode } from "@/types";
+import { logger } from "@/utils/logger";
 import {
   getNextPanoPackage,
   onNewGameStart,
@@ -29,7 +30,7 @@ export async function getRandomPanoPackage(mode: GameMode): Promise<PanoPackage 
     const pano = await getNextPanoPackage(mode);
     return pano;
   } catch (error) {
-    console.error("Pano paketi alınamadı:", error);
+    logger.error("Pano paketi alınamadı:", error);
     return getRandomPanoPackageFromData(mode);
   }
 }

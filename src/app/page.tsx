@@ -1,14 +1,26 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useRoom, useStreetView, useGuessMap, useTimer, useAsyncLock } from "@/hooks";
 import { Coordinates, GameMode, AD_FREQUENCY_LIMIT } from "@/types";
 import { getRandomPanoPackage, onNewGameStart, initStreetViewService } from "@/services/panoService";
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { LobbyScreen } from "@/components/screens/LobbyScreen";
-import { GameScreen } from "@/components/screens/GameScreen";
 import { GameErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { trackError } from "@/utils/telemetry";
+
+const GameScreen = dynamic(
+  () => import("@/components/screens/GameScreen").then((m) => ({ default: m.GameScreen })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+        <div className="loading-spinner" />
+      </div>
+    ),
+  }
+);
 
 export default function HomePage() {
   // ==================== STATE ====================
@@ -23,6 +35,8 @@ export default function HomePage() {
   const [lastAdTime, setLastAdTime] = useState(0);
   // BUG-005: Name validation error state
   const [nameError, setNameError] = useState<string | null>(null);
+  // Offline detection
+  const [isOffline, setIsOffline] = useState(false);
 
   // ==================== HOOKS ====================
   const {
@@ -94,6 +108,19 @@ export default function HomePage() {
   }, [nameInput]);
 
   // ==================== EFFECTS ====================
+
+  // Offline detection
+  useEffect(() => {
+    const handleOffline = () => setIsOffline(true);
+    const handleOnline = () => setIsOffline(false);
+    window.addEventListener("offline", handleOffline);
+    window.addEventListener("online", handleOnline);
+    setIsOffline(!navigator.onLine);
+    return () => {
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   // Cleanup toast timer on unmount
   useEffect(() => {
@@ -330,13 +357,19 @@ export default function HomePage() {
 
       const panoPackage = await getRandomPanoPackage(room.gameMode || "urban");
       if (panoPackage) {
-        await startGameWithPanoPackage(panoPackage);
-        setScreen("game");
+        const committed = await startGameWithPanoPackage(panoPackage);
+        if (committed) {
+          setScreen("game");
+        } else {
+          showTrackedToast("Oyun başlatılamadı. Tekrar deneyin.");
+        }
       } else {
         const location = await loadNewLocation();
         if (location) {
           await startGame(location.coordinates, location.panoId, location.locationName);
           setScreen("game");
+        } else {
+          showTrackedToast("Konum yüklenemedi. Tekrar deneyin.");
         }
       }
     }, "startGame");
@@ -378,11 +411,16 @@ export default function HomePage() {
 
       const panoPackage = await getRandomPanoPackage(room.gameMode || "urban");
       if (panoPackage) {
-        await nextRoundWithPanoPackage(panoPackage);
+        const committed = await nextRoundWithPanoPackage(panoPackage);
+        if (!committed) {
+          showTrackedToast("Sonraki tur başlatılamadı. Tekrar deneyin.");
+        }
       } else {
         const location = await loadNewLocation();
         if (location) {
           await nextRound(location.coordinates, location.panoId, location.locationName);
+        } else {
+          showTrackedToast("Konum yüklenemedi. Tekrar deneyin.");
         }
       }
 
@@ -450,82 +488,97 @@ export default function HomePage() {
 
   // ==================== RENDER ====================
 
+  const offlineBanner = isOffline ? (
+    <div className="fixed top-0 left-0 right-0 z-[999999] bg-yellow-600 text-black text-center text-sm py-2 font-medium">
+      İnternet bağlantısı yok — bağlantı sağlandığında oyun devam edecek
+    </div>
+  ) : null;
+
   if (screen === "menu") {
     return (
-      <MenuScreen
-        nameInput={nameInput}
-        setNameInput={setNameInput}
-        roomInput={roomInput}
-        setRoomInput={setRoomInput}
-        selectedMode={selectedMode}
-        setSelectedMode={setSelectedMode}
-        error={error}
-        isLoading={isLoading}
-        onCreateRoom={handleCreateRoom}
-        onJoinRoom={handleJoinRoom}
-        nameError={nameError}
-      />
+      <>
+        {offlineBanner}
+        <MenuScreen
+          nameInput={nameInput}
+          setNameInput={setNameInput}
+          roomInput={roomInput}
+          setRoomInput={setRoomInput}
+          selectedMode={selectedMode}
+          setSelectedMode={setSelectedMode}
+          error={error}
+          isLoading={isLoading}
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+          nameError={nameError}
+        />
+      </>
     );
   }
 
   if (screen === "lobby" && room) {
     return (
-      <GameErrorBoundary onReturnToMenu={handleReturnToMenu}>
-        <LobbyScreen
-          room={room}
-          playerId={playerId}
-          players={players}
-          isHost={isHost}
-          streetViewLoading={streetViewLoading}
-          copied={copied}
-          showToast={showToast}
-          onCopyRoomCode={copyRoomCode}
-          onShareWhatsApp={shareWhatsApp}
-          onSetGameMode={setGameMode}
-          onStartGame={handleStartGame}
-          onLeaveRoom={handleLeaveRoom}
-        />
-      </GameErrorBoundary>
+      <>
+        {offlineBanner}
+        <GameErrorBoundary onReturnToMenu={handleReturnToMenu}>
+          <LobbyScreen
+            room={room}
+            playerId={playerId}
+            players={players}
+            isHost={isHost}
+            streetViewLoading={streetViewLoading}
+            copied={copied}
+            showToast={showToast}
+            onCopyRoomCode={copyRoomCode}
+            onShareWhatsApp={shareWhatsApp}
+            onSetGameMode={setGameMode}
+            onStartGame={handleStartGame}
+            onLeaveRoom={handleLeaveRoom}
+          />
+        </GameErrorBoundary>
+      </>
     );
   }
 
   if (screen === "game") {
     return (
-      <GameErrorBoundary onReturnToMenu={handleReturnToMenu}>
-        <GameScreen
-          room={room}
-          playerId={playerId}
-          currentPlayer={currentPlayer}
-          players={players}
-          isHost={isHost}
-          streetViewRef={streetViewRef}
-          guessMapRef={guessMapRef}
-          streetViewLoading={streetViewLoading}
-          navigationError={navigationError}
-          movesRemaining={movesRemaining}
-          isMovementLocked={isMovementLocked}
-          showBudgetWarning={showBudgetWarning}
-          timeRemaining={timeRemaining}
-          formattedTime={formattedTime}
-          mapExpanded={mapExpanded}
-          setMapExpanded={setMapExpanded}
-          guessLocation={guessLocation}
-          showToast={showToast}
-          connectionState={connectionState}
-          notifications={notifications}
-          dismissNotification={dismissNotification}
-          onSubmitGuess={handleSubmitGuess}
-          onNextRound={handleNextRound}
-          onRestart={handleRestartGame}
-          onLeaveRoom={handleLeaveRoom}
-          returnToStart={returnToStart}
-          onReturnToMenu={handleReturnToMenu}
-          panoLoadFailed={panoLoadFailed}
-          onSkipRound={handleSkipRound}
-          isSubmitting={isKeyLocked("submitGuess")}
-          isNextRoundLoading={isKeyLocked("nextRound")}
-        />
-      </GameErrorBoundary>
+      <>
+        {offlineBanner}
+        <GameErrorBoundary onReturnToMenu={handleReturnToMenu}>
+          <GameScreen
+            room={room}
+            playerId={playerId}
+            currentPlayer={currentPlayer}
+            players={players}
+            isHost={isHost}
+            streetViewRef={streetViewRef}
+            guessMapRef={guessMapRef}
+            streetViewLoading={streetViewLoading}
+            navigationError={navigationError}
+            movesRemaining={movesRemaining}
+            isMovementLocked={isMovementLocked}
+            showBudgetWarning={showBudgetWarning}
+            timeRemaining={timeRemaining}
+            formattedTime={formattedTime}
+            mapExpanded={mapExpanded}
+            setMapExpanded={setMapExpanded}
+            guessLocation={guessLocation}
+            showToast={showToast}
+            connectionState={connectionState}
+            notifications={notifications}
+            dismissNotification={dismissNotification}
+            onSubmitGuess={handleSubmitGuess}
+            onNextRound={handleNextRound}
+            onRestart={handleRestartGame}
+            onLeaveRoom={handleLeaveRoom}
+            returnToStart={returnToStart}
+            onReturnToMenu={handleReturnToMenu}
+            panoLoadFailed={panoLoadFailed}
+            onSkipRound={handleSkipRound}
+            isSubmitting={isKeyLocked("submitGuess")}
+            isNextRoundLoading={isKeyLocked("nextRound")}
+          />
+        </GameErrorBoundary>
+      </>
     );
   }
 

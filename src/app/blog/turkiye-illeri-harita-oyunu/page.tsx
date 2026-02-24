@@ -17,7 +17,7 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
 
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },

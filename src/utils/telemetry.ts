@@ -3,6 +3,8 @@
  * Prod'da hata yakalamak için telemetry/logging sistemi
  */
 
+import { logger } from "@/utils/logger";
+
 // Event types
 export type TelemetryEvent =
   | "join"
@@ -104,7 +106,7 @@ export function initTelemetry(): void {
     errors: [],
   };
 
-  console.log(`[Telemetry] Session started: ${session!.sessionId}`);
+  logger.debug(`[Telemetry] Session started: ${session!.sessionId}`);
 
   // Setup global error handler
   if (typeof window !== "undefined") {
@@ -153,11 +155,8 @@ export function trackEvent(
     session.events = session.events.slice(-100);
   }
 
-  const logStyle = getLogStyle(event);
-  console.log(
-    `[Telemetry] %c${event}%c | Room: ${session.roomId || "N/A"} | Round: ${metadata?.roundId ?? "N/A"} | Count: ${session.counters[event]}`,
-    logStyle,
-    "color: inherit",
+  logger.debug(
+    `[Telemetry] ${event} | Room: ${session.roomId || "N/A"} | Round: ${metadata?.roundId ?? "N/A"} | Count: ${session.counters[event]}`,
     metadata || ""
   );
 }
@@ -172,8 +171,8 @@ export function trackDuplicateAttempt(
 
   session.duplicateAttempts[type].push(roundId);
 
-  console.warn(
-    `[Telemetry] ⚠️ DUPLICATE ${type} attempt for round ${roundId}! Total attempts: ${session.duplicateAttempts[type].filter((r) => r === roundId).length}`
+  logger.warn(
+    `[Telemetry] DUPLICATE ${type} attempt for round ${roundId}! Total attempts: ${session.duplicateAttempts[type].filter((r) => r === roundId).length}`
   );
 }
 
@@ -193,8 +192,8 @@ export function trackListener(action: "subscribe" | "unsubscribe"): void {
     session.listenerCounts.unsubscriptions;
 
   if (balance > 3) {
-    console.warn(
-      `[Telemetry] ⚠️ Listener leak detected! Active listeners: ${balance}`
+    logger.warn(
+      `[Telemetry] Listener leak detected! Active listeners: ${balance}`
     );
   }
 }
@@ -222,8 +221,8 @@ export function trackError(
     session.errors = session.errors.slice(-50);
   }
 
-  console.error(
-    `[Telemetry] ❌ Error #${session.counters.error}:`,
+  logger.error(
+    `[Telemetry] Error #${session.counters.error}:`,
     errorData.message,
     context ? `| Context: ${context}` : ""
   );
@@ -270,47 +269,38 @@ export function getTelemetrySummary(): {
   };
 }
 
-// Print full report to console
+// Print full report to console (dev only)
 export function printTelemetryReport(): void {
   const summary = getTelemetrySummary();
   if (!summary) {
-    console.log("[Telemetry] No session data");
+    logger.debug("[Telemetry] No session data");
     return;
   }
 
-  console.group("📊 TürkiyeGuessr Telemetry Report");
-  console.log(`Session ID: ${summary.sessionId}`);
-  console.log(`Duration: ${Math.round(summary.duration / 1000)}s`);
-  console.log("");
-
-  console.group("📈 Event Counters");
-  Object.entries(summary.counters).forEach(([event, count]) => {
-    if (count > 0) {
-      console.log(`  ${event}: ${count}`);
-    }
-  });
-  console.groupEnd();
-
-  console.group("⚠️ Duplicate Attempts (Bug Detection)");
-  console.log(`  roundEnd duplicates: ${summary.duplicateAttempts.roundEnd}`);
-  console.log(`  timeUp duplicates: ${summary.duplicateAttempts.timeUp}`);
-  console.groupEnd();
-
-  console.group("🔗 Listener Balance");
-  console.log(`  Active listeners: ${summary.listenerBalance}`);
-  if (summary.listenerBalance > 0) {
-    console.warn("  ⚠️ Potential memory leak!");
-  }
-  console.groupEnd();
+  // Entire report is dev-only via logger.debug
+  const lines = [
+    `--- TürkiyeGuessr Telemetry Report ---`,
+    `Session ID: ${summary.sessionId}`,
+    `Duration: ${Math.round(summary.duration / 1000)}s`,
+    ``,
+    `Event Counters:`,
+    ...Object.entries(summary.counters)
+      .filter(([, count]) => count > 0)
+      .map(([event, count]) => `  ${event}: ${count}`),
+    ``,
+    `Duplicate Attempts:`,
+    `  roundEnd: ${summary.duplicateAttempts.roundEnd}`,
+    `  timeUp: ${summary.duplicateAttempts.timeUp}`,
+    ``,
+    `Listener Balance: ${summary.listenerBalance}${summary.listenerBalance > 0 ? " (potential leak!)" : ""}`,
+  ];
 
   if (summary.errorCount > 0) {
-    console.group("❌ Errors");
-    console.log(`  Total errors: ${summary.errorCount}`);
-    console.log("  Last errors:", summary.lastErrors);
-    console.groupEnd();
+    lines.push(``, `Errors: ${summary.errorCount}`, `  Last: ${summary.lastErrors.join(", ")}`);
   }
 
-  console.groupEnd();
+  lines.push(`--- End Report ---`);
+  logger.debug(lines.join("\n"));
 }
 
 // Cleanup on unmount
@@ -322,29 +312,6 @@ export function cleanupTelemetry(): void {
 
   printTelemetryReport();
   session = null;
-}
-
-// Log styling helpers
-function getLogStyle(event: TelemetryEvent): string {
-  const styles: Record<TelemetryEvent, string> = {
-    join: "background: #22c55e; color: white; padding: 2px 6px; border-radius: 3px;",
-    leave: "background: #ef4444; color: white; padding: 2px 6px; border-radius: 3px;",
-    roundStart: "background: #3b82f6; color: white; padding: 2px 6px; border-radius: 3px;",
-    roundEnd: "background: #8b5cf6; color: white; padding: 2px 6px; border-radius: 3px;",
-    submitGuess: "background: #f59e0b; color: white; padding: 2px 6px; border-radius: 3px;",
-    timeUp: "background: #ec4899; color: white; padding: 2px 6px; border-radius: 3px;",
-    gameEnd: "background: #14b8a6; color: white; padding: 2px 6px; border-radius: 3px;",
-    error: "background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;",
-    move: "background: #6366f1; color: white; padding: 2px 6px; border-radius: 3px;",
-    ghostClickSuppressed: "background: #f97316; color: white; padding: 2px 6px; border-radius: 3px;",
-    moveRejected: "background: #ef4444; color: white; padding: 2px 6px; border-radius: 3px;",
-    desyncDetected: "background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;",
-    serverMoveAccepted: "background: #22c55e; color: white; padding: 2px 6px; border-radius: 3px;",
-    serverMoveRejected: "background: #dc2626; color: white; padding: 2px 6px; border-radius: 3px;",
-    rateLimitTriggered: "background: #f97316; color: white; padding: 2px 6px; border-radius: 3px;",
-    duplicatePanoPrevented: "background: #a855f7; color: white; padding: 2px 6px; border-radius: 3px;",
-  };
-  return styles[event];
 }
 
 // Export session for debugging

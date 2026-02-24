@@ -17,6 +17,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${BASE}/sss`, lastModified: now, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/hakkimizda`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE}/gizlilik-politikasi`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${BASE}/cerez-politikasi`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${BASE}/kullanim-kosullari`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${BASE}/kvkk`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${BASE}/iletisim`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 
   const blogPages: MetadataRoute.Sitemap = BLOG_POSTS.map((p) => ({

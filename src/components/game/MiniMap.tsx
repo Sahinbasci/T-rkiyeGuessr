@@ -100,9 +100,10 @@ export function MiniMap({
       onClick={(e) => {
         e.stopPropagation();
         // BUG-007: Only expand the map, do NOT let click propagate to guess map
+        // Direct setMapExpanded (no toggle lock) — syncs state with CSS hover visual on desktop
         if (!mapExpanded) {
-          e.preventDefault();
-          handleToggle();
+          setMapExpanded(true);
+          setTimeout(() => triggerMapResize(), 50);
         }
       }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -125,7 +126,10 @@ export function MiniMap({
       {!hasGuessed && (
         <div className="desktop-submit-btn absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
           <button
-            onClick={onSubmitGuess}
+            onClick={() => {
+              if (navigator.vibrate) navigator.vibrate(50);
+              onSubmitGuess();
+            }}
             disabled={isSubmitDisabled}
             className="btn-primary w-full py-3 text-sm font-bold"
             aria-busy={!!isSubmitting}

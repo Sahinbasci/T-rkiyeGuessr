@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { CookieBanner } from "@/components/consent/CookieBanner";
+import { AdSenseScript } from "@/components/ads/AdSenseScript";
 import "./globals.css";
 
 const SITE_URL = "https://turkiyeguessr.xyz";
@@ -185,7 +187,15 @@ export default function RootLayout({
         <JsonLd />
       </head>
       <body className="antialiased">
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[999999] focus:bg-red-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg"
+          >
+            Ana içeriğe atla
+          </a>
           <ErrorBoundary>{children}</ErrorBoundary>
+          <CookieBanner />
+          <AdSenseScript />
         </body>
     </html>
   );

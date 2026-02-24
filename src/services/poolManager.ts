@@ -20,6 +20,7 @@ import {
 } from "@/types/precomputed";
 import { BagSelector } from "./bagSelector";
 import { recordPersistentLocation, LocationFingerprint } from "./persistentHistory";
+import { logger } from "@/utils/logger";
 
 // ==================== CONSTANTS ====================
 
@@ -131,8 +132,8 @@ export class PoolManager {
       this.bagSelector.saveToLocalStorage();
     }
 
-    console.log(
-      `[PoolManager] Drew ${mode} package: ${pkg.locationName} (pool remaining: ${this.bagSelector.getStats(mode).remaining})`
+    logger.debug(
+      `[PoolManager] Drew ${mode} package: [REDACTED] (pool remaining: ${this.bagSelector.getStats(mode).remaining})`
     );
 
     return pkg;
@@ -152,7 +153,7 @@ export class PoolManager {
     this.bagSelector.reset();
     // Don't reset pool data — keep loaded chunks in memory
     // Only reset the bag draw order
-    console.log("[PoolManager] Reset bag state for new game");
+    logger.debug("[PoolManager] Reset bag state for new game");
   }
 
   /**
@@ -165,7 +166,7 @@ export class PoolManager {
     this.manifest = null;
     this.urbanState = this.emptyModeState();
     this.geoState = this.emptyModeState();
-    console.log("[PoolManager] Full reset — pool data cleared");
+    logger.debug("[PoolManager] Full reset — pool data cleared");
   }
 
   /**
@@ -198,10 +199,10 @@ export class PoolManager {
       if (!this.manifest) {
         this.manifest = await this.fetchManifest();
         if (!this.manifest) {
-          console.warn("[PoolManager] Failed to load manifest");
+          logger.warn("[PoolManager] Failed to load manifest");
           return;
         }
-        console.log(
+        logger.debug(
           `[PoolManager] Manifest loaded: v${this.manifest.version}, ${this.manifest.totalUrban} urban, ${this.manifest.totalGeo} geo`
         );
 
@@ -212,7 +213,7 @@ export class PoolManager {
       // Step 2: Find chunks for this mode
       const modeChunks = this.manifest.chunks.filter((c) => c.mode === mode);
       if (modeChunks.length === 0) {
-        console.warn(`[PoolManager] No chunks found for mode=${mode}`);
+        logger.warn(`[PoolManager] No chunks found for mode=${mode}`);
         return;
       }
 
@@ -221,7 +222,7 @@ export class PoolManager {
       await this.loadChunk(firstChunk, mode);
       state.firstChunkReady = true;
 
-      console.log(
+      logger.debug(
         `[PoolManager] First chunk loaded for ${mode}: ${firstChunk.id} (${firstChunk.count} locations)`
       );
 
@@ -230,7 +231,7 @@ export class PoolManager {
         this.loadRemainingChunks(modeChunks.slice(1), mode);
       }
     } catch (err) {
-      console.error(`[PoolManager] Error loading pool for ${mode}:`, err);
+      logger.error(`[PoolManager] Error loading pool for ${mode}:`, err);
     }
   }
 
@@ -248,7 +249,7 @@ export class PoolManager {
       try {
         await this.loadChunk(chunk, mode);
       } catch (err) {
-        console.warn(`[PoolManager] Background chunk load failed: ${chunk.id}`, err);
+        logger.warn(`[PoolManager] Background chunk load failed: ${chunk.id}`, err);
       }
 
       // Small delay between chunks to avoid blocking main thread
@@ -256,7 +257,7 @@ export class PoolManager {
     }
 
     state.backgroundLoading = false;
-    console.log(
+    logger.debug(
       `[PoolManager] Background loading complete for ${mode}: ${state.totalLoaded} total locations`
     );
   }
@@ -311,7 +312,7 @@ export class PoolManager {
       }
     }
 
-    console.error(
+    logger.error(
       `[PoolManager] Failed to load chunk ${chunkMeta.id} after ${MAX_CHUNK_RETRIES + 1} attempts:`,
       lastError
     );
@@ -326,13 +327,13 @@ export class PoolManager {
       const response = await this.fetchWithTimeout(url, FETCH_TIMEOUT_MS);
 
       if (!response.ok) {
-        console.warn(`[PoolManager] Manifest fetch failed: HTTP ${response.status}`);
+        logger.warn(`[PoolManager] Manifest fetch failed: HTTP ${response.status}`);
         return null;
       }
 
       return (await response.json()) as PoolManifest;
     } catch (err) {
-      console.warn("[PoolManager] Manifest fetch error:", err);
+      logger.warn("[PoolManager] Manifest fetch error:", err);
       return null;
     }
   }

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function TurkiyeGuessrNasilOynanirPost() {
   const articleJsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
+    "@type": "BlogPosting",
     headline: "TürkiyeGuessr Nasıl Oynanır? Detaylı Rehber",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },

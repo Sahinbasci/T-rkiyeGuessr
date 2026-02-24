@@ -119,7 +119,7 @@ export function GameScreen({
     : [];
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-[#0a0a0f]">
+    <main id="main-content" className="relative w-screen h-screen overflow-hidden bg-[#0a0a0f]">
       <GameHeader
         room={room}
         currentPlayer={currentPlayer}
@@ -135,6 +135,8 @@ export function GameScreen({
         ref={streetViewRef as React.RefObject<HTMLDivElement>}
         className="streetview-container absolute inset-0 z-0"
         style={{ width: "100%", height: "100%", background: "#1a1a24" }}
+        role="application"
+        aria-label="Google Street View panoraması - konumu tahmin etmek için etrafta bakın"
       />
 
       {/* Loading Overlay */}

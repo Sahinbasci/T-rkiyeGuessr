@@ -137,7 +137,7 @@
             },
 
             "totalScore": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50000 && (newData.parent().parent().parent().child('hostId').val() == auth.uid || (newData.val() == 0 && auth.uid == $playerId))"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50000 && (newData.parent().parent().parent().child('hostId').val() == auth.uid || (newData.val() == 0 && auth.uid == $playerId) || (data.exists() && newData.val() == data.val() && auth.uid == $playerId))"
             },
 
             "currentGuess": {
@@ -145,7 +145,7 @@
             },
 
             "hasGuessed": {
-              ".validate": "newData.isBoolean() && (newData.val() == false || newData.parent().child('currentGuess').exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid) && (newData.val() == true || newData.parent().parent().parent().child('hostId').val() == auth.uid)"
+              ".validate": "newData.isBoolean() && (newData.val() == false || newData.parent().child('currentGuess').exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid) && (newData.val() == true || newData.parent().parent().parent().child('hostId').val() == auth.uid || (!data.exists() && auth.uid == $playerId))"
             },
 
             "roundScores": {

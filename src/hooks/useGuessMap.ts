@@ -12,6 +12,7 @@ import { useState, useCallback, useRef } from "react";
 import { Coordinates } from "@/types";
 import { MAPS_CONFIG, TURKEY_MAP_RESTRICTION } from "@/config/maps";
 import { getTurkeyCenter, getTurkeyZoom } from "@/utils";
+import { isValidTurkeyCoordinate } from "@/config/production";
 
 export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => void) {
   const [selectedLocation, setSelectedLocation] = useState<Coordinates | null>(null);
@@ -34,10 +35,13 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
   const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !mapRef.current) return;
 
-    const coord: Coordinates = {
-      lat: e.latLng.lat(),
-      lng: e.latLng.lng(),
-    };
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+
+    // Türkiye sınırları dışındaki tıklamaları reddet (deniz, komşu ülkeler)
+    if (!isValidTurkeyCoordinate(lat, lng)) return;
+
+    const coord: Coordinates = { lat, lng };
 
     setSelectedLocation(coord);
     onLocationSelectRef.current(coord);
