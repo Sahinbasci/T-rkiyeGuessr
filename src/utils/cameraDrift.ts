@@ -42,15 +42,16 @@ export const DRIFT_CORRECTION_THRESHOLD_DEG = 0.8;
  * Max pitch deviation allowed during a horizontal-only drag.
  * If pitch changes less than this during a drag where heading changed
  * significantly, the pitch change is considered drift and gets reverted.
- * Needs to be generous enough to not revert intentional diagonal drags.
+ * Must be high enough to catch real-world drift (5-15° over 30s rotation)
+ * but not so high that intentional diagonal drags get reverted.
  */
-export const MAX_DRAG_DRIFT_DEG = 3.0;
+export const MAX_DRAG_DRIFT_DEG = 8.0;
 
 /**
  * Minimum heading change to consider a drag "horizontal rotation".
  * If heading changes less than this, we can't determine direction → no correction.
  */
-export const MIN_HEADING_CHANGE_FOR_DRAG_CORRECTION = 5.0;
+export const MIN_HEADING_CHANGE_FOR_DRAG_CORRECTION = 10.0;
 
 /**
  * How many samples to keep for drift detection.

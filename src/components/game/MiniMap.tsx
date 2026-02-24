@@ -121,7 +121,7 @@ export function MiniMap({
         {mapExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
 
-      <div ref={guessMapRef as React.RefObject<HTMLDivElement>} className="w-full h-full pointer-events-auto" />
+      <div ref={guessMapRef as React.RefObject<HTMLDivElement>} className="w-full h-full pointer-events-auto" style={{ position: 'relative', zIndex: 1 }} />
 
       {!hasGuessed && (
         <div className="desktop-submit-btn absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 to-transparent">

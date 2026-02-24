@@ -2148,7 +2148,8 @@ export function useRoom() {
       players: updatedPlayers,
       lastActivityAt: Date.now(),
       roundState: 'waiting',
-      roundVersion: 0,
+      // roundVersion: NOT reset — Firebase rule requires monotonic increase.
+      // startGameWithPanoPackage uses (currentRoom.roundVersion || 0) + 1 so any value works.
       activePlayerCount: 0,
       expectedGuesses: 0,
       currentGuesses: 0,

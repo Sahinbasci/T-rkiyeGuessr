@@ -442,7 +442,9 @@ div[aria-label*="Street View"] {
   position: absolute;
   top: 6px;
   left: 6px;
-  z-index: 50;
+  z-index: 10000;
+  pointer-events: auto;
+  isolation: isolate;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.8);
