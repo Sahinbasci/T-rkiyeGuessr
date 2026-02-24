@@ -466,10 +466,16 @@ export default function HomePage() {
       resetMap();
       setGuessLocation(null);
       resetMoves();
-      await restartGame();
-      setScreen("lobby");
-      // Release after a tick so status-change effect doesn't race
-      setTimeout(() => { isRestartingRef.current = false; }, 100);
+      try {
+        await restartGame();
+        setScreen("lobby");
+      } catch (err) {
+        trackError(err instanceof Error ? err : String(err), "handleRestartGame");
+        showTrackedToast("Oyun yeniden başlatılamadı. Tekrar deneyin.");
+      } finally {
+        // Release after a tick so status-change effect doesn't race
+        setTimeout(() => { isRestartingRef.current = false; }, 100);
+      }
     }, "restartGame");
   };
 

@@ -2212,7 +2212,7 @@ export function useRoom() {
       resetGuessLimit(player.id);
     });
 
-    await runTransaction(ref(database, `rooms/${room.id}`), (currentRoom) => {
+    const buildRestartPayload = (currentRoom: any, includeGameInstanceId: boolean) => {
       if (!currentRoom) return currentRoom;
       if (currentRoom.hostId !== playerId) return; // abort — not host
       if (currentRoom.status !== "gameOver") return; // abort — stale click guard
@@ -2225,15 +2225,14 @@ export function useRoom() {
           currentGuess: null,
           hasGuessed: false,
           movesUsed: 0,
-          roundScores: [],
+          roundScores: null,
         };
       });
 
-      return {
+      const payload: any = {
         ...currentRoom,
         status: "waiting",
         currentRound: 0,
-        gameInstanceId: newGameInstanceId,
         currentLocation: null,
         currentPanoPackageId: null,
         currentPanoPackage: null,
@@ -2249,7 +2248,32 @@ export function useRoom() {
         currentGuesses: 0,
         roundEndLock: null,
       };
-    });
+      if (includeGameInstanceId) {
+        payload.gameInstanceId = newGameInstanceId;
+      }
+      // Clean any unexpected fields that could trigger $other validation failure
+      delete payload.locationHistory;
+      return payload;
+    };
+
+    try {
+      // Try with gameInstanceId first
+      await runTransaction(ref(database, `rooms/${room.id}`), (currentRoom) =>
+        buildRestartPayload(currentRoom, true)
+      );
+    } catch (firstErr) {
+      logger.warn("[MP] restartGame with gameInstanceId failed, retrying without:", firstErr);
+      try {
+        // Fallback: without gameInstanceId (rules may not be deployed yet)
+        await runTransaction(ref(database, `rooms/${room.id}`), (currentRoom) =>
+          buildRestartPayload(currentRoom, false)
+        );
+      } catch (secondErr) {
+        logger.error("[MP] restartGame fallback also failed:", secondErr);
+        trackError(secondErr instanceof Error ? secondErr : String(secondErr), "restartGame");
+        throw secondErr; // Re-throw so caller knows it failed
+      }
+    }
 
     trackEvent("gameRestart", { newGameInstanceId, previousStatus: room?.status });
     setupRoomCleanup({ ...room, status: "waiting" });
