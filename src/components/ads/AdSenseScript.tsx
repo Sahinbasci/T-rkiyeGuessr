@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { ADSENSE_CLIENT, ADS_ENABLED } from "@/config/ads";
 import { isMarketingAllowed, CONSENT_CHANGED_EVENT } from "@/utils/consent";
@@ -10,23 +10,28 @@ import { isMarketingAllowed, CONSENT_CHANGED_EVENT } from "@/utils/consent";
  *  1. ADS_ENABLED (env)
  *  2. User consented to marketing cookies
  *
+ * Once loaded, the Script tag stays in the DOM even if consent is revoked
+ * (pagead2.js cannot be unloaded from memory). New ad requests are blocked
+ * at the canShowAd() guard level instead.
+ *
  * Place this once in layout.tsx.
  */
 export function AdSenseScript() {
   const [shouldLoad, setShouldLoad] = useState(false);
+  const scriptLoadedRef = useRef(false);
 
   useEffect(() => {
     if (!ADS_ENABLED) return;
 
     const check = () => setShouldLoad(isMarketingAllowed());
-    check(); // initial
+    check();
 
-    // Re-check when consent changes
     window.addEventListener(CONSENT_CHANGED_EVENT, check);
     return () => window.removeEventListener(CONSENT_CHANGED_EVENT, check);
   }, []);
 
-  if (!shouldLoad) return null;
+  // Don't render until consent given; but once loaded, keep the tag
+  if (!shouldLoad && !scriptLoadedRef.current) return null;
 
   return (
     <Script
@@ -35,6 +40,9 @@ export function AdSenseScript() {
       src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
       crossOrigin="anonymous"
       strategy="lazyOnload"
+      onLoad={() => {
+        scriptLoadedRef.current = true;
+      }}
     />
   );
 }

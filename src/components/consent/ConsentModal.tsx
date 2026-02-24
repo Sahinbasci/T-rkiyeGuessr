@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getConsent, setConsent, type ConsentState } from "@/utils/consent";
+import { trackEvent } from "@/utils/telemetry";
 
 interface Props {
   onClose: () => void;
@@ -81,11 +82,13 @@ export function ConsentModal({ onClose }: Props) {
 
   const handleSave = () => {
     setConsent(state);
+    trackEvent("consentModalSaved", { analytics: state.analytics, marketing: state.marketing });
     onClose();
   };
 
   const handleAcceptAll = () => {
     setConsent({ necessary: true, analytics: true, marketing: true });
+    trackEvent("consentAcceptAll");
     onClose();
   };
 
@@ -94,7 +97,7 @@ export function ConsentModal({ onClose }: Props) {
       className="fixed inset-0 z-[100000] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Cerez tercihleri"
+      aria-label="Çerez tercihleri"
     >
       {/* Backdrop */}
       <div
@@ -106,7 +109,7 @@ export function ConsentModal({ onClose }: Props) {
       <div className="relative bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="sticky top-0 bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-lg font-semibold text-gray-100">Cerez Tercihleri</h2>
+          <h2 className="text-lg font-semibold text-gray-100">Çerez Tercihleri</h2>
           <button
             type="button"
             onClick={onClose}
@@ -120,14 +123,14 @@ export function ConsentModal({ onClose }: Props) {
         {/* Body */}
         <div className="px-6 py-2">
           <p className="text-gray-400 text-sm leading-relaxed py-3">
-            Asagidaki kategorilerden hangi cerezlere izin vermek istediginizi
-            secebilirsiniz. Zorunlu cerezler sitenin calismasi icin gereklidir
-            ve kapatilamaz.
+            Aşağıdaki kategorilerden hangi çerezlere izin vermek istediğinizi
+            seçebilirsiniz. Zorunlu çerezler sitenin çalışması için gereklidir
+            ve kapatılamaz.
           </p>
 
           <ToggleRow
-            label="Zorunlu Cerezler"
-            description="Oturum yonetimi, Firebase kimlik dogrulama ve temel site islevleri icin gereklidir."
+            label="Zorunlu Çerezler"
+            description="Oturum yönetimi, Firebase kimlik doğrulama ve temel site işlevleri için gereklidir."
             checked={true}
             disabled={true}
             onChange={() => {}}
@@ -135,16 +138,16 @@ export function ConsentModal({ onClose }: Props) {
           />
 
           <ToggleRow
-            label="Analitik Cerezler"
-            description="Site kullanimini anlamamiza yardimci olur. Hangi sayfalarin ziyaret edildigini ve teknik hatalari olcmek icin kullanilir."
+            label="Analitik Çerezler"
+            description="Site kullanımını anlamamıza yardımcı olur. Hangi sayfaların ziyaret edildiğini ve teknik hataları ölçmek için kullanılır."
             checked={state.analytics}
             onChange={(v) => setState((s) => ({ ...s, analytics: v }))}
             color="bg-blue-400"
           />
 
           <ToggleRow
-            label="Reklam / Pazarlama Cerezleri"
-            description="Google AdSense araciligiyla ilgi alaniniza uygun reklamlar gostermek icin kullanilir."
+            label="Reklam / Pazarlama Çerezleri"
+            description="Google AdSense aracılığıyla ilgi alanınıza uygun reklamlar göstermek için kullanılır."
             checked={state.marketing}
             onChange={(v) => setState((s) => ({ ...s, marketing: v }))}
             color="bg-yellow-400"
@@ -158,14 +161,14 @@ export function ConsentModal({ onClose }: Props) {
             onClick={handleSave}
             className="flex-1 px-4 py-2.5 text-sm rounded-lg border border-gray-600 text-gray-200 hover:bg-gray-800 transition-colors font-medium"
           >
-            Secimlerimi Kaydet
+            Seçimlerimi Kaydet
           </button>
           <button
             type="button"
             onClick={handleAcceptAll}
             className="flex-1 px-4 py-2.5 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
           >
-            Tumunu Kabul Et
+            Tümünü Kabul Et
           </button>
         </div>
       </div>

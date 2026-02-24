@@ -47,8 +47,9 @@ export default function HakkimizdaPage() {
           <h2 className="text-xl font-semibold text-red-400">Neden Ücretsiz?</h2>
           <p className="text-gray-400 leading-relaxed">
             Coğrafya bilgisinin herkes için erişilebilir olması gerektiğine inanıyoruz.
-            TürkiyeGuessr, kayıt gerektirmez, reklam göstermez ve hiçbir özelliği ücretli değildir.
-            Tamamen açık, tamamen ücretsiz.
+            TürkiyeGuessr kayıt gerektirmez ve tüm özellikleri ücretsizdir. Platformumuzu sürdürülebilir kılmak
+            için Google AdSense aracılığıyla minimum düzeyde, kullanıcı deneyimini bozmayan reklamlar gösteriyoruz.
+            Hiçbir özellik reklam duvarı arkasında değildir.
           </p>
         </section>
 

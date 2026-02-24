@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { CookieBanner } from "@/components/consent/CookieBanner";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
+import { ConsentModeInit } from "@/components/consent/ConsentModeInit";
 import "./globals.css";
 
 const SITE_URL = "https://turkiyeguessr.xyz";
@@ -185,6 +186,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <JsonLd />
+        <ConsentModeInit />
       </head>
       <body className="antialiased">
           <a

@@ -57,6 +57,11 @@ body.game-active {
   overflow: hidden;
 }
 
+/* Hide SEO content during gameplay — keeps crawlable HTML in SSR but out of game UI */
+body.game-active .home-seo {
+  display: none;
+}
+
 /* ============================================
    GOOGLE MAPS UI CLEANUP
    ============================================ */

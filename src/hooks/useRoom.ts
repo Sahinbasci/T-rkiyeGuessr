@@ -112,6 +112,7 @@ const WATCHDOG_INTERVAL = 5000;          // 5s watchdog tick
 const WATCHDOG_BUFFER = 5;              // seconds past timeLimit before watchdog acts
 const WATCHDOG_MAX_ATTEMPTS = 8;         // BUG-008 FIX: raised from 3 → 8 for more resilience
 const WATCHDOG_LOCK_STALE_THRESHOLD = 10000; // 10s — lock older than this is considered stale
+const PROCESSING_STUCK_THRESHOLD = 15000;   // STABILITY FIX: 15s — if isProcessingRoundRef stuck longer, force reset
 /** BUG-004 FIX: Harmonized grace period for both submitGuess and handleTimeUp.
  * submitGuess accepts guesses up to roundEnd + GUESS_GRACE_PERIOD_MS.
  * handleTimeUp waits until roundEnd + GUESS_GRACE_PERIOD_MS before triggering.
@@ -229,6 +230,8 @@ export function useRoom() {
   // Watchdog refs (Effect 6)
   const watchdogIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const watchdogAttemptsRef = useRef<number>(0);
+  // STABILITY FIX: Track when isProcessingRoundRef was set — enables stuck detection
+  const processingStartTimeRef = useRef<number | null>(null);
 
   // BUG-006 FIX: gameInstanceId guard — detects restart and resets stale in-flight state
   const localGameInstanceIdRef = useRef<string | null>(null);
@@ -527,6 +530,7 @@ export function useRoom() {
         if (incomingGid && localGameInstanceIdRef.current && incomingGid !== localGameInstanceIdRef.current) {
           logger.debug(`[MP] gameInstanceId changed: ${localGameInstanceIdRef.current} → ${incomingGid} — resetting in-flight state`);
           isProcessingRoundRef.current = false;
+          processingStartTimeRef.current = null;
           processingRoundIdRef.current = null;
           watchdogAttemptsRef.current = 0;
           isMigratingHostRef.current = null;
@@ -669,10 +673,12 @@ export function useRoom() {
                     const trigger = allGuessedNow ? "postMigrationAllGuessed" : "postMigrationTimeExpired";
                     logger.debug(`[MP] Post-migration recovery: triggering roundEnd (${trigger}, elapsed=${elapsed.toFixed(1)}s, online=${freshOnline.length})`);
                     isProcessingRoundRef.current = true;
+                    processingStartTimeRef.current = Date.now();
                     try {
                       await acquireAndWriteRoundEnd(migrationRoomId, migrationRound, null, freshRoom.currentLocation, playerId, trigger);
                     } finally {
                       isProcessingRoundRef.current = false;
+                      processingStartTimeRef.current = null;
                     }
                     return true; // done
                   }
@@ -759,6 +765,7 @@ export function useRoom() {
 
           if (allGuessed && roomData.currentLocation && !isProcessingRoundRef.current) {
             isProcessingRoundRef.current = true;
+            processingStartTimeRef.current = Date.now();
             const currentRoundId = roomData.currentRound;
             processingRoundIdRef.current = currentRoundId;
 
@@ -788,6 +795,7 @@ export function useRoom() {
             if (elapsed > timeLimit + ROUND_END_RECOVERY_BUFFER) {
               logger.debug(`[MP] RoundEnd recovery: elapsed=${elapsed.toFixed(1)}s > limit=${timeLimit}s`);
               isProcessingRoundRef.current = true;
+              processingStartTimeRef.current = Date.now();
               const recoveryRoundId = roomData.currentRound;
 
               setTimeout(async () => {
@@ -834,6 +842,7 @@ export function useRoom() {
                     if (playerId === freshData.hostId && !isProcessingRoundRef.current) {
                       logger.debug(`[MP] Stuck recovery: host forcing roundEnd for round ${freshData.currentRound}`);
                       isProcessingRoundRef.current = true;
+                      processingStartTimeRef.current = Date.now();
                       try {
                         await acquireAndWriteRoundEnd(
                           freshData.id,
@@ -894,6 +903,7 @@ export function useRoom() {
   // Idempotent: safe to call multiple times. Does NOT touch Firebase — only local state.
   const hardResync = useCallback(() => {
     isProcessingRoundRef.current = false;
+    processingStartTimeRef.current = null;
     processingRoundIdRef.current = null;
     isSubmittingGuessRef.current = false;
     if (stuckRecoveryTimerRef.current) {
@@ -1065,8 +1075,21 @@ export function useRoom() {
       if (elapsed <= timeLimit + WATCHDOG_BUFFER) return;
 
       // 8. Timer expired — check if we should resolve
-      // a. Skip if already processing
-      if (isProcessingRoundRef.current) return;
+      // a. Skip if already processing — BUT detect stuck state
+      if (isProcessingRoundRef.current) {
+        const stuckDuration = processingStartTimeRef.current
+          ? Date.now() - processingStartTimeRef.current
+          : 0;
+        if (stuckDuration < PROCESSING_STUCK_THRESHOLD) {
+          return; // Still processing, wait
+        }
+        // STABILITY FIX: Processing stuck for >15s — force reset to unblock recovery
+        logger.warn(`[MP] Watchdog: isProcessingRoundRef stuck for ${stuckDuration}ms — force resetting`);
+        isProcessingRoundRef.current = false;
+        processingStartTimeRef.current = null;
+        mpCounters.watchdogFiredCount++;
+        // Fall through to attempt resolution
+      }
 
       // b. Check roundEndLock state
       let staleLockDetected = false;
@@ -1150,6 +1173,7 @@ export function useRoom() {
       // e. Attempt resolution
       trackEvent("watchdogTick", { attempt: watchdogAttemptsRef.current, elapsed: parseFloat(elapsed.toFixed(1)), status: freshRoom.status, staleLock: staleLockDetected });
       isProcessingRoundRef.current = true;
+      processingStartTimeRef.current = Date.now();
       try {
         mpCounters.watchdogFiredCount++;
         logger.debug(`[MP] Watchdog resolution: round=${expectedRound} elapsed=${elapsed.toFixed(1)}s attempt=${watchdogAttemptsRef.current} staleLock=${staleLockDetected}`);
@@ -1844,10 +1868,14 @@ export function useRoom() {
           lastActiveAt: Date.now(),
         });
 
-        // === Phase 2: Atomic counter increment ===
+        // === Phase 2: Atomic counter increment (fire-and-forget for lower latency) ===
+        // LATENCY FIX: Don't await — the counter is only used for host's allGuessed
+        // heuristic. The authoritative allGuessed check uses player.hasGuessed fields.
         const counterRef = ref(database, `rooms/${roomId}/currentGuesses`);
-        await runTransaction(counterRef, (current) => {
+        runTransaction(counterRef, (current) => {
           return (current || 0) + 1;
+        }).catch((err) => {
+          logger.warn("[MP] submitGuess counter increment failed (non-critical):", err);
         });
 
         trackEvent("submitGuess", { roundId: expectedRound, lat: guess.lat, lng: guess.lng });
@@ -1925,6 +1953,7 @@ export function useRoom() {
     logger.debug(`[MP] handleTimeUp: round=${room.currentRound} elapsed=${(elapsedMs / 1000).toFixed(1)}s serverNow=${serverNow}`);
 
     isProcessingRoundRef.current = true;
+    processingStartTimeRef.current = Date.now();
     hasHandledTimeUpRef.current = room.currentRound;
 
     try {

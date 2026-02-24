@@ -8,6 +8,8 @@ export interface ConsentState {
   necessary: boolean; // always true
   analytics: boolean;
   marketing: boolean;
+  version?: number;    // schema version for future migrations
+  updatedAt?: number;  // epoch ms — when consent was last set
 }
 
 const STORAGE_KEY = "turkiyeguessr_consent";
@@ -50,9 +52,12 @@ export function isAnalyticsAllowed(): boolean {
 
 export function setConsent(state: ConsentState): void {
   if (typeof window === "undefined") return;
-  const safe: ConsentState = { ...state, necessary: true };
+  const safe: ConsentState = { ...state, necessary: true, version: 1, updatedAt: Date.now() };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: safe }));
+
+  // Signal Google Consent Mode v2
+  import("./consentMode").then((m) => m.updateConsentMode(safe)).catch(() => {});
 }
 
 /* ─── Shorthand helpers ─── */

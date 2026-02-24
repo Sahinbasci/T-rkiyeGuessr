@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { canShowAd, AD_SLOTS, isAdPreview } from "@/config/ads";
+import { canShowInterstitial, AD_SLOTS, isAdPreview } from "@/config/ads";
+import { canShowInterstitialNow, markInterstitialShown } from "@/utils/adsFrequency";
+import { trackEvent } from "@/utils/telemetry";
 import { AdSlot } from "./AdSlot";
 
 interface Props {
@@ -16,21 +18,31 @@ interface Props {
  * Shows a countdown → auto-dismisses after `duration` seconds.
  * User can skip anytime.
  *
- * If ads can't show (no consent, env off, etc.) → calls onDismiss immediately.
+ * Guards:
+ *  - canShowAd (env + consent + roomStatus)
+ *  - canShowInterstitialNow (frequency cap: max 1/session, min 3 rounds)
+ *
+ * If any guard fails → calls onDismiss immediately.
  */
 export function AdInterstitial({ duration = 5, onDismiss }: Props) {
   const [remaining, setRemaining] = useState(duration);
 
+  const allowed = canShowInterstitial(AD_SLOTS.interstitial) && canShowInterstitialNow();
+
   // Guard — if can't show, dismiss immediately
   useEffect(() => {
-    if (!canShowAd("gameOver")) {
+    if (!allowed) {
+      trackEvent("interstitialSkipped", { reason: !canShowInterstitial(AD_SLOTS.interstitial) ? "guard" : "frequency_cap" });
       onDismiss();
+    } else {
+      markInterstitialShown();
+      trackEvent("interstitialShown");
     }
-  }, [onDismiss]);
+  }, [allowed, onDismiss]);
 
   // Countdown
   useEffect(() => {
-    if (!canShowAd("gameOver")) return;
+    if (!allowed) return;
 
     const interval = setInterval(() => {
       setRemaining((prev) => {
@@ -44,9 +56,9 @@ export function AdInterstitial({ duration = 5, onDismiss }: Props) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [onDismiss]);
+  }, [allowed, onDismiss]);
 
-  if (!canShowAd("gameOver")) return null;
+  if (!allowed) return null;
 
   return (
     <div className="fixed inset-0 z-[99998] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">

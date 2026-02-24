@@ -286,6 +286,23 @@ export function useStreetView(roomId?: string, playerId?: string) {
     visitedPanosRef.current.clear();
   }, []);
 
+  // STABILITY FIX: Sync movesUsed from Firebase on page refresh / rejoin.
+  // Without this, local movesUsedRef resets to 0 on refresh while server keeps the real count,
+  // allowing the player to navigate again until the server-side transaction catches up.
+  const syncMovesUsed = useCallback((serverMovesUsed: number) => {
+    if (serverMovesUsed > 0 && serverMovesUsed > movesUsedRef.current) {
+      movesUsedRef.current = serverMovesUsed;
+      setMovesUsed(serverMovesUsed);
+      const limit = moveLimitRef.current;
+      if (serverMovesUsed >= limit) {
+        setIsMovementLocked(true);
+        isMovementLockedRef.current = true;
+      } else if (limit - serverMovesUsed <= 1) {
+        setShowBudgetWarning(true);
+      }
+    }
+  }, []);
+
   const returnToStart = useCallback(() => {
     if (panoramaRef.current && startPanoIdRef.current) {
       // DUPLICATE GUARD: Zaten başlangıçtaysa sadece POV restore et
@@ -1445,6 +1462,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
     showBudgetWarning,
     setMoves,
     resetMoves,
+    syncMovesUsed,
     returnToStart,
     // Cache bilgisi
     visitedPanoCount: visitedPanosRef.current.size,

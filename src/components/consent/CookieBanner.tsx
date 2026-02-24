@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { hasConsented, acceptAll, rejectOptional } from "@/utils/consent";
+import { trackEvent } from "@/utils/telemetry";
 import { ConsentModal } from "./ConsentModal";
 
 export function CookieBanner() {
@@ -11,6 +12,8 @@ export function CookieBanner() {
   useEffect(() => {
     // Small delay so SSR hydration finishes
     const t = setTimeout(() => {
+      // Hydrate Google Consent Mode from stored consent (if any)
+      import("@/utils/consentMode").then((m) => m.initConsentMode()).catch(() => {});
       if (!hasConsented()) setVisible(true);
     }, 800);
     return () => clearTimeout(t);
@@ -33,11 +36,13 @@ export function CookieBanner() {
 
   const handleAcceptAll = () => {
     acceptAll();
+    trackEvent("consentAcceptAll");
     setVisible(false);
   };
 
   const handleRejectOptional = () => {
     rejectOptional();
+    trackEvent("consentRequiredOnly");
     setVisible(false);
   };
 
@@ -63,13 +68,13 @@ export function CookieBanner() {
           <div className="bg-gray-900/95 backdrop-blur-md border-t border-gray-700 px-4 py-4 sm:px-6">
             <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <p className="text-gray-300 text-sm leading-relaxed flex-1">
-                Sitemizde zorunlu cerezler, analitik ve reklam cerezleri
-                kullaniyoruz. Detayli bilgi icin{" "}
+                Sitemizde zorunlu çerezler, analitik ve reklam çerezleri
+                kullanıyoruz. Detaylı bilgi için{" "}
                 <a
                   href="/cerez-politikasi"
                   className="text-red-400 hover:underline"
                 >
-                  Cerez Politikamizi
+                  Çerez Politikamızı
                 </a>{" "}
                 inceleyebilirsiniz.
               </p>
@@ -79,7 +84,7 @@ export function CookieBanner() {
                   onClick={handleOpenPreferences}
                   className="px-4 py-2 text-sm rounded-lg border border-gray-600 text-gray-300 hover:bg-gray-800 transition-colors"
                 >
-                  Tercihleri Yonet
+                  Tercihleri Yönet
                 </button>
                 <button
                   type="button"
@@ -93,7 +98,7 @@ export function CookieBanner() {
                   onClick={handleAcceptAll}
                   className="px-4 py-2 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
                 >
-                  Tumunu Kabul Et
+                  Tümünü Kabul Et
                 </button>
               </div>
             </div>

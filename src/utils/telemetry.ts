@@ -47,7 +47,10 @@ export type TelemetryEvent =
   // Consent actions
   | "consentAcceptAll"
   | "consentRequiredOnly"
-  | "consentModalSaved";
+  | "consentModalSaved"
+  // Consent Mode v2
+  | "consentModeInit"
+  | "consentModeUpdate";
 
 // Event data structure
 interface TelemetryEventData {
@@ -137,6 +140,8 @@ export function initTelemetry(): void {
       consentAcceptAll: 0,
       consentRequiredOnly: 0,
       consentModalSaved: 0,
+      consentModeInit: 0,
+      consentModeUpdate: 0,
     },
     duplicateAttempts: {
       roundEnd: [],

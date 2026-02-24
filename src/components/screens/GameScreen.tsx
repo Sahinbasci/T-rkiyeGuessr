@@ -252,6 +252,16 @@ export function GameScreen({
         {timeRemaining === 0 && !isRoundEnd && "Süre doldu!"}
       </div>
 
+      {/* STABILITY FIX: "Computing results" indicator during grace period */}
+      {timeRemaining <= 0 && !isRoundEnd && !isGameOver && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] pointer-events-none">
+          <div className="glass rounded-xl px-6 py-3 flex items-center gap-3 bg-gray-900/80 border-gray-600/50">
+            <RefreshCw size={18} className="text-yellow-400 animate-spin" />
+            <span className="text-sm text-gray-200 font-medium">Sonuçlar hesaplanıyor...</span>
+          </div>
+        </div>
+      )}
+
       {/* Round End Modal */}
       {isRoundEnd && (
         <RoundEndModal
