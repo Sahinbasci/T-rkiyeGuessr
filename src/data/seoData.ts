@@ -71,6 +71,32 @@ function parseLocationName(name: string): { district: string; province: string }
   return { district: parts[0], province: parts[0] };
 }
 
+// ==================== POPULAR CITIES (Canonical Slug List) ====================
+
+/**
+ * Homepage + landing page'lerde gösterilen popüler şehirler.
+ * Tek kaynak: slug'lar buradan okunur, display name getCityBySlug() ile çözülür.
+ * Yeni şehir eklemeden önce panoPackages.ts'de locationName olduğunu doğrula.
+ */
+export const POPULAR_CITY_SLUGS = [
+  "fatih-istanbul",
+  "ulus-ankara",
+  "konak-izmir",
+  "kaleici-antalya",
+  "osmangazi-bursa",
+  "uzungol-trabzon",
+  "uchisar-nevsehir",
+  "bodrum-mugla",
+  "safranbolu-karabuk",
+  "artuklu-mardin",
+  "pamukkale-denizli",
+  "goreme-nevsehir",
+  "efes-izmir",
+  "fethiye-mugla",
+  "alanya-antalya",
+  "side-antalya",
+] as const;
+
 // ==================== DATA EXTRACTION ====================
 
 let _citiesCache: CityData[] | null = null;
@@ -185,4 +211,14 @@ export function getRegionBySlug(slug: string): RegionData | undefined {
 export function getUniqueProvinceCount(): number {
   const provinces = new Set(getAllCities().map((c) => c.province));
   return provinces.size;
+}
+
+/**
+ * Returns CityData for each POPULAR_CITY_SLUGS entry.
+ * Filters out any slug that no longer exists in panoPackages (drift-safe).
+ */
+export function getPopularCities(): CityData[] {
+  return POPULAR_CITY_SLUGS
+    .map((slug) => getCityBySlug(slug))
+    .filter((c): c is CityData => c !== undefined);
 }

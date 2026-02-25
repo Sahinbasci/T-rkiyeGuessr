@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { getCityBySlug, getAllRegions } from "@/data/seoData";
 
 export const metadata: Metadata = {
   title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
@@ -60,26 +61,15 @@ export default function TurkiyeHaritaOyunuPage() {
     ],
   };
 
-  const regions = [
-    { name: "Marmara Bölgesi", slug: "marmara" },
-    { name: "Ege Bölgesi", slug: "ege" },
-    { name: "Akdeniz Bölgesi", slug: "akdeniz" },
-    { name: "Karadeniz Bölgesi", slug: "karadeniz" },
-    { name: "İç Anadolu Bölgesi", slug: "ic_anadolu" },
-    { name: "Doğu Anadolu Bölgesi", slug: "dogu_anadolu" },
-    { name: "Güneydoğu Anadolu Bölgesi", slug: "guneydogu" },
-  ];
+  const regions = getAllRegions().map((r) => ({ name: r.name, slug: r.slug }));
 
-  const popularLocations = [
-    { name: "Fatih, İstanbul", slug: "fatih-istanbul" },
-    { name: "Kaleiçi, Antalya", slug: "kaleici-antalya" },
-    { name: "Göreme, Nevşehir", slug: "goreme-nevsehir" },
-    { name: "Alsancak, İzmir", slug: "alsancak-izmir" },
-    { name: "Uzungöl, Trabzon", slug: "uzungol-trabzon" },
-    { name: "Pamukkale, Denizli", slug: "pamukkale-denizli" },
-    { name: "Safranbolu, Karabük", slug: "safranbolu-karabuk" },
-    { name: "Mardin", slug: "artuklu-mardin" },
+  const LOCATION_SLUGS = [
+    "fatih-istanbul", "kaleici-antalya", "goreme-nevsehir", "alsancak-izmir",
+    "uzungol-trabzon", "pamukkale-denizli", "safranbolu-karabuk", "artuklu-mardin",
   ];
+  const popularLocations = LOCATION_SLUGS
+    .map((slug) => { const c = getCityBySlug(slug); return c ? { name: c.locationName, slug } : null; })
+    .filter((c): c is { name: string; slug: string } => c !== null);
 
   return (
     <SeoLayout

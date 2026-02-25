@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { getCityBySlug, getAllRegions } from "@/data/seoData";
 
 export const metadata: Metadata = {
   title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
@@ -25,30 +26,20 @@ export const metadata: Metadata = {
   alternates: { canonical: "/sehir-tahmin-oyunu" },
 };
 
-const POPULAR_CITIES = [
-  { slug: "fatih-istanbul", name: "İstanbul" },
-  { slug: "kaleici-antalya", name: "Antalya" },
-  { slug: "goreme-nevsehir", name: "Göreme" },
-  { slug: "konak-izmir", name: "İzmir" },
-  { slug: "bodrum-mugla", name: "Bodrum" },
-  { slug: "pamukkale-denizli", name: "Pamukkale" },
-  { slug: "alanya-antalya", name: "Alanya" },
-  { slug: "fethiye-mugla", name: "Fethiye" },
-  { slug: "uzungol-trabzon", name: "Uzungöl" },
-  { slug: "artuklu-mardin", name: "Mardin" },
-  { slug: "safranbolu-karabuk", name: "Safranbolu" },
-  { slug: "side-antalya", name: "Side" },
+const CITY_SLUGS = [
+  "fatih-istanbul", "kaleici-antalya", "goreme-nevsehir", "konak-izmir",
+  "bodrum-mugla", "pamukkale-denizli", "alanya-antalya", "fethiye-mugla",
+  "uzungol-trabzon", "artuklu-mardin", "safranbolu-karabuk", "side-antalya",
 ];
 
-const REGIONS = [
-  { slug: "marmara", name: "Marmara" },
-  { slug: "ege", name: "Ege" },
-  { slug: "akdeniz", name: "Akdeniz" },
-  { slug: "karadeniz", name: "Karadeniz" },
-  { slug: "ic_anadolu", name: "İç Anadolu" },
-  { slug: "dogu_anadolu", name: "Doğu Anadolu" },
-  { slug: "guneydogu", name: "Güneydoğu Anadolu" },
-];
+const POPULAR_CITIES = CITY_SLUGS
+  .map((slug) => { const c = getCityBySlug(slug); return c ? { slug, name: c.district } : null; })
+  .filter((c): c is { slug: string; name: string } => c !== null);
+
+const REGIONS = getAllRegions().map((r) => ({
+  slug: r.slug,
+  name: r.name.replace(" Bölgesi", ""),
+}));
 
 const jsonLd = {
   "@context": "https://schema.org",

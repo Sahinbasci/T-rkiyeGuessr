@@ -6,35 +6,17 @@
 
 import Link from "next/link";
 import { SeoFooter } from "./Footer";
+import { getPopularCities, getAllRegions } from "@/data/seoData";
 
-const REGIONS = [
-  { slug: "marmara", name: "Marmara" },
-  { slug: "ege", name: "Ege" },
-  { slug: "akdeniz", name: "Akdeniz" },
-  { slug: "karadeniz", name: "Karadeniz" },
-  { slug: "ic_anadolu", name: "İç Anadolu" },
-  { slug: "dogu_anadolu", name: "Doğu Anadolu" },
-  { slug: "guneydogu", name: "Güneydoğu Anadolu" },
-];
+const REGIONS = getAllRegions().map((r) => ({
+  slug: r.slug,
+  name: r.name.replace(" Bölgesi", ""),
+}));
 
-const POPULAR_CITIES = [
-  { slug: "fatih-istanbul", name: "İstanbul" },
-  { slug: "ulus-ankara", name: "Ankara" },
-  { slug: "konak-izmir", name: "İzmir" },
-  { slug: "kaleici-antalya", name: "Antalya" },
-  { slug: "osmangazi-bursa", name: "Bursa" },
-  { slug: "uzungol-trabzon", name: "Trabzon" },
-  { slug: "uchisar-nevsehir", name: "Uçhisar" },
-  { slug: "bodrum-mugla", name: "Bodrum" },
-  { slug: "safranbolu-karabuk", name: "Safranbolu" },
-  { slug: "artuklu-mardin", name: "Mardin" },
-  { slug: "pamukkale-denizli", name: "Pamukkale" },
-  { slug: "goreme-nevsehir", name: "Göreme" },
-  { slug: "efes-izmir", name: "Efes" },
-  { slug: "fethiye-mugla", name: "Fethiye" },
-  { slug: "alanya-antalya", name: "Alanya" },
-  { slug: "side-antalya", name: "Side" },
-];
+const POPULAR_CITIES = getPopularCities().map((c) => ({
+  slug: c.slug,
+  name: c.district,
+}));
 
 const BLOG_LINKS = [
   { slug: "turkiye-guessr-nasil-oynanir", title: "TürkiyeGuessr Nasıl Oynanır?" },
