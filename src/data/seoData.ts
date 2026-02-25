@@ -55,10 +55,10 @@ const TURKISH_CHAR_MAP: Record<string, string> = {
 
 function slugify(text: string): string {
   return text
-    .toLowerCase()
     .split("")
     .map((ch) => TURKISH_CHAR_MAP[ch] || ch)
     .join("")
+    .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
