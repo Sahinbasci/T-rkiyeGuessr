@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   title: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu",
   description:
     "TürkiyeGuessr ile Türkiye'nin 7 coğrafi bölgesini keşfet. Marmara, Ege, Akdeniz, Karadeniz, İç Anadolu, Doğu Anadolu ve Güneydoğu bölgelerinde konum tahmin et.",
+  keywords: [
+    "türkiye bölgeleri",
+    "7 coğrafi bölge",
+    "türkiye coğrafya bölgeleri",
+    "bölge harita oyunu",
+  ],
   alternates: { canonical: "/bolgeler" },
 };
 

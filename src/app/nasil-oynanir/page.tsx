@@ -1,10 +1,16 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 
 export const metadata: Metadata = {
   title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
   description:
     "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
+  keywords: [
+    "türkiye guessr nasıl oynanır",
+    "konum tahmin oyunu nasıl oynanır",
+    "geoguessr nasıl oynanır türkçe",
+  ],
   alternates: { canonical: "/nasil-oynanir" },
 };
 
@@ -93,6 +99,28 @@ export default function NasilOynanirPage() {
             <li>Camilerin minareleri, yöresel mimari ve sokak desenleri güçlü ipuçlarıdır</li>
             <li>Hareket haklarını dikkatli kullan — her adım yeni bilgi getirir ama sınırlıdır</li>
           </ul>
+        </section>
+
+        {/* İlgili İçerikler */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">İlgili İçerikler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link href="/multiplayer" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → Multiplayer Modu
+            </Link>
+            <Link href="/geoguessr-alternatifi" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → GeoGuessr Alternatifi
+            </Link>
+            <Link href="/bolgeler" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → Tüm Bölgeler
+            </Link>
+            <Link href="/blog/geoguessr-taktikleri-ipuclari" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → GeoGuessr Taktikleri ve İpuçları
+            </Link>
+            <Link href="/blog/sokaktan-sehir-nasil-taninir" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → Sokaktan Şehir Nasıl Tanınır?
+            </Link>
+          </div>
         </section>
       </article>
     </SeoLayout>

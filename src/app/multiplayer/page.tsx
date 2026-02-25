@@ -1,10 +1,17 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 
 export const metadata: Metadata = {
   title: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna",
   description:
     "TürkiyeGuessr ile arkadaşlarınla online multiplayer konum tahmin oyunu oyna. 2-8 kişi, ücretsiz, kayıt gerektirmez. Oda kur, kodu paylaş, yarış!",
+  keywords: [
+    "multiplayer harita oyunu",
+    "online multiplayer coğrafya",
+    "arkadaşlarla harita oyunu",
+    "çok oyunculu konum tahmin",
+  ],
   alternates: { canonical: "/multiplayer" },
 };
 
@@ -75,6 +82,25 @@ export default function MultiplayerPage() {
             Hemen Oyna — Ücretsiz!
           </a>
           <p className="text-gray-600 text-sm mt-3">Kayıt gerektirmez. Tarayıcını aç ve başla.</p>
+        </section>
+
+        {/* İlgili İçerikler */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">İlgili İçerikler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Link href="/nasil-oynanir" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → Nasıl Oynanır?
+            </Link>
+            <Link href="/geoguessr-alternatifi" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → GeoGuessr Alternatifi
+            </Link>
+            <Link href="/sehirler" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → 142+ Şehir Lokasyonu
+            </Link>
+            <Link href="/blog/turkiye-guessr-nasil-oynanir" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+              → TürkiyeGuessr Nasıl Oynanır? (Blog)
+            </Link>
+          </div>
         </section>
       </article>
     </SeoLayout>

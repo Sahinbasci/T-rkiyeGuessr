@@ -13,6 +13,13 @@ export const metadata: Metadata = {
     "geoguessr benzeri oyunlar",
     "türkiye konum tahmin oyunu",
     "bedava geoguessr",
+    "geotastic alternatifi",
+    "geotastic türkiye",
+    "geoguessr türkçe",
+    "geoguessr türkiye ücretsiz",
+    "geoguessr türkiye oyna",
+    "geoguessr ücretsiz oyna",
+    "neredeyim ben alternatifi",
   ],
   alternates: { canonical: "/geoguessr-alternatifi" },
 };
@@ -42,7 +49,9 @@ export default function GeoguessrAlternatifiPage() {
             GeoGuessr harika bir oyun ama aylık $3.99 abonelik ücreti, zorunlu kayıt ve
             sınırlı Türkiye içeriğiyle herkes için ideal değil. <strong className="text-gray-300">TürkiyeGuessr</strong>,
             özellikle Türkiye coğrafyasına odaklanan, tamamen ücretsiz ve Türkçe bir alternatif olarak
-            fark yaratıyor.
+            fark yaratıyor. Mobil cihazdan <strong className="text-gray-300">GeoGuessr Türkçe</strong> bir
+            deneyim arıyorsan veya &quot;Neredeyim Ben&quot; uygulamasının web alternatifini
+            istiyorsan, TürkiyeGuessr tam aradığın çözüm.
           </p>
         </section>
 

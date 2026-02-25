@@ -136,6 +136,25 @@ export default function TurkiyeGuessrNasilOynanirPost() {
             Multiplayer Rehberi →
           </Link>
         </nav>
+
+        {/* İlgili İçerikler */}
+        <section className="space-y-4 pt-4 border-t border-gray-700/30">
+          <h2 className="text-xl font-semibold text-red-400">İlgili İçerikler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Link href="/nasil-oynanir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Nasıl Oynanır?
+            </Link>
+            <Link href="/multiplayer" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Multiplayer Modu
+            </Link>
+            <Link href="/blog/geoguessr-taktikleri-ipuclari" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → GeoGuessr Taktikleri ve İpuçları
+            </Link>
+            <Link href="/blog/sokaktan-sehir-nasil-taninir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Sokaktan Şehir Nasıl Tanınır?
+            </Link>
+          </div>
+        </section>
       </article>
     </SeoLayout>
   );

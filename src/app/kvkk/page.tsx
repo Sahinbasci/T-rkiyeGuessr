@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 
 export const metadata: Metadata = {
-  title: "KVKK Aydinlatma Metni",
+  title: "KVKK Aydınlatma Metni",
   description:
-    "TurkiyeGuessr KVKK aydinlatma metni. 6698 sayili Kanun kapsaminda kisisel verilerin islenmesine iliskin bilgilendirme.",
+    "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
   alternates: { canonical: "/kvkk" },
 };
 
@@ -13,7 +13,7 @@ export default function KVKKPage() {
     <SeoLayout
       breadcrumbs={[
         { name: "Anasayfa", url: "/" },
-        { name: "KVKK Aydinlatma Metni", url: "/kvkk" },
+        { name: "KVKK Aydınlatma Metni", url: "/kvkk" },
       ]}
     >
       <article className="space-y-8 max-w-3xl">
@@ -22,25 +22,25 @@ export default function KVKKPage() {
             className="text-3xl sm:text-4xl font-bold tracking-wide"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            KVKK Aydinlatma Metni
+            KVKK Aydınlatma Metni
           </h1>
           <p className="text-gray-500 text-sm mt-2">
-            6698 Sayili Kisisel Verilerin Korunmasi Kanunu Kapsaminda Aydinlatma Metni
+            6698 Sayılı Kişisel Verilerin Korunması Kanunu Kapsamında Aydınlatma Metni
           </p>
-          <p className="text-gray-500 text-sm mt-1">Son guncelleme: 24 Subat 2026</p>
+          <p className="text-gray-500 text-sm mt-1">Son güncelleme: 24 Şubat 2026</p>
         </header>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">1. Veri Sorumlusu</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr web sitesi (&quot;Site&quot;), bireysel bir gelistirici /
-            proje yoneticisi tarafindan isletilmektedir. Kisisel verileriniz, 6698 sayili
-            Kisisel Verilerin Korunmasi Kanunu (&quot;KVKK&quot;) kapsaminda asagida
-            aciklanan amaclar dogrultusunda islenmektedir.
+            TürkiyeGuessr web sitesi (&quot;Site&quot;), bireysel bir geliştirici /
+            proje yöneticisi tarafından işletilmektedir. Kişisel verileriniz, 6698 sayılı
+            Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) kapsamında aşağıda
+            açıklanan amaçlar doğrultusunda işlenmektedir.
           </p>
           <div className="bg-gray-800/50 rounded-xl p-4">
             <p className="text-gray-400 text-sm">
-              <strong className="text-gray-300">Veri Sorumlusu Iletisim:</strong>{" "}
+              <strong className="text-gray-300">Veri Sorumlusu İletişim:</strong>{" "}
               <a href="mailto:sahinbasci2002@gmail.com" className="text-red-400 hover:underline">
                 sahinbasci2002@gmail.com
               </a>
@@ -49,9 +49,9 @@ export default function KVKKPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">2. Islenen Kisisel Veriler</h2>
+          <h2 className="text-xl font-semibold text-red-400">2. İşlenen Kişisel Veriler</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr, minimum veri toplama ilkesiyle calismaktadir:
+            TürkiyeGuessr, minimum veri toplama ilkesiyle çalışmaktadır:
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-gray-400 border-collapse">
@@ -64,23 +64,23 @@ export default function KVKKPage() {
               <tbody>
                 <tr className="border-b border-gray-800">
                   <td className="py-3 px-4">Anonim Kimlik</td>
-                  <td className="py-3 px-4">Firebase tarafindan otomatik olusturulan anonim UID</td>
+                  <td className="py-3 px-4">Firebase tarafından otomatik oluşturulan anonim UID</td>
                 </tr>
                 <tr className="border-b border-gray-800">
-                  <td className="py-3 px-4">Oyuncu Adi</td>
-                  <td className="py-3 px-4">Oyun sirasinda kullanicinin sectigi takim adi (gecici)</td>
+                  <td className="py-3 px-4">Oyuncu Adı</td>
+                  <td className="py-3 px-4">Oyun sırasında kullanıcının seçtiği takım adı (geçici)</td>
                 </tr>
                 <tr className="border-b border-gray-800">
                   <td className="py-3 px-4">Oyun Verileri</td>
-                  <td className="py-3 px-4">Skor, tahmin koordinatlari, oda kodlari (gecici)</td>
+                  <td className="py-3 px-4">Skor, tahmin koordinatları, oda kodları (geçici)</td>
                 </tr>
                 <tr className="border-b border-gray-800">
                   <td className="py-3 px-4">Teknik Veriler</td>
-                  <td className="py-3 px-4">Tarayici turu, cihaz bilgisi, IP adresi (sunucu loglari)</td>
+                  <td className="py-3 px-4">Tarayıcı türü, cihaz bilgisi, IP adresi (sunucu logları)</td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-4">Cerez Verileri</td>
-                  <td className="py-3 px-4">Oturum cerezleri, tercih cerezleri, reklam cerezleri (onayla)</td>
+                  <td className="py-3 px-4">Çerez Verileri</td>
+                  <td className="py-3 px-4">Oturum çerezleri, tercih çerezleri, reklam çerezleri (onaylı)</td>
                 </tr>
               </tbody>
             </table>
@@ -88,104 +88,104 @@ export default function KVKKPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">3. Veri Isleme Amaclari</h2>
+          <h2 className="text-xl font-semibold text-red-400">3. Veri İşleme Amaçları</h2>
           <ul className="space-y-2 text-gray-400 text-sm leading-relaxed">
-            <li>&#8226; Oyun hizmetinin sunulmasi ve teknik altyapinin isletilmesi</li>
-            <li>&#8226; Multiplayer oyun odalarinin yonetilmesi</li>
-            <li>&#8226; Site guvenliginin saglanmasi ve kotuye kullaniminin onlenmesi</li>
-            <li>&#8226; Site performansinin izlenmesi ve iyilestirilmesi</li>
-            <li>&#8226; Yasal yukumluluklerin yerine getirilmesi</li>
-            <li>&#8226; Reklam hizmetlerinin sunulmasi (onayla)</li>
+            <li>&#8226; Oyun hizmetinin sunulması ve teknik altyapının işletilmesi</li>
+            <li>&#8226; Multiplayer oyun odalarının yönetilmesi</li>
+            <li>&#8226; Site güvenliğinin sağlanması ve kötüye kullanımının önlenmesi</li>
+            <li>&#8226; Site performansının izlenmesi ve iyileştirilmesi</li>
+            <li>&#8226; Yasal yükümlülüklerin yerine getirilmesi</li>
+            <li>&#8226; Reklam hizmetlerinin sunulması (onaylı)</li>
           </ul>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">4. Hukuki Sebepler</h2>
           <p className="text-gray-400 leading-relaxed">
-            Kisisel verileriniz, KVKK&apos;nin 5. maddesi kapsaminda asagidaki hukuki
-            sebeplere dayanilarak islenmektedir:
+            Kişisel verileriniz, KVKK&apos;nın 5. maddesi kapsamında aşağıdaki hukuki
+            sebeplere dayanılarak işlenmektedir:
           </p>
           <ul className="space-y-2 text-gray-400 text-sm leading-relaxed">
-            <li>&#8226; <strong className="text-gray-300">Acik riza:</strong> Reklam ve analitik cerezleri icin (cerez banneri uzerinden)</li>
-            <li>&#8226; <strong className="text-gray-300">Sozlesmenin ifasi:</strong> Oyun hizmetinin sunulmasi icin gerekli teknik veriler</li>
-            <li>&#8226; <strong className="text-gray-300">Mesru menfaat:</strong> Site guvenligi ve performans izleme</li>
+            <li>&#8226; <strong className="text-gray-300">Açık rıza:</strong> Reklam ve analitik çerezleri için (çerez banner&apos;ı üzerinden)</li>
+            <li>&#8226; <strong className="text-gray-300">Sözleşmenin ifası:</strong> Oyun hizmetinin sunulması için gerekli teknik veriler</li>
+            <li>&#8226; <strong className="text-gray-300">Meşru menfaat:</strong> Site güvenliği ve performans izleme</li>
           </ul>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">5. Veri Aktarimi</h2>
+          <h2 className="text-xl font-semibold text-red-400">5. Veri Aktarımı</h2>
           <p className="text-gray-400 leading-relaxed">
-            Kisisel verileriniz, hizmet saglayicilarimiz araciligiyla yurt disina
-            aktarilabilir:
+            Kişisel verileriniz, hizmet sağlayıcılarımız aracılığıyla yurt dışına
+            aktarılabilir:
           </p>
           <ul className="space-y-2 text-gray-400 text-sm leading-relaxed">
             <li>&#8226; <strong className="text-gray-300">Google LLC (ABD):</strong> Firebase, Google Maps, Google AdSense hizmetleri</li>
           </ul>
           <p className="text-gray-400 leading-relaxed text-sm">
-            Google, AB-ABD Veri Gizliligi Cercevesi (EU-US Data Privacy Framework)
-            kapsaminda yeterli koruma saglamaktadir.
+            Google, AB-ABD Veri Gizliliği Çerçevesi (EU-US Data Privacy Framework)
+            kapsamında yeterli koruma sağlamaktadır.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">6. Veri Saklama Suresi</h2>
+          <h2 className="text-xl font-semibold text-red-400">6. Veri Saklama Süresi</h2>
           <ul className="space-y-2 text-gray-400 text-sm leading-relaxed">
-            <li>&#8226; Oyun verileri (skor, oda): Oyun bittikten sonra otomatik silinir (dakikalar icinde)</li>
-            <li>&#8226; Anonim UID: Tarayici oturumu suresince gecerli</li>
-            <li>&#8226; Cerez tercihleri: 1 yil</li>
-            <li>&#8226; Sunucu loglari: Maksimum 90 gun</li>
+            <li>&#8226; Oyun verileri (skor, oda): Oyun bittikten sonra otomatik silinir (dakikalar içinde)</li>
+            <li>&#8226; Anonim UID: Tarayıcı oturumu süresince geçerli</li>
+            <li>&#8226; Çerez tercihleri: 1 yıl</li>
+            <li>&#8226; Sunucu logları: Maksimum 90 gün</li>
           </ul>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">7. KVKK Kapsamindaki Haklariniz</h2>
+          <h2 className="text-xl font-semibold text-red-400">7. KVKK Kapsamındaki Haklarınız</h2>
           <p className="text-gray-400 leading-relaxed">
-            KVKK&apos;nin 11. maddesi kapsaminda asagidaki haklara sahipsiniz:
+            KVKK&apos;nın 11. maddesi kapsamında aşağıdaki haklara sahipsiniz:
           </p>
           <div className="bg-gray-800/50 rounded-xl p-5 space-y-2">
             <ul className="space-y-2 text-gray-400 text-sm">
-              <li>&#8226; Kisisel verilerinizin islenip islenmedigini ogrenme</li>
-              <li>&#8226; Islenmisse buna iliskin bilgi talep etme</li>
-              <li>&#8226; Isleme amacini ve amacina uygun kullanilip kullanilmadigini ogrenme</li>
-              <li>&#8226; Yurt icinde veya yurt disinda aktarildigi ucuncu kisileri bilme</li>
-              <li>&#8226; Eksik veya yanlis islenmisse duzeltilmesini isteme</li>
-              <li>&#8226; KVKK&apos;nin 7. maddesindeki sartlar cercevesinde silinmesini isteme</li>
-              <li>&#8226; Yapilan islemlerin aktarildigi ucuncu kisilere bildirilmesini isteme</li>
-              <li>&#8226; Islenen verilerin otomatik sistemlerle analiz edilmesi sonucu aleyhinize
-                bir sonucun ortaya cikmasina itiraz etme</li>
-              <li>&#8226; Kanuna aykiri islenmesi sebebiyle zarara ugramaniz halinde zararin
+              <li>&#8226; Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+              <li>&#8226; İşlenmişse buna ilişkin bilgi talep etme</li>
+              <li>&#8226; İşleme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+              <li>&#8226; Yurt içinde veya yurt dışında aktarıldığı üçüncü kişileri bilme</li>
+              <li>&#8226; Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
+              <li>&#8226; KVKK&apos;nın 7. maddesindeki şartlar çerçevesinde silinmesini isteme</li>
+              <li>&#8226; Yapılan işlemlerin aktarıldığı üçüncü kişilere bildirilmesini isteme</li>
+              <li>&#8226; İşlenen verilerin otomatik sistemlerle analiz edilmesi sonucu aleyhinize
+                bir sonucun ortaya çıkmasına itiraz etme</li>
+              <li>&#8226; Kanuna aykırı işlenmesi sebebiyle zarara uğramanız halinde zararın
                 giderilmesini talep etme</li>
             </ul>
           </div>
           <p className="text-gray-400 leading-relaxed text-sm">
-            Haklarinizi kullanmak icin{" "}
+            Haklarınızı kullanmak için{" "}
             <a href="mailto:sahinbasci2002@gmail.com" className="text-red-400 hover:underline">
               sahinbasci2002@gmail.com
             </a>{" "}
-            adresine e-posta konu basligina <code className="text-red-400 bg-red-500/10 px-1 rounded">[KVKK]</code> yazarak
-            basvurabilirsiniz. Basvurunuz en gec 30 gun icinde yanitlanacaktir.
+            adresine e-posta konu başlığına <code className="text-red-400 bg-red-500/10 px-1 rounded">[KVKK]</code> yazarak
+            başvurabilirsiniz. Başvurunuz en geç 30 gün içinde yanıtlanacaktır.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">8. Ilgili Politikalar</h2>
+          <h2 className="text-xl font-semibold text-red-400">8. İlgili Politikalar</h2>
           <ul className="space-y-2 text-gray-400 text-sm">
             <li>
               &#8226;{" "}
               <a href="/gizlilik-politikasi" className="text-red-400 hover:underline">
-                Gizlilik Politikasi
+                Gizlilik Politikası
               </a>
             </li>
             <li>
               &#8226;{" "}
               <a href="/cerez-politikasi" className="text-red-400 hover:underline">
-                Cerez Politikasi
+                Çerez Politikası
               </a>
             </li>
             <li>
               &#8226;{" "}
               <a href="/kullanim-kosullari" className="text-red-400 hover:underline">
-                Kullanim Kosullari
+                Kullanım Koşulları
               </a>
             </li>
           </ul>

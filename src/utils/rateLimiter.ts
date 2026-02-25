@@ -1,3 +1,5 @@
+import { logger } from "@/utils/logger";
+
 /**
  * Client-Side Rate Limiter
  * Abuse prevention için istemci tarafı rate limiting
@@ -30,7 +32,7 @@ class RateLimiter {
 
     if (entry.count >= maxRequests) {
       if (FEATURE_FLAGS.ENABLE_DEBUG_LOGS) {
-        console.warn(`Rate limit aşıldı: ${key} (${entry.count}/${maxRequests})`);
+        logger.warn(`Rate limit aşıldı: ${key} (${entry.count}/${maxRequests})`);
       }
       return false;
     }

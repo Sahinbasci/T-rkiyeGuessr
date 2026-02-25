@@ -10,6 +10,7 @@ import { LobbyScreen } from "@/components/screens/LobbyScreen";
 import { GameErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { trackError } from "@/utils/telemetry";
 import { incrementRoundsPlayed } from "@/utils/adsFrequency";
+import { logger } from "@/utils/logger";
 
 const GameScreen = dynamic(
   () => import("@/components/screens/GameScreen").then((m) => ({ default: m.GameScreen })),
@@ -338,12 +339,12 @@ export default function HomeClient() {
         if ((window as any).__mpCounters) {
           (window as any).__mpCounters.firebaseInternalAbortCount++;
         }
-        console.warn("[FirebaseInternalAbort] SDK transaction abort (safe to ignore)", error.stack?.split("\n")[1]?.trim());
+        logger.warn("[FirebaseInternalAbort] SDK transaction abort (safe to ignore)", error.stack?.split("\n")[1]?.trim());
         event.preventDefault();
         return;
       }
 
-      console.error("[UnhandledRejection]", error);
+      logger.error("[UnhandledRejection]", error);
       trackError(error instanceof Error ? error : String(error), "unhandledRejection");
       if ((window as any).__mpCounters) {
         (window as any).__mpCounters.unhandledRejectionCount++;
@@ -462,11 +463,12 @@ export default function HomeClient() {
   };
 
   // BUG-009: Skip round when pano fails — gives 0 points to all
+  // BUG-C4 FIX: Added `await` — handleTimeUp is async, lock must not release prematurely
   const handleSkipRound = async () => {
     if (!room || !isHost) return;
     await runLocked(async () => {
       // Trigger roundEnd with 0 scores, then advance
-      handleTimeUp();
+      await handleTimeUp();
     }, "skipRound");
   };
 

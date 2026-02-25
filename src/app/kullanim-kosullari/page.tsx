@@ -2,9 +2,9 @@ import { Metadata } from "next";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 
 export const metadata: Metadata = {
-  title: "Kullanim Kosullari",
+  title: "Kullanım Koşulları",
   description:
-    "TurkiyeGuessr kullanim kosullari. Hizmet sartlari, fikri mulkiyet, sorumluluk siniri ve kullanici yukumlulukleri.",
+    "TürkiyeGuessr kullanım koşulları. Hizmet şartları, fikri mülkiyet, sorumluluk sınırı ve kullanıcı yükümlülükleri.",
   alternates: { canonical: "/kullanim-kosullari" },
 };
 
@@ -13,7 +13,7 @@ export default function KullanimKosullariPage() {
     <SeoLayout
       breadcrumbs={[
         { name: "Anasayfa", url: "/" },
-        { name: "Kullanim Kosullari", url: "/kullanim-kosullari" },
+        { name: "Kullanım Koşulları", url: "/kullanim-kosullari" },
       ]}
     >
       <article className="space-y-8 max-w-3xl">
@@ -22,115 +22,115 @@ export default function KullanimKosullariPage() {
             className="text-3xl sm:text-4xl font-bold tracking-wide"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Kullanim Kosullari
+            Kullanım Koşulları
           </h1>
-          <p className="text-gray-500 text-sm mt-2">Son guncelleme: 24 Subat 2026</p>
+          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 24 Şubat 2026</p>
         </header>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">1. Genel</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr (&quot;Site&quot;), bireysel bir gelistirici tarafindan isletilen
-            ucretsiz bir web tabanli konum tahmin oyunudur. Siteyi kullanarak bu kosullari
-            kabul etmis sayilirsiniz. Kosullari kabul etmiyorsaniz siteyi kullanmayiniz.
+            TürkiyeGuessr (&quot;Site&quot;), bireysel bir geliştirici tarafından işletilen
+            ücretsiz bir web tabanlı konum tahmin oyunudur. Siteyi kullanarak bu koşulları
+            kabul etmiş sayılırsınız. Koşulları kabul etmiyorsanız siteyi kullanmayınız.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">2. Hizmet Tanimi</h2>
+          <h2 className="text-xl font-semibold text-red-400">2. Hizmet Tanımı</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr, Google Maps Street View kullanarak Turkiye icindeki konumlari
-            tahmin etmeye dayanan multiplayer bir oyun sunmaktadir. Oyun tamamen ucretsizdir
-            ve hesap olusturma gerektirmez.
+            TürkiyeGuessr, Google Maps Street View kullanarak Türkiye içindeki konumları
+            tahmin etmeye dayanan multiplayer bir oyun sunmaktadır. Oyun tamamen ücretsizdir
+            ve hesap oluşturma gerektirmez.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">3. Kullanici Yukumlulukleri</h2>
+          <h2 className="text-xl font-semibold text-red-400">3. Kullanıcı Yükümlülükleri</h2>
           <ul className="space-y-2 text-gray-400 text-sm leading-relaxed">
-            <li>&#8226; Siteyi yasal amaclarla kullanmak</li>
-            <li>&#8226; Diger oyuncularin deneyimini bozmamak (spam, taciz, hile)</li>
-            <li>&#8226; Oyuncu adi olarak kufur, nefret soylemi veya uygunsuz icerik kullanmamak</li>
-            <li>&#8226; Sitenin teknik altyapisina zarar vermemek (DDoS, bot, exploit vb.)</li>
-            <li>&#8226; Google Maps hizmet kosullarina uymak</li>
+            <li>&#8226; Siteyi yasal amaçlarla kullanmak</li>
+            <li>&#8226; Diğer oyuncuların deneyimini bozmamak (spam, taciz, hile)</li>
+            <li>&#8226; Oyuncu adı olarak küfür, nefret söylemi veya uygunsuz içerik kullanmamak</li>
+            <li>&#8226; Sitenin teknik altyapısına zarar vermemek (DDoS, bot, exploit vb.)</li>
+            <li>&#8226; Google Maps hizmet koşullarına uymak</li>
           </ul>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">4. Fikri Mulkiyet</h2>
+          <h2 className="text-xl font-semibold text-red-400">4. Fikri Mülkiyet</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr markasi, logosu, ozgun tasarimi ve yazilim kodu site yoneticisine
-            aittir. Google Maps gorselleri ve Street View icerikleri Google LLC&apos;ye ait
-            olup Google Maps Platform Kullanim Kosullari cercevesinde kullanilmaktadir.
+            TürkiyeGuessr markası, logosu, özgün tasarımı ve yazılım kodu site yöneticisine
+            aittir. Google Maps görselleri ve Street View içerikleri Google LLC&apos;ye ait
+            olup Google Maps Platform Kullanım Koşulları çerçevesinde kullanılmaktadır.
           </p>
           <p className="text-gray-400 leading-relaxed">
-            Sitedeki iceriklerin izinsiz kopyalanmasi, dagitilmasi veya ticari amacla
-            kullanilmasi yasaktir.
+            Sitedeki içeriklerin izinsiz kopyalanması, dağıtılması veya ticari amaçla
+            kullanılması yasaktır.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">5. Reklamlar</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr, Google AdSense araciligiyla reklam gosterebilir. Reklamlar
-            oyun deneyimini bozmayacak sekilde, yalnizca lobi, round sonu ve oyun sonu
-            gibi uygun anlarda gosterilir. Aktif oyun sirasinda reklam gosterilmez.
+            TürkiyeGuessr, Google AdSense aracılığıyla reklam gösterebilir. Reklamlar
+            oyun deneyimini bozmayacak şekilde, yalnızca lobi, round sonu ve oyun sonu
+            gibi uygun anlarda gösterilir. Aktif oyun sırasında reklam gösterilmez.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">6. Sorumluluk Siniri</h2>
+          <h2 className="text-xl font-semibold text-red-400">6. Sorumluluk Sınırı</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr &quot;oldugu gibi&quot; sunulmaktadir. Site yoneticisi:
+            TürkiyeGuessr &quot;olduğu gibi&quot; sunulmaktadır. Site yöneticisi:
           </p>
           <ul className="space-y-2 text-gray-400 text-sm leading-relaxed">
-            <li>&#8226; Hizmetin kesintisiz veya hatasiz olacagini garanti etmez</li>
-            <li>&#8226; Google Maps verilerin dogrulugundan sorumlu degildir</li>
-            <li>&#8226; Teknik arizalar veya ucuncu taraf hizmet kesintilerinden kaynaklanan
+            <li>&#8226; Hizmetin kesintisiz veya hatasız olacağını garanti etmez</li>
+            <li>&#8226; Google Maps verilerin doğruluğundan sorumlu değildir</li>
+            <li>&#8226; Teknik arızalar veya üçüncü taraf hizmet kesintilerinden kaynaklanan
               zararlardan sorumlu tutulamaz</li>
-            <li>&#8226; Oyuncular arasindaki etkilesimlerde araci veya taraf degildir</li>
+            <li>&#8226; Oyuncular arasındaki etkileşimlerde aracı veya taraf değildir</li>
           </ul>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">7. Hesap ve Veri</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr hesap olusturma gerektirmez. Firebase anonim kimlik dogrulama
-            kullanilir. Oyun verileri (oda kodlari, skorlar) gecici olarak saklanir ve
-            oyun bittikten sonra otomatik olarak temizlenir. Kisisel veri isleme
-            hakkinda detayli bilgi icin{" "}
+            TürkiyeGuessr hesap oluşturma gerektirmez. Firebase anonim kimlik doğrulama
+            kullanılır. Oyun verileri (oda kodları, skorlar) geçici olarak saklanır ve
+            oyun bittikten sonra otomatik olarak temizlenir. Kişisel veri işleme
+            hakkında detaylı bilgi için{" "}
             <a href="/gizlilik-politikasi" className="text-red-400 hover:underline">
-              Gizlilik Politikamizi
+              Gizlilik Politikamızı
             </a>{" "}
             inceleyebilirsiniz.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">8. Degisiklikler</h2>
+          <h2 className="text-xl font-semibold text-red-400">8. Değişiklikler</h2>
           <p className="text-gray-400 leading-relaxed">
-            Bu kosullar zaman zaman guncellenebilir. Onemli degisikliklerde site
-            uzerinden bilgilendirme yapilir. Guncelleme sonrasi siteyi kullanmaya
-            devam etmeniz, yeni kosullari kabul ettiginiz anlamina gelir.
+            Bu koşullar zaman zaman güncellenebilir. Önemli değişikliklerde site
+            üzerinden bilgilendirme yapılır. Güncelleme sonrası siteyi kullanmaya
+            devam etmeniz, yeni koşulları kabul ettiğiniz anlamına gelir.
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">9. Iletisim</h2>
+          <h2 className="text-xl font-semibold text-red-400">9. İletişim</h2>
           <p className="text-gray-400 leading-relaxed">
-            Kullanim kosullari hakkinda sorulariniz icin{" "}
+            Kullanım koşulları hakkında sorularınız için{" "}
             <a href="mailto:sahinbasci2002@gmail.com" className="text-red-400 hover:underline">
               sahinbasci2002@gmail.com
             </a>{" "}
-            adresinden bize ulasabilirsiniz.
+            adresinden bize ulaşabilirsiniz.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">10. Uygulanacak Hukuk</h2>
           <p className="text-gray-400 leading-relaxed">
-            Bu kosullar Turkiye Cumhuriyeti kanunlarina tabidir. Uyusmazliklarda
-            Turkiye mahkemeleri yetkilidir.
+            Bu koşullar Türkiye Cumhuriyeti kanunlarına tabidir. Uyuşmazlıklarda
+            Türkiye mahkemeleri yetkilidir.
           </p>
         </section>
       </article>

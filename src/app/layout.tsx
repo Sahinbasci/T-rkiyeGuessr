@@ -33,6 +33,14 @@ export const metadata: Metadata = {
     "türkiye quiz",
     "online türkiye oyunu",
     "arkadaşlarla coğrafya oyunu",
+    "geotastic alternatifi",
+    "google maps tahmin oyunu",
+    "harita bilmece",
+    "türkiyeguessr",
+    "turkiyeguessr",
+    "online harita oyunu türkiye",
+    "yer tahmin etme oyunu",
+    "neredeyim ben alternatifi",
   ],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -149,14 +157,6 @@ function JsonLd() {
       url: SITE_URL,
       inLanguage: "tr",
       publisher: { "@type": "Organization", ...orgFields },
-      potentialAction: {
-        "@type": "SearchAction",
-        target: {
-          "@type": "EntryPoint",
-          urlTemplate: `${SITE_URL}/sehirler?q={search_term_string}`,
-        },
-        "query-input": "required name=search_term_string",
-      },
     },
   ];
 

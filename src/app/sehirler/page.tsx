@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   title: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu",
   description:
     "TürkiyeGuessr'daki tüm şehir ve lokasyonları keşfet. 7 bölge, 48+ il, 142+ küratörlü konum. Ücretsiz konum tahmin oyunu.",
+  keywords: [
+    "türkiye şehirleri",
+    "türkiye lokasyonları",
+    "81 il oyunu",
+    "türkiye illeri harita",
+  ],
   alternates: { canonical: "/sehirler" },
 };
 

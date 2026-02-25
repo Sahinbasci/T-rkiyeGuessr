@@ -103,6 +103,36 @@ export default function SehirDetailPage({ params }: Props) {
     },
   };
 
+  const faqItems = [
+    {
+      q: `${city.district}, ${city.province} nerede?`,
+      a: `${city.district}, ${city.province} ili sınırları içinde, ${city.regionDisplayName} bölgesinde yer almaktadır. TürkiyeGuessr'da sokak görünümü üzerinden bu lokasyonu keşfedebilirsiniz.`,
+    },
+    {
+      q: `${city.district} nasıl tanınır?`,
+      a: city.hintTags.length > 0
+        ? `${city.district} lokasyonunda dikkat edilmesi gereken ipuçları: ${city.hintTags.map(getHintLabel).join(", ")}. Bu ipuçlarını sokak görünümünde fark ederek konumu daha kolay tahmin edebilirsiniz.`
+        : `${city.district} lokasyonunda çevredeki tabelalar, mimari yapı ve coğrafi özellikler konumu tanımanıza yardımcı olabilir.`,
+    },
+    {
+      q: `TürkiyeGuessr'da ${city.district} nasıl oynanır?`,
+      a: `TürkiyeGuessr'da oda kurarak veya mevcut bir odaya katılarak ${city.district} lokasyonunu oynayabilirsiniz. Oyun ücretsizdir ve kayıt gerektirmez.`,
+    },
+  ];
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+  };
+
   // Same-region cities for internal linking (exclude self)
   const siblingCities = region
     ? region.cities.filter((c) => c.slug !== city.slug).slice(0, 12)
@@ -120,6 +150,10 @@ export default function SehirDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(placeJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
       <article className="space-y-8 max-w-3xl">
@@ -190,6 +224,45 @@ export default function SehirDetailPage({ params }: Props) {
             </div>
           </section>
         )}
+
+        {/* İpucu Rehberi */}
+        {city.hintTags.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">
+              {city.district} İpucu Rehberi
+            </h2>
+            <p className="text-gray-400 leading-relaxed">
+              Bu lokasyonda dikkat edilecek ipuçları:{" "}
+              <strong className="text-gray-300">
+                {city.hintTags.map(getHintLabel).join(", ")}
+              </strong>.
+              Sokak görünümünde bu detaylara dikkat ederek konumu daha hızlı ve doğru tahmin edebilirsiniz.
+              Daha fazla strateji için{" "}
+              <Link href="/nasil-oynanir" className="text-red-400 hover:underline">
+                Nasıl Oynanır
+              </Link>{" "}
+              rehberimize göz atın.
+            </p>
+          </section>
+        )}
+
+        {/* FAQ */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Sıkça Sorulan Sorular</h2>
+          <div className="space-y-3">
+            {faqItems.map((item, i) => (
+              <details key={i} className="bg-gray-800/50 border border-gray-700/50 rounded-xl group">
+                <summary className="px-5 py-4 cursor-pointer text-gray-200 font-medium text-sm hover:text-white transition-colors list-none flex items-center justify-between">
+                  {item.q}
+                  <span className="text-gray-500 group-open:rotate-180 transition-transform">▾</span>
+                </summary>
+                <div className="px-5 pb-4 text-gray-400 text-sm leading-relaxed">
+                  {item.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
 
         {/* CTA */}
         <section className="text-center py-6 space-y-3">

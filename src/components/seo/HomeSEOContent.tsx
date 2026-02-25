@@ -18,22 +18,22 @@ const REGIONS = [
 ];
 
 const POPULAR_CITIES = [
-  { slug: "istanbul-fatih-istanbul", name: "İstanbul" },
-  { slug: "ankara-kalesi-ankara", name: "Ankara" },
-  { slug: "izmir-konak-izmir", name: "İzmir" },
-  { slug: "antalya-kaleici-antalya", name: "Antalya" },
-  { slug: "bursa-ulu-cami-bursa", name: "Bursa" },
-  { slug: "trabzon-uzungol-trabzon", name: "Trabzon" },
-  { slug: "kapadokya-nevsehir", name: "Kapadokya" },
+  { slug: "fatih-istanbul", name: "İstanbul" },
+  { slug: "ulus-ankara", name: "Ankara" },
+  { slug: "konak-izmir", name: "İzmir" },
+  { slug: "kaleici-antalya", name: "Antalya" },
+  { slug: "osmangazi-bursa", name: "Bursa" },
+  { slug: "uzungol-trabzon", name: "Trabzon" },
+  { slug: "uchisar-nevsehir", name: "Uçhisar" },
   { slug: "bodrum-mugla", name: "Bodrum" },
   { slug: "safranbolu-karabuk", name: "Safranbolu" },
-  { slug: "mardin-eski-sehir-mardin", name: "Mardin" },
+  { slug: "artuklu-mardin", name: "Mardin" },
   { slug: "pamukkale-denizli", name: "Pamukkale" },
   { slug: "goreme-nevsehir", name: "Göreme" },
-  { slug: "efes-antik-kenti-izmir", name: "Efes" },
+  { slug: "efes-izmir", name: "Efes" },
   { slug: "fethiye-mugla", name: "Fethiye" },
   { slug: "alanya-antalya", name: "Alanya" },
-  { slug: "kas-antalya", name: "Kaş" },
+  { slug: "side-antalya", name: "Side" },
 ];
 
 const BLOG_LINKS = [
@@ -68,6 +68,15 @@ export function HomeSEOContent() {
             </Link>
             <Link href="/geoguessr-alternatifi" className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
               GeoGuessr Alternatifi
+            </Link>
+            <Link href="/turkiye-harita-oyunu" className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
+              Türkiye Harita Oyunu
+            </Link>
+            <Link href="/sehir-tahmin-oyunu" className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
+              Şehir Tahmin Oyunu
+            </Link>
+            <Link href="/ucretsiz-cografya-oyunu" className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
+              Ücretsiz Coğrafya Oyunu
             </Link>
           </div>
         </section>

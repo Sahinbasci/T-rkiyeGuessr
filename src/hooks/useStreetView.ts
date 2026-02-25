@@ -291,6 +291,7 @@ export function useStreetView(roomId?: string, playerId?: string) {
   // allowing the player to navigate again until the server-side transaction catches up.
   const syncMovesUsed = useCallback((serverMovesUsed: number) => {
     if (serverMovesUsed > 0 && serverMovesUsed > movesUsedRef.current) {
+      trackEvent("moves_sync_from_server", { serverMovesUsed, localMovesUsed: movesUsedRef.current });
       movesUsedRef.current = serverMovesUsed;
       setMovesUsed(serverMovesUsed);
       const limit = moveLimitRef.current;

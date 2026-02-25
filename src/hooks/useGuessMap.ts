@@ -13,6 +13,7 @@ import { Coordinates } from "@/types";
 import { MAPS_CONFIG, TURKEY_MAP_RESTRICTION } from "@/config/maps";
 import { getTurkeyCenter, getTurkeyZoom, isLikelyInTurkey, trackEvent } from "@/utils";
 import { isValidTurkeyCoordinate } from "@/config/production";
+import { logger } from "@/utils/logger";
 
 export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => void) {
   const [selectedLocation, setSelectedLocation] = useState<Coordinates | null>(null);
@@ -81,7 +82,7 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
 
     // Google Maps API kontrolü
     if (typeof google === "undefined" || !google.maps || !google.maps.Map) {
-      console.warn("Google Maps API henüz yüklenmedi");
+      logger.warn("Google Maps API henüz yüklenmedi");
       return;
     }
 

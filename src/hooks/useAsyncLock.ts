@@ -17,6 +17,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
+import { logger } from "@/utils/logger";
 
 interface UseAsyncLockReturn {
   /** Whether any action is currently locked/pending */
@@ -45,7 +46,7 @@ export function useAsyncLock(): UseAsyncLockReturn {
   ): Promise<T | undefined> => {
     // Synchronous check via ref (immune to stale closures)
     if (lockedKeysRef.current.has(key)) {
-      console.log(`[AsyncLock] Action "${key}" blocked — already in flight`);
+      logger.debug(`[AsyncLock] Action "${key}" blocked — already in flight`);
       return undefined;
     }
 

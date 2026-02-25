@@ -120,6 +120,25 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
             Coğrafya Quiz →
           </Link>
         </nav>
+
+        {/* İlgili İçerikler */}
+        <section className="space-y-4 pt-4 border-t border-gray-700/30">
+          <h2 className="text-xl font-semibold text-red-400">İlgili İçerikler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Link href="/sehirler" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Tüm Şehirler
+            </Link>
+            <Link href="/bolgeler" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Tüm Bölgeler
+            </Link>
+            <Link href="/turkiye-harita-oyunu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Türkiye Harita Oyunu
+            </Link>
+            <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Plaka Kodlarından İl Tahmini
+            </Link>
+          </div>
+        </section>
       </article>
     </SeoLayout>
   );

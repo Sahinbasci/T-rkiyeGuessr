@@ -215,6 +215,9 @@ export function useRoom() {
   // Stuck-client recovery ref
   const stuckRecoveryTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // BUG-13 FIX: Track time-expired recovery setTimeout for cleanup on effect teardown
+  const timeExpiredRecoveryRef = useRef<NodeJS.Timeout | null>(null);
+
   // Presence refs
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -242,6 +245,9 @@ export function useRoom() {
   const clientResyncSafetyRef = useRef<NodeJS.Timeout | null>(null);
   const clientGuessTimestampRef = useRef<number | null>(null);
 
+  // HARDENING: Track allGuessed setTimeout for cleanup on effect teardown (RC-3 fix)
+  const allGuessedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Mirror refs for heartbeat (avoids stale closure in Effect 1)
   const roomStatusRef = useRef<string | null>(null);
   const roomHostIdRef = useRef<string | null>(null);
@@ -253,6 +259,46 @@ export function useRoom() {
     roomHostIdRef.current = room?.hostId || null;
     roomIdRef.current = room?.id || null;
   }, [room?.status, room?.hostId, room?.id]);
+
+  // ==================== PROCESSING HELPERS (A1 HARDENING) ====================
+  // Centralized management of isProcessingRoundRef + processingStartTimeRef.
+  // Prevents double-start, ensures consistent cleanup, adds debug tracing.
+
+  function startProcessing(reason: string, roundId?: number): boolean {
+    if (isProcessingRoundRef.current) {
+      logger.debug(`[MP] startProcessing: already active, skipping (reason=${reason})`);
+      return false;
+    }
+    isProcessingRoundRef.current = true;
+    processingStartTimeRef.current = Date.now();
+    if (roundId !== undefined) {
+      processingRoundIdRef.current = roundId;
+    }
+    trackEvent("processing_start", { reason, roundId });
+    logger.debug(`[MP] startProcessing: reason=${reason} roundId=${roundId ?? 'n/a'}`);
+    return true;
+  }
+
+  function stopProcessing(reason: string): void {
+    const duration = processingStartTimeRef.current
+      ? Date.now() - processingStartTimeRef.current
+      : 0;
+    isProcessingRoundRef.current = false;
+    processingStartTimeRef.current = null;
+    trackEvent("processing_stop", { reason, durationMs: duration });
+    logger.debug(`[MP] stopProcessing: reason=${reason} duration=${duration}ms`);
+  }
+
+  function forceResetProcessing(reason: string): void {
+    const wasProcessing = isProcessingRoundRef.current;
+    isProcessingRoundRef.current = false;
+    processingStartTimeRef.current = null;
+    processingRoundIdRef.current = null;
+    if (wasProcessing) {
+      trackEvent("processing_force_reset", { reason });
+      logger.warn(`[MP] forceResetProcessing: was stuck, forced reset (reason=${reason})`);
+    }
+  }
 
   // ==================== NOTIFICATION HELPERS ====================
 
@@ -529,11 +575,11 @@ export function useRoom() {
         const incomingGid = roomData.gameInstanceId || null;
         if (incomingGid && localGameInstanceIdRef.current && incomingGid !== localGameInstanceIdRef.current) {
           logger.debug(`[MP] gameInstanceId changed: ${localGameInstanceIdRef.current} → ${incomingGid} — resetting in-flight state`);
-          isProcessingRoundRef.current = false;
-          processingStartTimeRef.current = null;
-          processingRoundIdRef.current = null;
+          forceResetProcessing("gameInstanceId_change");
           watchdogAttemptsRef.current = 0;
           isMigratingHostRef.current = null;
+          // RC-6 FIX: Reset handleTimeUp guard so same roundId in new game doesn't skip
+          hasHandledTimeUpRef.current = null;
         }
         if (incomingGid) localGameInstanceIdRef.current = incomingGid;
 
@@ -554,6 +600,7 @@ export function useRoom() {
             if (leftPlayerId !== playerId && !notifiedLeftRef.current.has(leftPlayerId)) {
               const leftPlayerName = previousPlayerNamesRef.current.get(leftPlayerId) || "Bir oyuncu";
               addNotification("player_left", `${leftPlayerName} oyundan ayrıldı`, leftPlayerName);
+              trackEvent("player_disconnected", { disconnectedPlayerId: leftPlayerId, playerName: leftPlayerName });
               notifiedLeftRef.current.add(leftPlayerId);
               const leftTimerId = setTimeout(() => {
                 notificationTimerIdsRef.current.delete(leftTimerId);
@@ -571,6 +618,7 @@ export function useRoom() {
             if (joinedPlayerId !== playerId && !notifiedJoinedRef.current.has(joinedPlayerId)) {
               const joinedPlayerName = currentPlayerNames[joinedPlayerId] || "Bir oyuncu";
               addNotification("player_joined", `${joinedPlayerName} odaya katıldı`, joinedPlayerName);
+              trackEvent("player_reconnected", { reconnectedPlayerId: joinedPlayerId, playerName: joinedPlayerName });
               notifiedJoinedRef.current.add(joinedPlayerId);
               const joinTimerId = setTimeout(() => {
                 notificationTimerIdsRef.current.delete(joinTimerId);
@@ -630,9 +678,12 @@ export function useRoom() {
                 };
               });
               migrationCommitted = true;
+              trackEvent("host_migrated", { oldHost: roomData.hostId, newHost: newHost.id, round: roomData.currentRound });
               logger.debug(`[MP] Host migration committed: ${newHost.id.substring(0, 8)} is now host`);
             } catch (err) {
               logger.error("[MP] Host migration failed:", err);
+              // RC-2 FIX: Clear migration guard on transaction failure so retry is possible
+              isMigratingHostRef.current = null;
             }
 
             // POST-MIGRATION RECOVERY: After becoming host, start a periodic
@@ -764,15 +815,17 @@ export function useRoom() {
           const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
 
           if (allGuessed && roomData.currentLocation && !isProcessingRoundRef.current) {
-            isProcessingRoundRef.current = true;
-            processingStartTimeRef.current = Date.now();
             const currentRoundId = roomData.currentRound;
-            processingRoundIdRef.current = currentRoundId;
+            trackEvent("all_guessed_detected", { round: currentRoundId, onlineCount: onlinePlayers.length });
+            if (!startProcessing("allGuessed", currentRoundId)) return;
 
             const snapshotPlayerIds = Object.keys(roomData.players);
             const snapshotLocation = { ...roomData.currentLocation };
 
-            setTimeout(async () => {
+            // RC-3 FIX: Track timeout in ref for cleanup on effect teardown
+            if (allGuessedTimeoutRef.current) clearTimeout(allGuessedTimeoutRef.current);
+            allGuessedTimeoutRef.current = setTimeout(async () => {
+              allGuessedTimeoutRef.current = null;
               try {
                 if (processingRoundIdRef.current !== currentRoundId) return;
 
@@ -781,7 +834,7 @@ export function useRoom() {
                 logger.error("[MP] allGuessed roundEnd error:", err);
                 trackError(err instanceof Error ? err : String(err), "autoRoundEnd");
               } finally {
-                isProcessingRoundRef.current = false;
+                stopProcessing("allGuessed_complete");
                 processingRoundIdRef.current = null;
               }
             }, 100);
@@ -794,19 +847,21 @@ export function useRoom() {
 
             if (elapsed > timeLimit + ROUND_END_RECOVERY_BUFFER) {
               logger.debug(`[MP] RoundEnd recovery: elapsed=${elapsed.toFixed(1)}s > limit=${timeLimit}s`);
-              isProcessingRoundRef.current = true;
-              processingStartTimeRef.current = Date.now();
               const recoveryRoundId = roomData.currentRound;
-
-              setTimeout(async () => {
-                try {
-                  await acquireAndWriteRoundEnd(roomData.id, recoveryRoundId, null, roomData.currentLocation, playerId, "recovery");
-                } catch (err) {
-                  logger.error("[MP] RoundEnd recovery error:", err);
-                } finally {
-                  isProcessingRoundRef.current = false;
-                }
-              }, 200);
+              if (startProcessing("recovery", recoveryRoundId)) {
+                // BUG-13 FIX: Track setTimeout in ref for cleanup on effect teardown
+                if (timeExpiredRecoveryRef.current) clearTimeout(timeExpiredRecoveryRef.current);
+                timeExpiredRecoveryRef.current = setTimeout(async () => {
+                  timeExpiredRecoveryRef.current = null;
+                  try {
+                    await acquireAndWriteRoundEnd(roomData.id, recoveryRoundId, null, roomData.currentLocation, playerId, "recovery");
+                  } catch (err) {
+                    logger.error("[MP] RoundEnd recovery error:", err);
+                  } finally {
+                    stopProcessing("recovery_complete");
+                  }
+                }, 200);
+              }
             }
           }
         }
@@ -839,21 +894,21 @@ export function useRoom() {
                   } else if (freshData) {
                     logger.debug(`[MP] Stuck recovery: Firebase still shows playing (round=${freshData.currentRound})`);
                     // If we're host and room is truly stuck, try to trigger roundEnd
-                    if (playerId === freshData.hostId && !isProcessingRoundRef.current) {
-                      logger.debug(`[MP] Stuck recovery: host forcing roundEnd for round ${freshData.currentRound}`);
-                      isProcessingRoundRef.current = true;
-                      processingStartTimeRef.current = Date.now();
-                      try {
-                        await acquireAndWriteRoundEnd(
-                          freshData.id,
-                          freshData.currentRound,
-                          null,
-                          freshData.currentLocation,
-                          playerId,
-                          "stuckRecovery"
-                        );
-                      } finally {
-                        isProcessingRoundRef.current = false;
+                    if (playerId === freshData.hostId) {
+                      const stuckRoundId = freshData.currentRound;
+                      if (startProcessing("stuckRecovery", stuckRoundId)) {
+                        try {
+                          await acquireAndWriteRoundEnd(
+                            freshData.id,
+                            stuckRoundId,
+                            null,
+                            freshData.currentLocation,
+                            playerId,
+                            "stuckRecovery"
+                          );
+                        } finally {
+                          stopProcessing("stuckRecovery_complete");
+                        }
                       }
                     }
                   }
@@ -880,9 +935,19 @@ export function useRoom() {
     return () => {
       unsubscribe();
       trackListener("unsubscribe");
+      // RC-3 FIX: Clean up allGuessed timeout on effect teardown
+      if (allGuessedTimeoutRef.current) {
+        clearTimeout(allGuessedTimeoutRef.current);
+        allGuessedTimeoutRef.current = null;
+      }
       if (stuckRecoveryTimerRef.current) {
         clearTimeout(stuckRecoveryTimerRef.current);
         stuckRecoveryTimerRef.current = null;
+      }
+      // BUG-13 FIX: Clean up time-expired recovery timeout
+      if (timeExpiredRecoveryRef.current) {
+        clearTimeout(timeExpiredRecoveryRef.current);
+        timeExpiredRecoveryRef.current = null;
       }
       if (postMigrationTimeoutRef.current) {
         clearTimeout(postMigrationTimeoutRef.current);
@@ -902,16 +967,21 @@ export function useRoom() {
   // BUG-1 FIX: hardResync — reset local locks/guards so UI can rebuild from fresh room state.
   // Idempotent: safe to call multiple times. Does NOT touch Firebase — only local state.
   const hardResync = useCallback(() => {
-    isProcessingRoundRef.current = false;
-    processingStartTimeRef.current = null;
-    processingRoundIdRef.current = null;
+    forceResetProcessing("hardResync");
     isSubmittingGuessRef.current = false;
+    // RC-6 FIX: Reset handleTimeUp guard so fresh room state can re-trigger
+    hasHandledTimeUpRef.current = null;
     if (stuckRecoveryTimerRef.current) {
       clearTimeout(stuckRecoveryTimerRef.current);
       stuckRecoveryTimerRef.current = null;
     }
+    // RC-3 FIX: Clean up allGuessed timeout
+    if (allGuessedTimeoutRef.current) {
+      clearTimeout(allGuessedTimeoutRef.current);
+      allGuessedTimeoutRef.current = null;
+    }
     clientGuessTimestampRef.current = null;
-    logger.debug("[MP] hardResync: local locks/guards reset");
+    logger.debug("[MP] hardResync: all local locks/guards reset via forceResetProcessing");
   }, []);
 
   // ==================== EFFECT 7: CLIENT RESYNC WATCHDOG ====================
@@ -944,21 +1014,26 @@ export function useRoom() {
       clientGuessTimestampRef.current = Date.now();
     }
 
-    // Don't start polling until at least 2s after guess
-    const elapsed = Date.now() - clientGuessTimestampRef.current;
-    if (elapsed < 2000) return;
+    // BUG-27 FIX: Removed `elapsed < 2000` early return that prevented polling from ever
+    // starting (effect dependencies don't re-trigger on time passing). The 2s delay is
+    // already handled by the setTimeout on line below (clientResyncDelayRef).
 
     const roomId = room.id;
     const expectedRound = room.currentRound;
-    const roomRef = ref(database, `rooms/${roomId}`);
+    const roomRefLocal = ref(database, `rooms/${roomId}`);
+
+    // BUG-9 FIX: Track mounted state to prevent interval leak when cleanup races with timeout
+    let isMounted = true;
 
     // Start polling with 2s delay, then every 2s
     clientResyncDelayRef.current = setTimeout(() => {
+      if (!isMounted) return; // BUG-9 FIX: Effect already cleaned up
       clientResyncDelayRef.current = null;
 
       clientResyncIntervalRef.current = setInterval(async () => {
+        if (!isMounted) return; // BUG-9 FIX: Effect already cleaned up
         try {
-          const freshSnap = await get(roomRef);
+          const freshSnap = await get(roomRefLocal);
           const freshRoom = freshSnap.val() as Room | null;
 
           if (!freshRoom) return; // Room deleted — Effect 5's null handler deals with it
@@ -966,6 +1041,7 @@ export function useRoom() {
           // Case 1: Status changed (roundEnd, gameOver, waiting)
           if (freshRoom.status !== "playing") {
             logger.debug(`[MP] ClientResync: status=${freshRoom.status} (was playing), forcing local update`);
+            trackEvent("resync_applied", { trigger: "status_change", newStatus: freshRoom.status, round: expectedRound });
             hardResync();
             setRoom(freshRoom);
             return;
@@ -974,6 +1050,7 @@ export function useRoom() {
           // Case 2: Round changed (we missed a round transition)
           if (freshRoom.currentRound !== expectedRound) {
             logger.debug(`[MP] ClientResync: round=${freshRoom.currentRound} (expected ${expectedRound}), forcing local update`);
+            trackEvent("resync_applied", { trigger: "round_mismatch", dbRound: freshRoom.currentRound, expected: expectedRound });
             hardResync();
             setRoom(freshRoom);
             return;
@@ -982,6 +1059,7 @@ export function useRoom() {
           // Case 3: roundResults appeared but status still "playing" (edge case)
           if (freshRoom.roundResults && Array.isArray(freshRoom.roundResults) && freshRoom.roundResults.length > 0) {
             logger.debug(`[MP] ClientResync: roundResults present but status still playing, forcing local update`);
+            trackEvent("resync_applied", { trigger: "roundResults_leak", round: expectedRound });
             hardResync();
             setRoom(freshRoom);
             return;
@@ -1003,6 +1081,7 @@ export function useRoom() {
     }, 15000);
 
     return () => {
+      isMounted = false; // BUG-9 FIX: Signal to pending callbacks
       if (clientResyncDelayRef.current) {
         clearTimeout(clientResyncDelayRef.current);
         clientResyncDelayRef.current = null;
@@ -1084,9 +1163,7 @@ export function useRoom() {
           return; // Still processing, wait
         }
         // STABILITY FIX: Processing stuck for >15s — force reset to unblock recovery
-        logger.warn(`[MP] Watchdog: isProcessingRoundRef stuck for ${stuckDuration}ms — force resetting`);
-        isProcessingRoundRef.current = false;
-        processingStartTimeRef.current = null;
+        forceResetProcessing(`watchdog_stuck_${stuckDuration}ms`);
         mpCounters.watchdogFiredCount++;
         // Fall through to attempt resolution
       }
@@ -1172,8 +1249,7 @@ export function useRoom() {
 
       // e. Attempt resolution
       trackEvent("watchdogTick", { attempt: watchdogAttemptsRef.current, elapsed: parseFloat(elapsed.toFixed(1)), status: freshRoom.status, staleLock: staleLockDetected });
-      isProcessingRoundRef.current = true;
-      processingStartTimeRef.current = Date.now();
+      if (!startProcessing("watchdog", expectedRound)) return;
       try {
         mpCounters.watchdogFiredCount++;
         logger.debug(`[MP] Watchdog resolution: round=${expectedRound} elapsed=${elapsed.toFixed(1)}s attempt=${watchdogAttemptsRef.current} staleLock=${staleLockDetected}`);
@@ -1182,7 +1258,7 @@ export function useRoom() {
         logger.error("[MP] Watchdog acquireAndWriteRoundEnd error:", err);
         trackError(err instanceof Error ? err : String(err), "watchdogResolution");
       } finally {
-        isProcessingRoundRef.current = false;
+        stopProcessing("watchdog_complete");
       }
     }, WATCHDOG_INTERVAL);
 
@@ -1894,27 +1970,39 @@ export function useRoom() {
   );
 
   // --- Check All Guessed (explicit call) ---
+  // BUG-14 FIX: Added try/catch + processing guard to prevent overlap with auto-detection
   const checkAllGuessed = useCallback(async () => {
     if (!room || playerId !== room.hostId) return;
+    if (isProcessingRoundRef.current) return;
 
-    const latestSnap = await get(ref(database, `rooms/${room.id}`));
-    const latestRoom = latestSnap.val() as Room | null;
+    try {
+      const latestSnap = await get(ref(database, `rooms/${room.id}`));
+      const latestRoom = latestSnap.val() as Room | null;
 
-    if (!latestRoom?.players || latestRoom.status !== "playing") return;
+      if (!latestRoom?.players || latestRoom.status !== "playing") return;
 
-    const playerList = Object.values(latestRoom.players);
-    const onlinePlayers = playerList.filter((p) => !p.status || p.status === 'online');
-    const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
+      const playerList = Object.values(latestRoom.players);
+      const onlinePlayers = playerList.filter((p) => !p.status || p.status === 'online');
+      const allGuessed = onlinePlayers.length > 0 && onlinePlayers.every((p) => p.hasGuessed);
 
-    if (allGuessed && latestRoom.currentLocation) {
-      await acquireAndWriteRoundEnd(
-        latestRoom.id,
-        latestRoom.currentRound,
-        Object.keys(latestRoom.players),
-        latestRoom.currentLocation,
-        playerId,
-        "checkAllGuessed"
-      );
+      if (allGuessed && latestRoom.currentLocation) {
+        if (!startProcessing("checkAllGuessed", latestRoom.currentRound)) return;
+        try {
+          await acquireAndWriteRoundEnd(
+            latestRoom.id,
+            latestRoom.currentRound,
+            Object.keys(latestRoom.players),
+            latestRoom.currentLocation,
+            playerId,
+            "checkAllGuessed"
+          );
+        } finally {
+          stopProcessing("checkAllGuessed_complete");
+        }
+      }
+    } catch (err) {
+      logger.error("[MP] checkAllGuessed error:", err);
+      trackError(err instanceof Error ? err : String(err), "checkAllGuessed");
     }
   }, [room, playerId]);
 
@@ -1950,16 +2038,19 @@ export function useRoom() {
     }
 
     mpCounters.roundEndLockAcquireAttempts++;
-    logger.debug(`[MP] handleTimeUp: round=${room.currentRound} elapsed=${(elapsedMs / 1000).toFixed(1)}s serverNow=${serverNow}`);
+    const timeUpRoundId = room.currentRound;
+    logger.debug(`[MP] handleTimeUp: round=${timeUpRoundId} elapsed=${(elapsedMs / 1000).toFixed(1)}s serverNow=${serverNow}`);
 
-    isProcessingRoundRef.current = true;
-    processingStartTimeRef.current = Date.now();
-    hasHandledTimeUpRef.current = room.currentRound;
+    if (!startProcessing("timeUp", timeUpRoundId)) {
+      trackDuplicateAttempt("timeUp", timeUpRoundId);
+      return;
+    }
+    hasHandledTimeUpRef.current = timeUpRoundId;
 
     try {
       await acquireAndWriteRoundEnd(
         room.id,
-        room.currentRound,
+        timeUpRoundId,
         null, // use all current players
         room.currentLocation,
         playerId,
@@ -1970,7 +2061,7 @@ export function useRoom() {
       logger.error("[MP] handleTimeUp error:", err);
       trackError(err instanceof Error ? err : String(err), "handleTimeUp");
     } finally {
-      isProcessingRoundRef.current = false;
+      stopProcessing("timeUp_complete");
     }
   }, [room, playerId]);
 

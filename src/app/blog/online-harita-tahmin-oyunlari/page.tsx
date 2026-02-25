@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "En İyi Online Harita Tahmin Oyunları (2026)",
   description:
     "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
-  keywords: ["online harita tahmin oyunları", "geoguessr alternatifleri", "ücretsiz konum tahmin oyunu", "harita oyunları"],
+  keywords: ["online harita tahmin oyunları", "geoguessr alternatifleri", "ücretsiz konum tahmin oyunu", "harita oyunları", "worldguessr türkiye", "openguessr türkiye"],
   alternates: { canonical: "/blog/online-harita-tahmin-oyunlari" },
 };
 
@@ -138,6 +138,22 @@ export default function OnlineHaritaTahminOyunlariPost() {
             Taktikler ve İpuçları →
           </Link>
         </nav>
+
+        {/* İlgili İçerikler */}
+        <section className="space-y-4 pt-4 border-t border-gray-700/30">
+          <h2 className="text-xl font-semibold text-red-400">İlgili İçerikler</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <Link href="/geoguessr-alternatifi" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → GeoGuessr Alternatifi
+            </Link>
+            <Link href="/ucretsiz-cografya-oyunu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Ücretsiz Coğrafya Oyunu
+            </Link>
+            <Link href="/blog/geoguessr-vs-turkiyeguessr" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → GeoGuessr vs TürkiyeGuessr
+            </Link>
+          </div>
+        </section>
       </article>
     </SeoLayout>
   );

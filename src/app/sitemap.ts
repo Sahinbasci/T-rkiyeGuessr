@@ -22,6 +22,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/cerez-politikasi`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
     { url: `${BASE}/kullanim-kosullari`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
     { url: `${BASE}/kvkk`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${BASE}/turkiye-harita-oyunu`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE}/sehir-tahmin-oyunu`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE}/ucretsiz-cografya-oyunu`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
   ];
 
   const blogPages: MetadataRoute.Sitemap = BLOG_POSTS.map((p) => ({

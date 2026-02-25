@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "Hakkımızda",
   description:
     "TürkiyeGuessr, Türkiye'ye odaklanan ücretsiz multiplayer konum tahmin oyunudur. Misyonumuz, Türk coğrafyasını eğlenceli ve eğitici bir şekilde keşfettirmek.",
+  keywords: [
+    "türkiyeguessr hakkında",
+    "konum tahmin oyunu",
+    "türkiye coğrafya oyunu",
+  ],
   alternates: { canonical: "/hakkimizda" },
 };
 

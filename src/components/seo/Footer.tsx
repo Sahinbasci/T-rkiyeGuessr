@@ -18,6 +18,9 @@ export function SeoFooter() {
             <li><Link href="/bolgeler" className="hover:text-white transition-colors">Bölgeler</Link></li>
             <li><Link href="/sehirler" className="hover:text-white transition-colors">Şehirler</Link></li>
             <li><Link href="/geoguessr-alternatifi" className="hover:text-white transition-colors">GeoGuessr Alternatifi</Link></li>
+            <li><Link href="/turkiye-harita-oyunu" className="hover:text-white transition-colors">Türkiye Harita Oyunu</Link></li>
+            <li><Link href="/sehir-tahmin-oyunu" className="hover:text-white transition-colors">Şehir Tahmin Oyunu</Link></li>
+            <li><Link href="/ucretsiz-cografya-oyunu" className="hover:text-white transition-colors">Ücretsiz Coğrafya Oyunu</Link></li>
           </ul>
         </div>
         <div>

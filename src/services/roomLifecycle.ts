@@ -6,6 +6,7 @@
 import { database, ref, remove, get } from "@/config/firebase";
 import { Room } from "@/types";
 import { ROOM_LIFECYCLE, FEATURE_FLAGS } from "@/config/production";
+import { logger } from "@/utils/logger";
 
 // Aktif cleanup timer'ları
 const cleanupTimers: Map<string, NodeJS.Timeout> = new Map();
@@ -22,7 +23,7 @@ function startCleanupTimer(roomId: string, ttlMs: number, onCleanup: () => void)
 
   const timer = setTimeout(() => {
     if (FEATURE_FLAGS.ENABLE_DEBUG_LOGS) {
-      console.log(`Room cleanup triggered: ${roomId}`);
+      logger.debug(`Room cleanup triggered: ${roomId}`);
     }
     onCleanup();
     cleanupTimers.delete(roomId);
@@ -54,14 +55,14 @@ async function checkAndCleanupEmptyRoom(roomId: string): Promise<boolean> {
     if (playerCount === 0) {
       await remove(roomRef);
       if (FEATURE_FLAGS.ENABLE_DEBUG_LOGS) {
-        console.log(`Empty room deleted: ${roomId}`);
+        logger.debug(`Empty room deleted: ${roomId}`);
       }
       return true;
     }
 
     return false;
   } catch (error) {
-    console.error("Room cleanup error:", error);
+    logger.error("Room cleanup error:", error);
     return false;
   }
 }
@@ -75,10 +76,10 @@ function cleanupFinishedGame(roomId: string): void {
         const roomRef = ref(database, `rooms/${roomId}`);
         await remove(roomRef);
         if (FEATURE_FLAGS.ENABLE_DEBUG_LOGS) {
-          console.log(`Finished game room deleted: ${roomId}`);
+          logger.debug(`Finished game room deleted: ${roomId}`);
         }
       } catch (error) {
-        console.error("Finished game cleanup error:", error);
+        logger.error("Finished game cleanup error:", error);
       }
     }
   );

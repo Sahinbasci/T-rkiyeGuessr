@@ -1906,3 +1906,446 @@ describe("stress & concurrency scenarios", () => {
     expect(result.reason).toBe("already_guessed");
   });
 });
+
+// ==================== MULTIPLAYER BUG-FIX EDGE CASES ====================
+// Tests verifying specific bug fixes applied during the multiplayer audit.
+
+describe("BUG-FIX Edge Cases: Multiplayer Race Conditions", () => {
+
+  // === BUG-27: Client resync polling must start after guess ===
+  describe("BUG-27: Client resync polling conditions", () => {
+    test("hasGuessed=true triggers resync eligibility", () => {
+      const players = makePlayers(
+        { id: "host", hasGuessed: true, status: "online" },
+        { id: "p1", hasGuessed: true, status: "online" }
+      );
+      // When all online players have guessed, polling should be able to detect roundEnd
+      expect(haveAllPlayersGuessed(players)).toBe(true);
+    });
+
+    test("partial guess state: not all guessed yet", () => {
+      const players = makePlayers(
+        { id: "host", hasGuessed: true, status: "online" },
+        { id: "p1", hasGuessed: false, status: "online" }
+      );
+      // Client resync shouldn't trigger early roundEnd detection
+      expect(haveAllPlayersGuessed(players)).toBe(false);
+    });
+
+    test("disconnected player excluded from allGuessed check", () => {
+      const players = makePlayers(
+        { id: "host", hasGuessed: true, status: "online" },
+        { id: "p1", hasGuessed: false, status: "disconnected" }
+      );
+      // Online players have all guessed; disconnected player ignored
+      const online = filterOnlinePlayers(players);
+      expect(online.length).toBe(1);
+      expect(online.every(p => p.hasGuessed)).toBe(true);
+    });
+  });
+
+  // === BUG-14: checkAllGuessed processing guard ===
+  describe("BUG-14: Processing guard prevents overlap", () => {
+    test("validateTimeUp rejects when already processing", () => {
+      const result = validateTimeUp(
+        Date.now() - 100000, // roundStartTime
+        90,                   // timeLimit
+        Date.now(),          // serverNow
+        1,                    // currentRound
+        null,                 // alreadyHandledRound
+        true                  // isProcessing = TRUE
+      );
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe("already_processing");
+    });
+
+    test("validateTimeUp accepts when not processing and time expired", () => {
+      const now = Date.now();
+      const result = validateTimeUp(
+        now - 100000, // roundStartTime (100s ago)
+        90,           // timeLimit (90s)
+        now,          // serverNow
+        2,            // currentRound
+        null,         // alreadyHandledRound
+        false         // isProcessing = FALSE
+      );
+      expect(result.valid).toBe(true);
+    });
+
+    test("validateTimeUp rejects duplicate for same round", () => {
+      const now = Date.now();
+      const result = validateTimeUp(
+        now - 100000,
+        90,
+        now,
+        3,    // currentRound = 3
+        3,    // alreadyHandledRound = 3 (same!)
+        false
+      );
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe("duplicate_timeup");
+    });
+  });
+
+  // === BUG-9: Interval leak detection via desync ===
+  describe("BUG-9: Desync detection for leaked intervals", () => {
+    test("status mismatch detected after missed update", () => {
+      const desync = detectDesync(
+        { status: "playing", currentRound: 1, roundResults: null },
+        { status: "roundEnd", currentRound: 1, roundResults: [{ playerId: "p1", playerName: "P", guess: ISTANBUL, distance: 5, score: 900 }] }
+      );
+      expect(desync.isDesynced).toBe(true);
+      expect(desync.reasons).toContain("Status mismatch: local=playing, remote=roundEnd");
+    });
+
+    test("round mismatch detected after missed transition", () => {
+      const desync = detectDesync(
+        { status: "playing", currentRound: 1, roundResults: null },
+        { status: "playing", currentRound: 2, roundResults: null }
+      );
+      expect(desync.isDesynced).toBe(true);
+      expect(desync.reasons).toContain("Round mismatch: local=1, remote=2");
+    });
+
+    test("roundResults leak detected", () => {
+      const desync = detectDesync(
+        { status: "playing", currentRound: 1, roundResults: null },
+        { status: "playing", currentRound: 1, roundResults: [{ playerId: "p1", playerName: "P", guess: ISTANBUL, distance: 5, score: 900 }] }
+      );
+      expect(desync.isDesynced).toBe(true);
+      expect(desync.reasons.some(r => r.includes("roundResults"))).toBe(true);
+    });
+
+    test("synchronized state shows no desync", () => {
+      const desync = detectDesync(
+        { status: "playing", currentRound: 2, roundResults: null },
+        { status: "playing", currentRound: 2, roundResults: null }
+      );
+      expect(desync.isDesynced).toBe(false);
+      expect(desync.reasons.length).toBe(0);
+    });
+  });
+
+  // === BUG-13: Time-expired recovery trigger validation ===
+  describe("BUG-13: Round time expiry edge cases", () => {
+    test("hasRoundTimeExpired: exactly at deadline = expired", () => {
+      const start = 10000;
+      const timeLimit = 90; // 90 seconds
+      const deadline = start + timeLimit * 1000; // 100000
+      expect(hasRoundTimeExpired(start, timeLimit, deadline)).toBe(true);
+    });
+
+    test("hasRoundTimeExpired: 1ms before deadline = not expired", () => {
+      const start = 10000;
+      const timeLimit = 90;
+      const deadline = start + timeLimit * 1000;
+      expect(hasRoundTimeExpired(start, timeLimit, deadline - 1)).toBe(false);
+    });
+
+    test("hasRoundTimeExpired: with grace period", () => {
+      const start = 10000;
+      const timeLimit = 90;
+      const gracePeriod = 3; // 3 seconds
+      const deadlineWithGrace = start + (timeLimit + gracePeriod) * 1000;
+      expect(hasRoundTimeExpired(start, timeLimit, deadlineWithGrace - 1, gracePeriod)).toBe(false);
+      expect(hasRoundTimeExpired(start, timeLimit, deadlineWithGrace, gracePeriod)).toBe(true);
+    });
+
+    test("hasRoundTimeExpired: null roundStartTime = never expired", () => {
+      expect(hasRoundTimeExpired(null, 90, Date.now())).toBe(false);
+      expect(hasRoundTimeExpired(0, 90, Date.now())).toBe(false);
+    });
+
+    test("calculateTimeRemaining: returns 0 at expiry, never negative", () => {
+      const start = 10000;
+      const timeLimit = 90;
+      expect(calculateTimeRemaining(start, timeLimit, start + 90000)).toBe(0);
+      expect(calculateTimeRemaining(start, timeLimit, start + 100000)).toBe(0);
+      expect(calculateTimeRemaining(start, timeLimit, start + 45000)).toBe(45);
+    });
+  });
+
+  // === BUG-C4: handleSkipRound/handleTimeUp guard chain ===
+  describe("BUG-C4: handleTimeUp validation guards", () => {
+    test("rejects if time not actually expired (server time enforcement)", () => {
+      const now = Date.now();
+      const result = validateTimeUp(
+        now - 30000, // only 30s elapsed
+        90,          // 90s time limit
+        now,
+        1,
+        null,
+        false
+      );
+      expect(result.valid).toBe(false);
+      expect(result.reason).toBe("not_expired_yet");
+    });
+
+    test("accepts with 1s tolerance before nominal expiry", () => {
+      const now = Date.now();
+      const result = validateTimeUp(
+        now - 89500, // 89.5s elapsed (within 1s tolerance of 90s)
+        90,
+        now,
+        1,
+        null,
+        false
+      );
+      // 89.5s elapsed, 90s limit, tolerance is 1s → 89.5 < 90 - 1 = 89? No, 89500 >= 89000
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  // === Watchdog stale lock override ===
+  describe("Watchdog stale lock detection", () => {
+    test("stale lock (>10s) is overridden", () => {
+      const now = Date.now();
+      const result = shouldWatchdogAct(
+        "playing",
+        now - 100000, // 100s ago
+        90,           // 90s timeLimit
+        now,
+        5,            // watchdogBuffer
+        { lockedBy: "deadHost", roundId: 1, lockedAt: now - 15000 }, // 15s old lock
+        1,            // currentRound
+        10000         // staleThreshold
+      );
+      expect(result.shouldAct).toBe(true);
+      expect(result.reason).toBe("stale_lock_override");
+      expect(result.shouldOverrideLock).toBe(true);
+    });
+
+    test("fresh lock (<10s) is respected", () => {
+      const now = Date.now();
+      const result = shouldWatchdogAct(
+        "playing",
+        now - 100000,
+        90,
+        now,
+        5,
+        { lockedBy: "activeHost", roundId: 1, lockedAt: now - 3000 }, // 3s old lock
+        1,
+        10000
+      );
+      expect(result.shouldAct).toBe(false);
+      expect(result.reason).toBe("lock_held_by_other");
+    });
+
+    test("no lock + time expired = act", () => {
+      const now = Date.now();
+      const result = shouldWatchdogAct(
+        "playing",
+        now - 100000,
+        90,
+        now,
+        5,
+        null,
+        1
+      );
+      expect(result.shouldAct).toBe(true);
+      expect(result.reason).toBe("time_expired_no_lock");
+    });
+  });
+
+  // === Host migration edge cases ===
+  describe("Host migration correctness", () => {
+    test("electNewHost: all candidates disconnected returns null", () => {
+      const players = makePlayers(
+        { id: "deadHost", status: "disconnected" },
+        { id: "p1", status: "disconnected" },
+        { id: "p2", status: "disconnected" }
+      );
+      expect(electNewHost(players, "deadHost")).toBeNull();
+    });
+
+    test("determineLeaveAction: host leaving triggers migration", () => {
+      const players = makePlayers(
+        { id: "host", joinedAt: 1000, status: "online" },
+        { id: "p1", joinedAt: 2000, status: "online" },
+        { id: "p2", joinedAt: 3000, status: "online" }
+      );
+      const action = determineLeaveAction(players, "host", "host");
+      expect(action.type).toBe("migrate_and_leave");
+      if (action.type === "migrate_and_leave") {
+        expect(action.newHostId).toBe("p1"); // lowest joinedAt
+      }
+    });
+
+    test("determineLeaveAction: non-host leaving is simple leave", () => {
+      const players = makePlayers(
+        { id: "host", status: "online" },
+        { id: "p1", status: "online" }
+      );
+      const action = determineLeaveAction(players, "p1", "host");
+      expect(action.type).toBe("just_leave");
+    });
+
+    test("shouldDecrementExpectedGuesses: only during playing + not guessed", () => {
+      const player = makePlayer({ id: "p1", hasGuessed: false });
+      expect(shouldDecrementExpectedGuesses("playing", player)).toBe(true);
+      expect(shouldDecrementExpectedGuesses("waiting", player)).toBe(false);
+      expect(shouldDecrementExpectedGuesses("roundEnd", player)).toBe(false);
+
+      const guessedPlayer = makePlayer({ id: "p2", hasGuessed: true });
+      expect(shouldDecrementExpectedGuesses("playing", guessedPlayer)).toBe(false);
+    });
+  });
+
+  // === Guess submission + grace period interaction ===
+  describe("Guess submission grace period (GUESS_GRACE_PERIOD_MS)", () => {
+    test("guess accepted within 3s grace period after timer expiry", () => {
+      const NOW = 200000;
+      const room = makeRoom({
+        id: "R1",
+        status: "playing",
+        roundState: "active",
+        roundStartTime: NOW - 91000, // 91s elapsed (1s past 90s limit)
+        timeLimit: 90,
+        players: makePlayers({ id: "p1", hasGuessed: false, status: "online" }),
+      });
+
+      // serverNow = NOW (91s after start), roundEndMs = start + 90s = NOW - 1000
+      // serverNow - roundEndMs = 1000ms < 3000ms grace → accepted
+      const result = validateGuessSubmission(room, "p1", ISTANBUL, NOW, false);
+      expect(result.accepted).toBe(true);
+    });
+
+    test("guess rejected after grace period expires", () => {
+      const NOW = 200000;
+      const room = makeRoom({
+        id: "R1",
+        status: "playing",
+        roundState: "active",
+        roundStartTime: NOW - 94000, // 94s elapsed (4s past limit, exceeds 3s grace)
+        timeLimit: 90,
+        players: makePlayers({ id: "p1", hasGuessed: false, status: "online" }),
+      });
+
+      const result = validateGuessSubmission(room, "p1", ISTANBUL, NOW, false);
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("time_expired");
+    });
+
+    test("guess rejected during roundEnd status", () => {
+      const room = makeRoom({
+        id: "R1",
+        status: "roundEnd",
+        roundState: "ended",
+        roundStartTime: Date.now() - 30000,
+        timeLimit: 90,
+        players: makePlayers({ id: "p1", hasGuessed: false, status: "online" }),
+      });
+
+      const result = validateGuessSubmission(room, "p1", ISTANBUL, Date.now(), false);
+      expect(result.accepted).toBe(false);
+      expect(result.reason).toBe("not_playing");
+    });
+  });
+
+  // === Connection state classification ===
+  describe("Heartbeat error classification", () => {
+    test("PERMISSION_DENIED → lost immediately", () => {
+      expect(classifyHeartbeatError("PERMISSION_DENIED", "", 0)).toBe("lost");
+    });
+
+    test("permission-denied → lost immediately", () => {
+      expect(classifyHeartbeatError("permission-denied", "", 0)).toBe("lost");
+    });
+
+    test("room deleted message → lost", () => {
+      expect(classifyHeartbeatError("", "Room not found or deleted", 0)).toBe("lost");
+    });
+
+    test("3+ consecutive network fails → lost", () => {
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 3)).toBe("lost");
+    });
+
+    test("1-2 network fails → reconnecting", () => {
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 1)).toBe("reconnecting");
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 2)).toBe("reconnecting");
+    });
+
+    test("single transient error → reconnecting (not lost)", () => {
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 0)).toBe("reconnecting");
+    });
+  });
+
+  // === Score computation edge cases ===
+  describe("computeRoundResults edge cases", () => {
+    test("player with no guess gets distance 9999 and score 0", () => {
+      const players = [
+        makePlayer({ id: "p1", hasGuessed: false, currentGuess: null }),
+        makePlayer({ id: "p2", hasGuessed: true, currentGuess: ISTANBUL }),
+      ];
+      const results = computeRoundResults(players, ANKARA);
+
+      const p1Result = results.find(r => r.playerId === "p1");
+      const p2Result = results.find(r => r.playerId === "p2");
+
+      expect(p1Result!.distance).toBe(9999);
+      expect(p1Result!.score).toBe(0);
+      expect(p2Result!.distance).toBeLessThan(9999);
+      expect(p2Result!.score).toBeGreaterThan(0);
+    });
+
+    test("perfect guess (same coordinates) gets maximum score", () => {
+      const players = [
+        makePlayer({ id: "p1", hasGuessed: true, currentGuess: ISTANBUL }),
+      ];
+      const results = computeRoundResults(players, ISTANBUL);
+
+      expect(results[0].distance).toBeLessThan(0.1);
+      expect(results[0].score).toBe(5000); // SCORING.maxScore = 5000
+    });
+
+    test("updatePlayersAfterRound preserves previous scores", () => {
+      const players = makePlayers(
+        { id: "p1", totalScore: 500, roundScores: [500] as number[], hasGuessed: true, currentGuess: ISTANBUL }
+      );
+      const results = computeRoundResults([players["p1"]], ANKARA);
+      const updated = updatePlayersAfterRound(players, results);
+
+      expect(updated["p1"].totalScore).toBeGreaterThan(500);
+      expect(updated["p1"].roundScores!.length).toBe(2);
+    });
+  });
+
+  // === Notification diff correctness ===
+  describe("diffPlayerNotifications edge cases", () => {
+    test("self leaving does not generate notification", () => {
+      const prev = ["host", "p1", "self"];
+      const curr = ["host", "p1"];
+      const names = { host: "Host", p1: "Player1" };
+      const prevNames = { host: "Host", p1: "Player1", self: "Me" };
+
+      const notifs = diffPlayerNotifications(prev, curr, names, prevNames, "self");
+      expect(notifs.length).toBe(0); // self leaving = no notification
+    });
+
+    test("self joining does not generate notification", () => {
+      const prev = ["host"];
+      const curr = ["host", "self"];
+      const names = { host: "Host", self: "Me" };
+      const prevNames = { host: "Host" };
+
+      const notifs = diffPlayerNotifications(prev, curr, names, prevNames, "self");
+      expect(notifs.length).toBe(0);
+    });
+
+    test("multiple simultaneous join/leave events", () => {
+      const prev = ["host", "p1", "p2"];
+      const curr = ["host", "p3", "p4"];
+      const names = { host: "Host", p3: "Player3", p4: "Player4" };
+      const prevNames = { host: "Host", p1: "Player1", p2: "Player2" };
+
+      const notifs = diffPlayerNotifications(prev, curr, names, prevNames, "host");
+      const joins = notifs.filter(n => n.type === "player_joined");
+      const leaves = notifs.filter(n => n.type === "player_left");
+
+      expect(joins.length).toBe(2);
+      expect(leaves.length).toBe(2);
+      expect(joins.map(n => n.playerName).sort()).toEqual(["Player3", "Player4"]);
+      expect(leaves.map(n => n.playerName).sort()).toEqual(["Player1", "Player2"]);
+    });
+  });
+});

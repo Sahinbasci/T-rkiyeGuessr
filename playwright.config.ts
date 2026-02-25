@@ -72,5 +72,23 @@ export default defineConfig({
       testMatch: 'hardening.spec.ts',
       use: { ...devices['iPhone 14'] },
     },
+
+    // =========================================================
+    // Resync / Reconnect / Desync Tests
+    // =========================================================
+    {
+      name: 'Resync - Mobile',
+      testMatch: 'resync.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
+
+    // =========================================================
+    // Smoke Tests
+    // =========================================================
+    {
+      name: 'Smoke - Mobile',
+      testMatch: 'smoke.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
   ],
 });

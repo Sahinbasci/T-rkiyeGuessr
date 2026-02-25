@@ -50,7 +50,20 @@ export type TelemetryEvent =
   | "consentModalSaved"
   // Consent Mode v2
   | "consentModeInit"
-  | "consentModeUpdate";
+  | "consentModeUpdate"
+  // HARDENING: Multiplayer stabilization events
+  | "round_end_stuck_reset"
+  | "all_guessed_detected"
+  | "processing_start"
+  | "processing_stop"
+  | "processing_force_reset"
+  | "resync_triggered"
+  | "resync_applied"
+  | "moves_sync_from_server"
+  | "host_migrated"
+  | "player_disconnected"
+  | "player_reconnected"
+  | "overlay_escalated";
 
 // Event data structure
 interface TelemetryEventData {
@@ -142,6 +155,19 @@ export function initTelemetry(): void {
       consentModalSaved: 0,
       consentModeInit: 0,
       consentModeUpdate: 0,
+      // HARDENING: Multiplayer stabilization counters
+      round_end_stuck_reset: 0,
+      all_guessed_detected: 0,
+      processing_start: 0,
+      processing_stop: 0,
+      processing_force_reset: 0,
+      resync_triggered: 0,
+      resync_applied: 0,
+      moves_sync_from_server: 0,
+      host_migrated: 0,
+      player_disconnected: 0,
+      player_reconnected: 0,
+      overlay_escalated: 0,
     },
     duplicateAttempts: {
       roundEnd: [],

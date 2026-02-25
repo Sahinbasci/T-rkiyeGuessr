@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   title: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları",
   description:
     "TürkiyeGuessr blog: Türkiye coğrafyası, konum tahmin taktikleri, bölge rehberleri ve oyun ipuçları. Türkçe içeriklerle coğrafya bilgini geliştir.",
+  keywords: [
+    "türkiye coğrafya rehberi",
+    "konum tahmin ipuçları",
+    "geoguessr taktikleri",
+    "türkiye bölgeleri rehberi",
+  ],
   alternates: { canonical: "/blog" },
 };
 

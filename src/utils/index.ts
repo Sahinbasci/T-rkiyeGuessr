@@ -1,4 +1,5 @@
 import { Coordinates, TURKEY_BOUNDS, SCORING } from "@/types";
+import { logger } from "@/utils/logger";
 
 // Re-export production utilities
 export * from "./telemetry";
@@ -122,7 +123,7 @@ export function saveSessionToken(roomId: string, token: string): void {
     try {
       localStorage.setItem(`turkiye_guessr_session_${roomId}`, token);
     } catch (e) {
-      console.warn("localStorage sessionToken save failed:", e);
+      logger.warn("localStorage sessionToken save failed:", e);
     }
   }
 }
@@ -132,7 +133,7 @@ export function getSessionToken(roomId: string): string | null {
     try {
       return localStorage.getItem(`turkiye_guessr_session_${roomId}`);
     } catch (e) {
-      console.warn("localStorage sessionToken get failed:", e);
+      logger.warn("localStorage sessionToken get failed:", e);
       return null;
     }
   }
@@ -144,7 +145,7 @@ export function clearSessionToken(roomId: string): void {
     try {
       localStorage.removeItem(`turkiye_guessr_session_${roomId}`);
     } catch (e) {
-      console.warn("localStorage sessionToken clear failed:", e);
+      logger.warn("localStorage sessionToken clear failed:", e);
     }
   }
 }
@@ -211,7 +212,7 @@ export async function getLocationName(coord: Coordinates): Promise<string> {
 
     return "Türkiye";
   } catch (error) {
-    console.error("Geocoding error:", error);
+    logger.error("Geocoding error:", error);
     return "Türkiye";
   }
 }
