@@ -1,0 +1,241 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Ana içeriğe atla" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=e3]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - paragraph [ref=e7]: Oda Kodu
+        - generic [ref=e9]: SF4UHN
+        - generic [ref=e10]:
+          - button "Kopyala" [ref=e11] [cursor=pointer]:
+            - img [ref=e12]
+            - generic [ref=e15]: Kopyala
+          - button "WhatsApp" [ref=e16] [cursor=pointer]:
+            - img [ref=e17]
+            - generic [ref=e19]: WhatsApp
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: 🏙️
+          - generic [ref=e23]:
+            - paragraph [ref=e24]: Urban / Yerleşim
+            - paragraph [ref=e25]: Tabela, işletme adı, plaka ile bul
+        - generic [ref=e26]:
+          - paragraph [ref=e27]: 90sn
+          - paragraph [ref=e28]: 3 hareket
+      - generic [ref=e29]:
+        - button "🏙️ Urban / Yerleşim" [ref=e30] [cursor=pointer]
+        - button "🏔️ Geo / Coğrafya" [ref=e31] [cursor=pointer]
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - paragraph [ref=e34]:
+            - img [ref=e35]
+            - text: Oyuncular
+          - generic [ref=e40]: 1/8
+        - generic [ref=e42]:
+          - generic [ref=e43]: D
+          - generic [ref=e44]: DoubleTest(Sen)
+          - generic [ref=e45]:
+            - img [ref=e46]
+            - generic [ref=e48]: Host
+        - paragraph [ref=e54]: Oyuncu bekleniyor...
+      - button "Oyunu Başlat" [ref=e55] [cursor=pointer]:
+        - img [ref=e56]
+        - text: Oyunu Başlat
+      - button "Odadan Ayrıl" [ref=e58] [cursor=pointer]
+  - generic [ref=e59]:
+    - generic [ref=e60]:
+      - generic [ref=e61]:
+        - heading "Türkiye Konum Tahmin Oyunu" [level=2] [ref=e62]
+        - paragraph [ref=e63]: TürkiyeGuessr ile Google Street View üzerinden Türkiye'nin dört bir yanını keşfet. 142+ lokasyon, 7 coğrafi bölge ve 2-8 kişilik multiplayer modlarla arkadaşlarınla yarış. Tamamen ücretsiz, kayıt gerektirmez.
+        - generic [ref=e64]:
+          - link "Nasıl Oynanır?" [ref=e65] [cursor=pointer]:
+            - /url: /nasil-oynanir
+          - link "Multiplayer" [ref=e66] [cursor=pointer]:
+            - /url: /multiplayer
+          - link "GeoGuessr Alternatifi" [ref=e67] [cursor=pointer]:
+            - /url: /geoguessr-alternatifi
+          - link "Türkiye Harita Oyunu" [ref=e68] [cursor=pointer]:
+            - /url: /turkiye-harita-oyunu
+          - link "Şehir Tahmin Oyunu" [ref=e69] [cursor=pointer]:
+            - /url: /sehir-tahmin-oyunu
+          - link "Ücretsiz Coğrafya Oyunu" [ref=e70] [cursor=pointer]:
+            - /url: /ucretsiz-cografya-oyunu
+      - generic [ref=e71]:
+        - heading "7 Coğrafi Bölge" [level=3] [ref=e72]:
+          - link "7 Coğrafi Bölge" [ref=e73] [cursor=pointer]:
+            - /url: /bolgeler
+        - generic [ref=e74]:
+          - link "Marmara" [ref=e75] [cursor=pointer]:
+            - /url: /bolgeler/marmara
+          - link "Ege" [ref=e76] [cursor=pointer]:
+            - /url: /bolgeler/ege
+          - link "Akdeniz" [ref=e77] [cursor=pointer]:
+            - /url: /bolgeler/akdeniz
+          - link "Karadeniz" [ref=e78] [cursor=pointer]:
+            - /url: /bolgeler/karadeniz
+          - link "İç Anadolu" [ref=e79] [cursor=pointer]:
+            - /url: /bolgeler/ic_anadolu
+          - link "Doğu Anadolu" [ref=e80] [cursor=pointer]:
+            - /url: /bolgeler/dogu_anadolu
+          - link "Güneydoğu Anadolu" [ref=e81] [cursor=pointer]:
+            - /url: /bolgeler/guneydogu
+      - generic [ref=e82]:
+        - heading "Popüler Lokasyonlar" [level=3] [ref=e83]:
+          - link "Popüler Lokasyonlar" [ref=e84] [cursor=pointer]:
+            - /url: /sehirler
+        - generic [ref=e85]:
+          - link "İstanbul" [ref=e86] [cursor=pointer]:
+            - /url: /sehirler/fatih-istanbul
+          - link "Ankara" [ref=e87] [cursor=pointer]:
+            - /url: /sehirler/ulus-ankara
+          - link "İzmir" [ref=e88] [cursor=pointer]:
+            - /url: /sehirler/konak-izmir
+          - link "Antalya" [ref=e89] [cursor=pointer]:
+            - /url: /sehirler/kaleici-antalya
+          - link "Bursa" [ref=e90] [cursor=pointer]:
+            - /url: /sehirler/osmangazi-bursa
+          - link "Trabzon" [ref=e91] [cursor=pointer]:
+            - /url: /sehirler/uzungol-trabzon
+          - link "Uçhisar" [ref=e92] [cursor=pointer]:
+            - /url: /sehirler/uchisar-nevsehir
+          - link "Bodrum" [ref=e93] [cursor=pointer]:
+            - /url: /sehirler/bodrum-mugla
+          - link "Safranbolu" [ref=e94] [cursor=pointer]:
+            - /url: /sehirler/safranbolu-karabuk
+          - link "Mardin" [ref=e95] [cursor=pointer]:
+            - /url: /sehirler/artuklu-mardin
+          - link "Pamukkale" [ref=e96] [cursor=pointer]:
+            - /url: /sehirler/pamukkale-denizli
+          - link "Göreme" [ref=e97] [cursor=pointer]:
+            - /url: /sehirler/goreme-nevsehir
+          - link "Efes" [ref=e98] [cursor=pointer]:
+            - /url: /sehirler/efes-izmir
+          - link "Fethiye" [ref=e99] [cursor=pointer]:
+            - /url: /sehirler/fethiye-mugla
+          - link "Alanya" [ref=e100] [cursor=pointer]:
+            - /url: /sehirler/alanya-antalya
+          - link "Side" [ref=e101] [cursor=pointer]:
+            - /url: /sehirler/side-antalya
+      - generic [ref=e102]:
+        - heading "Blog" [level=3] [ref=e103]:
+          - link "Blog" [ref=e104] [cursor=pointer]:
+            - /url: /blog
+        - generic [ref=e105]:
+          - link "→ TürkiyeGuessr Nasıl Oynanır?" [ref=e106] [cursor=pointer]:
+            - /url: /blog/turkiye-guessr-nasil-oynanir
+          - link "→ Türkiye Coğrafya Quiz" [ref=e107] [cursor=pointer]:
+            - /url: /blog/turkiye-cografya-quiz
+          - link "→ Türkiye İlleri Harita Oyunu" [ref=e108] [cursor=pointer]:
+            - /url: /blog/turkiye-illeri-harita-oyunu
+          - link "→ Online Harita Tahmin Oyunları" [ref=e109] [cursor=pointer]:
+            - /url: /blog/online-harita-tahmin-oyunlari
+          - link "→ GeoGuessr Taktikleri" [ref=e110] [cursor=pointer]:
+            - /url: /blog/geoguessr-taktikleri-ipuclari
+    - contentinfo [ref=e111]:
+      - generic [ref=e112]:
+        - generic [ref=e113]:
+          - heading "Oyun" [level=4] [ref=e114]
+          - list [ref=e115]:
+            - listitem [ref=e116]:
+              - link "Oyna" [ref=e117] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=e118]:
+              - link "Nasıl Oynanır" [ref=e119] [cursor=pointer]:
+                - /url: /nasil-oynanir
+            - listitem [ref=e120]:
+              - link "Multiplayer" [ref=e121] [cursor=pointer]:
+                - /url: /multiplayer
+        - generic [ref=e122]:
+          - heading "Keşfet" [level=4] [ref=e123]
+          - list [ref=e124]:
+            - listitem [ref=e125]:
+              - link "Bölgeler" [ref=e126] [cursor=pointer]:
+                - /url: /bolgeler
+            - listitem [ref=e127]:
+              - link "Şehirler" [ref=e128] [cursor=pointer]:
+                - /url: /sehirler
+            - listitem [ref=e129]:
+              - link "GeoGuessr Alternatifi" [ref=e130] [cursor=pointer]:
+                - /url: /geoguessr-alternatifi
+            - listitem [ref=e131]:
+              - link "Türkiye Harita Oyunu" [ref=e132] [cursor=pointer]:
+                - /url: /turkiye-harita-oyunu
+            - listitem [ref=e133]:
+              - link "Şehir Tahmin Oyunu" [ref=e134] [cursor=pointer]:
+                - /url: /sehir-tahmin-oyunu
+            - listitem [ref=e135]:
+              - link "Ücretsiz Coğrafya Oyunu" [ref=e136] [cursor=pointer]:
+                - /url: /ucretsiz-cografya-oyunu
+        - generic [ref=e137]:
+          - heading "Bölgeler" [level=4] [ref=e138]
+          - list [ref=e139]:
+            - listitem [ref=e140]:
+              - link "Marmara" [ref=e141] [cursor=pointer]:
+                - /url: /bolgeler/marmara
+            - listitem [ref=e142]:
+              - link "Ege" [ref=e143] [cursor=pointer]:
+                - /url: /bolgeler/ege
+            - listitem [ref=e144]:
+              - link "Akdeniz" [ref=e145] [cursor=pointer]:
+                - /url: /bolgeler/akdeniz
+            - listitem [ref=e146]:
+              - link "Karadeniz" [ref=e147] [cursor=pointer]:
+                - /url: /bolgeler/karadeniz
+            - listitem [ref=e148]:
+              - link "İç Anadolu" [ref=e149] [cursor=pointer]:
+                - /url: /bolgeler/ic_anadolu
+            - listitem [ref=e150]:
+              - link "Doğu Anadolu" [ref=e151] [cursor=pointer]:
+                - /url: /bolgeler/dogu_anadolu
+            - listitem [ref=e152]:
+              - link "Güneydoğu" [ref=e153] [cursor=pointer]:
+                - /url: /bolgeler/guneydogu
+        - generic [ref=e154]:
+          - heading "Bilgi" [level=4] [ref=e155]
+          - list [ref=e156]:
+            - listitem [ref=e157]:
+              - link "Blog" [ref=e158] [cursor=pointer]:
+                - /url: /blog
+            - listitem [ref=e159]:
+              - link "SSS" [ref=e160] [cursor=pointer]:
+                - /url: /sss
+            - listitem [ref=e161]:
+              - link "Hakkımızda" [ref=e162] [cursor=pointer]:
+                - /url: /hakkimizda
+            - listitem [ref=e163]:
+              - link "İletişim" [ref=e164] [cursor=pointer]:
+                - /url: /iletisim
+        - generic [ref=e165]:
+          - heading "Yasal" [level=4] [ref=e166]
+          - list [ref=e167]:
+            - listitem [ref=e168]:
+              - link "Gizlilik Politikası" [ref=e169] [cursor=pointer]:
+                - /url: /gizlilik-politikasi
+            - listitem [ref=e170]:
+              - link "Çerez Politikası" [ref=e171] [cursor=pointer]:
+                - /url: /cerez-politikasi
+            - listitem [ref=e172]:
+              - link "Kullanım Koşulları" [ref=e173] [cursor=pointer]:
+                - /url: /kullanim-kosullari
+            - listitem [ref=e174]:
+              - link "KVKK" [ref=e175] [cursor=pointer]:
+                - /url: /kvkk
+            - listitem [ref=e176]:
+              - button "Çerez Tercihleri" [ref=e177] [cursor=pointer]
+      - paragraph [ref=e179]: © 2026 TürkiyeGuessr — Türkiye Konum Tahmin Oyunu. Ücretsiz, multiplayer, 81 il.
+  - alert [ref=e180]
+  - dialog "Çerez bildirimi" [ref=e181]:
+    - generic [ref=e183]:
+      - paragraph [ref=e184]:
+        - text: Sitemizde zorunlu çerezler, analitik ve reklam çerezleri kullanıyoruz. Detaylı bilgi için
+        - link "Çerez Politikamızı" [ref=e185] [cursor=pointer]:
+          - /url: /cerez-politikasi
+        - text: inceleyebilirsiniz.
+      - generic [ref=e186]:
+        - button "Tercihleri Yönet" [ref=e187] [cursor=pointer]
+        - button "Sadece Zorunlu" [ref=e188] [cursor=pointer]
+        - button "Tümünü Kabul Et" [ref=e189] [cursor=pointer]
+```

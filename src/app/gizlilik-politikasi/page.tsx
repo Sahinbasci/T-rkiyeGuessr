@@ -24,7 +24,7 @@ export default function GizlilikPolitikasiPage() {
           >
             Gizlilik Politikası
           </h1>
-          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 24 Şubat 2026</p>
+          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 28 Şubat 2026</p>
         </header>
 
         <section className="space-y-4">
@@ -88,14 +88,14 @@ export default function GizlilikPolitikasiPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">3. Cerez Kullanimi</h2>
+          <h2 className="text-xl font-semibold text-red-400">3. Çerez Kullanımı</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr zorunlu cerezler (oturum yonetimi, Firebase kimlik dogrulama),
-            analitik cerezler ve reklam cerezleri kullanmaktadir. Analitik ve reklam cerezleri
-            yalnizca cerez banneri uzerinden onayi verdiginizde etkinlestirilir. Detayli bilgi
-            icin{" "}
+            TürkiyeGuessr zorunlu çerezler (oturum yönetimi, Firebase kimlik doğrulama),
+            analitik çerezler ve reklam çerezleri kullanmaktadır. Analitik ve reklam çerezleri
+            yalnızca çerez banneri üzerinden onayı verdiğinizde etkinleştirilir. Detaylı bilgi
+            için{" "}
             <a href="/cerez-politikasi" className="text-red-400 hover:text-red-300 underline">
-              Cerez Politikamizi
+              Çerez Politikamızı
             </a>{" "}
             inceleyebilirsiniz.
           </p>
@@ -104,31 +104,31 @@ export default function GizlilikPolitikasiPage() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">4. Reklam Teknolojileri</h2>
           <p className="text-gray-400 leading-relaxed">
-            TurkiyeGuessr, Google AdSense araciligiyla reklam gosterebilir. Reklamlar
-            yalnizca oyun disindaki anlarda (lobi, round sonu, oyun sonu gibi) gosterilir.
-            Aktif oyun sirasinda reklam gosterilmez.
+            TürkiyeGuessr, Google AdSense aracılığıyla reklam gösterebilir. Reklamlar
+            yalnızca oyun dışındaki anlarda (lobi, round sonu, oyun sonu gibi) gösterilir.
+            Aktif oyun sırasında reklam gösterilmez.
           </p>
           <p className="text-gray-400 leading-relaxed">
-            Google AdSense, ilgi alaniniza uygun reklamlar sunmak icin cerezler kullanabilir.
-            Bu cerezler yalnizca cerez tercihlerinizde &quot;Reklam / Pazarlama Cerezleri&quot;ni
-            kabul ettiginizde etkinlestirilir. Reklam cerezlerini reddederseniz Google AdSense
-            scripti yuklenmez ve kisisellestirilmis reklam gosterilmez.
+            Google AdSense, ilgi alanınıza uygun reklamlar sunmak için çerezler kullanabilir.
+            Bu çerezler yalnızca çerez tercihlerinizde &quot;Reklam / Pazarlama Çerezleri&quot;ni
+            kabul ettiğinizde etkinleştirilir. Reklam çerezlerini reddederseniz Google AdSense
+            scripti yüklenmez ve kişiselleştirilmiş reklam gösterilmez.
           </p>
           <p className="text-gray-400 leading-relaxed text-sm">
-            Google reklam politikalari hakkinda detayli bilgi:{" "}
+            Google reklam politikaları hakkında detaylı bilgi:{" "}
             <a
               href="https://policies.google.com/technologies/ads"
               target="_blank"
               rel="noopener noreferrer"
               className="text-red-400 hover:text-red-300 underline"
             >
-              Google Reklam Politikasi
+              Google Reklam Politikası
             </a>
           </p>
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">5. Verilerin Paylasimi</h2>
+          <h2 className="text-xl font-semibold text-red-400">5. Verilerin Paylaşımı</h2>
           <p className="text-gray-400 leading-relaxed">
             Kişisel verileriniz üçüncü taraflarla paylaşılmaz, satılmaz veya kiralanmaz.
             Veriler yalnızca oyun işlevselliği için kullanılır ve yukarıda belirtilen
@@ -138,7 +138,7 @@ export default function GizlilikPolitikasiPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">6. KVKK Kapsamindaki Haklariniz</h2>
+          <h2 className="text-xl font-semibold text-red-400">6. KVKK Kapsamındaki Haklarınız</h2>
           <p className="text-gray-400 leading-relaxed">
             6698 sayılı KVKK&apos;nın 11. maddesi uyarınca aşağıdaki haklara sahipsiniz:
           </p>
@@ -154,7 +154,7 @@ export default function GizlilikPolitikasiPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">7. Veri Guvenligi</h2>
+          <h2 className="text-xl font-semibold text-red-400">7. Veri Güvenliği</h2>
           <p className="text-gray-400 leading-relaxed">
             Verilerinizin güvenliği için HTTPS şifreleme, Firebase güvenlik kuralları,
             Content Security Policy (CSP) ve input doğrulama gibi teknik önlemler
@@ -163,7 +163,7 @@ export default function GizlilikPolitikasiPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">8. Cocuklarin Gizliligi</h2>
+          <h2 className="text-xl font-semibold text-red-400">8. Çocukların Gizliliği</h2>
           <p className="text-gray-400 leading-relaxed">
             TürkiyeGuessr bilerek 13 yaş altı çocuklardan kişisel veri toplamaz.
             Anonim kimlik doğrulama sistemi sayesinde yaş bilgisi dahil hiçbir
@@ -172,7 +172,7 @@ export default function GizlilikPolitikasiPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">9. Degisiklikler</h2>
+          <h2 className="text-xl font-semibold text-red-400">9. Değişiklikler</h2>
           <p className="text-gray-400 leading-relaxed">
             Bu gizlilik politikası zaman zaman güncellenebilir. Önemli değişiklikler
             bu sayfada yayınlanacaktır. Sayfanın üst kısmındaki &quot;Son güncelleme&quot;
@@ -181,18 +181,18 @@ export default function GizlilikPolitikasiPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">10. Iletisim</h2>
+          <h2 className="text-xl font-semibold text-red-400">10. İletişim</h2>
           <p className="text-gray-400 leading-relaxed">
-            Gizlilik politikamiz veya kisisel verilerinizle ilgili sorulariniz icin{" "}
+            Gizlilik politikamız veya kişisel verilerinizle ilgili sorularınız için{" "}
             <a href="mailto:sahinbasci2002@gmail.com" className="text-red-400 hover:underline">
               sahinbasci2002@gmail.com
             </a>{" "}
-            adresinden bize ulasabilirsiniz.
+            adresinden bize ulaşabilirsiniz.
           </p>
           <div className="flex flex-wrap gap-3 text-sm">
-            <a href="/cerez-politikasi" className="text-red-400 hover:underline">Cerez Politikasi</a>
-            <a href="/kullanim-kosullari" className="text-red-400 hover:underline">Kullanim Kosullari</a>
-            <a href="/kvkk" className="text-red-400 hover:underline">KVKK Aydinlatma Metni</a>
+            <a href="/cerez-politikasi" className="text-red-400 hover:underline">Çerez Politikası</a>
+            <a href="/kullanim-kosullari" className="text-red-400 hover:underline">Kullanım Koşulları</a>
+            <a href="/kvkk" className="text-red-400 hover:underline">KVKK Aydınlatma Metni</a>
           </div>
         </section>
       </article>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
+/* Font loading moved to next/font/google in layout.tsx — eliminates render-blocking @import */
 
 @tailwind base;
 @tailwind components;
@@ -8,8 +8,7 @@
    CSS VARIABLES
    ============================================ */
 :root {
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  /* --font-display and --font-body are injected by next/font className on <html> */
   /* Safe area - iOS notch & home indicator */
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -321,7 +320,7 @@ div[aria-label*="Street View"] {
 }
 
 .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-.animate-slideUp { animation: slideUp 0.3s ease-out; }
+.animate-slideUp { animation: slideUp 0.3s ease-out both; }
 .animate-slideDown { animation: slideDown 0.3s ease-out; }
 .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 .animate-bounce { animation: bounce 1s infinite; }

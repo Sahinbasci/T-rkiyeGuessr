@@ -1,6 +1,5 @@
 import Link from "next/link";
-
-const SITE_URL = "https://turkiyeguessr.xyz";
+import { SITE_URL } from "@/config/site";
 
 interface BreadcrumbItem {
   name: string;

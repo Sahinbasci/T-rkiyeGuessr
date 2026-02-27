@@ -1332,6 +1332,7 @@ export function useRoom() {
     // Atomic: acquire lock + transition to roundEnd
     let transactionCommitted = false;
     await runTransaction(roomRef, (currentRoom) => {
+      transactionCommitted = false; // Reset on each retry — Firebase may invoke callback multiple times
       if (!currentRoom) return currentRoom;
       if (currentRoom.status !== "playing") {
         logger.debug(`[MP] roundEnd TX abort: status=${currentRoom.status} (expected playing) trigger=${trigger}`);
@@ -1715,6 +1716,7 @@ export function useRoom() {
 
       let committed = false;
       await runTransaction(roomRef, (currentRoom) => {
+        committed = false; // Reset on each retry — Firebase may invoke callback multiple times
         if (!currentRoom) return currentRoom;
 
         // Guard: Only transition from 'waiting' to 'playing'
@@ -1790,6 +1792,7 @@ export function useRoom() {
 
       let committed = false;
       await runTransaction(roomRef, (currentRoom) => {
+        committed = false; // Reset on each retry — Firebase may invoke callback multiple times
         if (!currentRoom) return currentRoom;
 
         if (currentRoom.status !== "waiting") {
@@ -2083,6 +2086,8 @@ export function useRoom() {
       let isGameOver = false;
 
       await runTransaction(roomRef, (currentRoom) => {
+        committed = false; // Reset on each retry — Firebase may invoke callback multiple times
+        isGameOver = false;
         if (!currentRoom) return currentRoom;
 
         // Guard: caller must be host
@@ -2182,6 +2187,8 @@ export function useRoom() {
       let isGameOver = false;
 
       await runTransaction(roomRef, (currentRoom) => {
+        committed = false; // Reset on each retry — Firebase may invoke callback multiple times
+        isGameOver = false;
         if (!currentRoom) return currentRoom;
 
         if (currentRoom.hostId !== playerId) return; // abort
@@ -2278,24 +2285,32 @@ export function useRoom() {
         }
       }
 
-      // Remove ourselves
-      await remove(ref(database, `rooms/${roomId}/players/${playerId}`));
-
-      // If playing and we hadn't guessed, decrement expectedGuesses
-      if (room.status === "playing") {
+      // Atomic: remove ourselves + decrement expectedGuesses in one transaction
+      // This prevents the host cleanup timer from double-decrementing between
+      // a separate remove() and decrement transaction.
+      {
         const myPlayer = room.players?.[playerId];
-        if (myPlayer && !myPlayer.hasGuessed) {
-          const roomRef = ref(database, `rooms/${roomId}`);
-          await runTransaction(roomRef, (currentRoom) => {
-            if (!currentRoom || currentRoom.status !== "playing") return currentRoom;
-            return {
-              ...currentRoom,
-              expectedGuesses: Math.max(0, (currentRoom.expectedGuesses || 0) - 1),
-            };
-          }).catch(() => {
-            // May fail if we lost host — OK, new host's onValue handles it
-          });
-        }
+        const shouldDecrement = room.status === "playing" && myPlayer && !myPlayer.hasGuessed;
+        const roomRef = ref(database, `rooms/${roomId}`);
+        await runTransaction(roomRef, (currentRoom) => {
+          if (!currentRoom) return currentRoom;
+          const players = { ...currentRoom.players };
+          delete players[playerId];
+
+          const updatedRoom: any = {
+            ...currentRoom,
+            players,
+          };
+
+          if (shouldDecrement && currentRoom.status === "playing") {
+            updatedRoom.expectedGuesses = Math.max(0, (currentRoom.expectedGuesses || 0) - 1);
+          }
+
+          return updatedRoom;
+        }).catch(() => {
+          // Fallback: if transaction fails, do the remove directly
+          remove(ref(database, `rooms/${roomId}/players/${playerId}`)).catch(() => {});
+        });
       }
     }
 
@@ -2320,8 +2335,8 @@ export function useRoom() {
 
   // --- Restart Game ---
   // BUG-006 FIX: Use runTransaction for atomicity + gameInstanceId for stale listener guard
-  const restartGame = useCallback(async () => {
-    if (!room || playerId !== room.hostId) return;
+  const restartGame = useCallback(async (): Promise<boolean> => {
+    if (!room || playerId !== room.hostId) return false;
 
     const newGameInstanceId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     // BUG-006 FIX: Update local ref immediately so listener ignores stale events
@@ -2332,7 +2347,11 @@ export function useRoom() {
       resetGuessLimit(player.id);
     });
 
+    let committed = false;
+
     const buildRestartPayload = (currentRoom: any, includeGameInstanceId: boolean) => {
+      // Reset committed on each retry — Firebase may invoke callback multiple times
+      committed = false;
       if (!currentRoom) return currentRoom;
       if (currentRoom.hostId !== playerId) return; // abort — not host
       if (currentRoom.status !== "gameOver") return; // abort — stale click guard
@@ -2345,7 +2364,7 @@ export function useRoom() {
           currentGuess: null,
           hasGuessed: false,
           movesUsed: 0,
-          roundScores: null,
+          roundScores: [],
         };
       });
 
@@ -2373,6 +2392,7 @@ export function useRoom() {
       }
       // Clean any unexpected fields that could trigger $other validation failure
       delete payload.locationHistory;
+      committed = true;
       return payload;
     };
 
@@ -2383,6 +2403,7 @@ export function useRoom() {
       );
     } catch (firstErr) {
       logger.warn("[MP] restartGame with gameInstanceId failed, retrying without:", firstErr);
+      committed = false;
       try {
         // Fallback: without gameInstanceId (rules may not be deployed yet)
         await runTransaction(ref(database, `rooms/${room.id}`), (currentRoom) =>
@@ -2395,8 +2416,11 @@ export function useRoom() {
       }
     }
 
-    trackEvent("gameRestart", { newGameInstanceId, previousStatus: room?.status });
-    setupRoomCleanup({ ...room, status: "waiting" });
+    if (committed) {
+      trackEvent("gameRestart", { newGameInstanceId, previousStatus: room?.status });
+      setupRoomCleanup({ ...room, status: "waiting" });
+    }
+    return committed;
   }, [room, playerId]);
 
   // ==================== DERIVED STATE ====================

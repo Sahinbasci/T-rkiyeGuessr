@@ -39,9 +39,15 @@ export function AdSenseScript() {
       async
       src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
       crossOrigin="anonymous"
-      strategy="lazyOnload"
+      strategy="afterInteractive"
       onLoad={() => {
         scriptLoadedRef.current = true;
+      }}
+      onError={(e) => {
+        // Ad blocker or network issue — log for debugging, don't crash
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[AdSense] pagead2.js failed to load:", e);
+        }
       }}
     />
   );

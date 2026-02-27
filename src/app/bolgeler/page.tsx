@@ -40,6 +40,45 @@ export default function BolgelerPage() {
           </p>
         </header>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Türkiye&apos;nin 7 Coğrafi Bölgesi</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye, coğrafi, iklimsel ve kültürel çeşitliliğiyle dünya üzerinde benzersiz bir konuma
+            sahiptir. Üç tarafı denizlerle çevrili olan ülke, yedi farklı coğrafi bölgeye ayrılır.
+            Her bölgenin kendine özgü iklimi, bitki örtüsü, mimarisi ve kültürel dokusu vardır.
+            TürkiyeGuessr&apos;da bu bölgelerin her birinden lokasyonlar bulunur — sokak görünümünde
+            çevredeki ipuçlarını kullanarak hangi bölgede olduğunuzu tahmin edebilirsiniz.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Marmara&apos;nın sanayi kentlerinden Karadeniz&apos;in yemyeşil yaylalarına,
+            Ege&apos;nin zeytin ağaçlı kıyılarından Güneydoğu&apos;nun tarihi sokaklarına kadar
+            her bölge farklı ipuçları sunar. Plaka kodları, tabela dilleri, mimari tarzlar ve
+            topoğrafya gibi göstergeler bölgeyi belirlemenin anahtarıdır.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Bölge İpuçları</h2>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="bg-gray-800/40 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium mb-1">Plaka Kodları</h3>
+              <p className="text-gray-500 text-sm">Her bölgenin illeri belirli plaka kod aralıklarına sahiptir. Araçlardaki plakaları okuyarak bölgeyi daraltabilirsiniz.</p>
+            </div>
+            <div className="bg-gray-800/40 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium mb-1">Bitki Örtüsü</h3>
+              <p className="text-gray-500 text-sm">Karadeniz&apos;in çay bahçeleri, Ege&apos;nin zeytinlikleri, İç Anadolu&apos;nun step bitki örtüsü bölgeyi ele verir.</p>
+            </div>
+            <div className="bg-gray-800/40 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium mb-1">Mimari</h3>
+              <p className="text-gray-500 text-sm">Doğu Anadolu&apos;nun taş evleri, Karadeniz&apos;in ahşap yapıları, Akdeniz&apos;in beyaz badanalı evleri farklılık yaratır.</p>
+            </div>
+            <div className="bg-gray-800/40 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium mb-1">Topoğrafya</h3>
+              <p className="text-gray-500 text-sm">Dağlık arazi, ova, kıyı şeridi veya yayla — arazinin şekli bölge hakkında güçlü bir ipucudur.</p>
+            </div>
+          </div>
+        </section>
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {regions.map((region) => {
             const desc = REGION_DESCRIPTIONS[region.slug];

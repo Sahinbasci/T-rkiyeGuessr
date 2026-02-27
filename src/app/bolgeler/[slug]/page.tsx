@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllRegions, getRegionBySlug } from "@/data/seoData";
 import { getRegionDescription } from "@/data/regionDescriptions";
+import { SITE_URL } from "@/config/site";
 
 interface Props {
   params: { slug: string };
@@ -46,7 +47,7 @@ export default function BolgeDetailPage({ params }: Props) {
       "@type": "ListItem",
       position: i + 1,
       name: city.locationName,
-      url: `https://turkiyeguessr.xyz/sehirler/${city.slug}`,
+      url: `${SITE_URL}/sehirler/${city.slug}`,
     })),
   };
 

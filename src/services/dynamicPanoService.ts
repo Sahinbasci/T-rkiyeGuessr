@@ -623,6 +623,31 @@ import { URBAN_PACKAGES, GEO_PACKAGES } from "@/data/panoPackages";
 
 let staticUsedIds: Set<string> = new Set();
 
+// BUG-001 FIX: Track pano IDs used in current session to prevent last-resort repeats
+let sessionUsedPanoIds: Set<string> = new Set();
+
+/**
+ * BUG-001 FIX: Last resort fallback with round-robin dedup.
+ * Instead of always returning PACKAGES[0], picks a random package
+ * that hasn't been used this session. If ALL are used, resets and picks random.
+ */
+function pickLastResortFallback(packages: PanoPackage[]): PanoPackage {
+  // Find packages not yet used this session
+  const unused = packages.filter(p => !sessionUsedPanoIds.has(p.pano0.panoId));
+
+  let selected: PanoPackage;
+  if (unused.length > 0) {
+    selected = unused[Math.floor(Math.random() * unused.length)];
+  } else {
+    // All packages used — reset tracker and pick random
+    sessionUsedPanoIds.clear();
+    selected = packages[Math.floor(Math.random() * packages.length)];
+  }
+
+  sessionUsedPanoIds.add(selected.pano0.panoId);
+  return selected;
+}
+
 /**
  * Statik havuzdan benzersiz pano seç (fallback)
  * Delegated to LocationEngine for difficulty-aware, anti-repeat selection.
@@ -713,8 +738,8 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
       return staticAny;
     }
 
-    // PHASE 5: Last resort — first urban package
-    const fallback = URBAN_PACKAGES[0];
+    // PHASE 5: Last resort — pick an unused urban package (avoid repeats)
+    const fallback = pickLastResortFallback(URBAN_PACKAGES);
     logger.warn("[Urban D2] Last resort fallback:", fallback.id);
     incrementRoundCount();
     return fallback;
@@ -728,7 +753,7 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
   const staticPano = getStaticPanoPackage(mode);
   if (staticPano) return staticPano;
 
-  const fallback = GEO_PACKAGES[0];
+  const fallback = pickLastResortFallback(GEO_PACKAGES);
   logger.warn("Fallback pano kullanılıyor:", fallback.id);
   return fallback;
 }
@@ -743,6 +768,7 @@ export async function onNewGameStart(roomId?: string): Promise<void> {
   resetProvinceBag();
   resetLocationEngine();
   sessionApiCallCount = 0;
+  sessionUsedPanoIds.clear(); // BUG-001 FIX: Reset last-resort dedup
 
   // Initialize dynamic generator (if Google Maps loaded)
   initDynamicGenerator();

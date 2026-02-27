@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
@@ -14,6 +15,62 @@ export const metadata: Metadata = {
   alternates: { canonical: "/nasil-oynanir" },
 };
 
+function HowToJsonLd() {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "TürkiyeGuessr Nasıl Oynanır?",
+    description:
+      "TürkiyeGuessr ile Türkiye konum tahmin oyunu oynamanın adım adım rehberi.",
+    totalTime: "PT5M",
+    tool: [{ "@type": "HowToTool", name: "Web tarayıcı (Chrome, Firefox, Safari)" }],
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Oyuncu adını gir",
+        text: "Ana ekranda oyuncu adını yaz. Kayıt veya e-posta gerekmez.",
+        url: `${SITE_URL}/nasil-oynanir`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Oyun modunu seç",
+        text: "Urban (şehir) veya Geo (kırsal) modundan birini seç.",
+        url: `${SITE_URL}/nasil-oynanir`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "Oda oluştur veya katıl",
+        text: "Yeni oda oluştur ve 6 haneli kodu arkadaşlarınla paylaş, ya da mevcut bir odaya katıl.",
+        url: `${SITE_URL}/nasil-oynanir`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Sokak görünümünde keşfet",
+        text: "Google Street View üzerinde Türkiye'nin rastgele bir noktasına düşersin. Etrafındaki ipuçlarını kullan.",
+        url: `${SITE_URL}/nasil-oynanir`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 5,
+        name: "Tahmin et ve puan kazan",
+        text: "Haritada konumu işaretle ve tahmin et. Gerçek konuma ne kadar yakınsan o kadar çok puan alırsın.",
+        url: `${SITE_URL}/nasil-oynanir`,
+      },
+    ],
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
 export default function NasilOynanirPage() {
   return (
     <SeoLayout
@@ -22,6 +79,7 @@ export default function NasilOynanirPage() {
         { name: "Nasıl Oynanır", url: "/nasil-oynanir" },
       ]}
     >
+      <HowToJsonLd />
       <article className="space-y-10">
         <header>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-wide" style={{ fontFamily: "var(--font-display)" }}>

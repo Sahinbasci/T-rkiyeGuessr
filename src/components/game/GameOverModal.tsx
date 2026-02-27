@@ -86,15 +86,21 @@ export function GameOverModal({ players, playerId, isHost, onRestart, onLeave }:
               onClick={onLeave}
               className="w-full py-2 text-gray-400 hover:text-white transition text-sm"
             >
-              Lobiye Dön
+              Odadan Ayrıl
             </button>
           </div>
         ) : (
-          <div className="text-center py-3">
+          <div className="space-y-3 text-center py-3">
             <div className="inline-flex items-center gap-2 text-gray-400">
               <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
               <span className="text-sm">Host yeni oyun başlatabilir</span>
             </div>
+            <button
+              onClick={onLeave}
+              className="w-full py-2 text-gray-400 hover:text-white transition text-sm"
+            >
+              Odadan Ayrıl
+            </button>
           </div>
         )}
       </div>

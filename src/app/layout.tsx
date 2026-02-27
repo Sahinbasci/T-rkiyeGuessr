@@ -1,15 +1,29 @@
 import type { Metadata, Viewport } from "next";
+import { Bebas_Neue, DM_Sans } from "next/font/google";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { CookieBanner } from "@/components/consent/CookieBanner";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
 import { ConsentModeInit } from "@/components/consent/ConsentModeInit";
 import "./globals.css";
+import { SITE_URL } from "@/config/site";
 
-const SITE_URL = "https://turkiyeguessr.xyz";
+/* ── Self-hosted fonts via next/font (eliminates render-blocking @import) ── */
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-body",
+  display: "swap",
+});
 const SITE_NAME = "TürkiyeGuessr";
-const TITLE = "TürkiyeGuessr - Türkiye Konum Tahmin Oyunu | Multiplayer GeoGuessr";
+const TITLE = "TürkiyeGuessr — Türkiye Konum Tahmin Oyunu | Ücretsiz GeoGuessr Alternatifi";
 const DESCRIPTION =
-  "Türkiye'nin sokak görünümlerinde konumunu tahmin et! Arkadaşlarınla multiplayer oyna, 81 ili keşfet. Ücretsiz, hızlı ve bağımlılık yapan Türkiye coğrafya oyunu.";
+  "TürkiyeGuessr ile Türkiye'nin sokak görünümlerinde konumunu tahmin et! Arkadaşlarınla multiplayer oyna, 81 ili keşfet. Ücretsiz, Türkçe, kayıt gerektirmeyen coğrafya oyunu.";
 
 export const metadata: Metadata = {
   title: {
@@ -18,12 +32,18 @@ export const metadata: Metadata = {
   },
   description: DESCRIPTION,
   keywords: [
+    "turkiyeguessr",
+    "türkiyeguessr",
     "türkiye guessr",
     "turkiye guessr",
+    "TürkiyeGuessr",
     "türkiye konum tahmin",
+    "türkiye konum tahmin oyunu",
     "türkiye coğrafya oyunu",
     "geoguessr türkiye",
     "geoguessr turkey",
+    "geoguessr alternatifi",
+    "ücretsiz geoguessr",
     "türkiye harita oyunu",
     "konum tahmin oyunu",
     "multiplayer harita oyunu",
@@ -36,11 +56,11 @@ export const metadata: Metadata = {
     "geotastic alternatifi",
     "google maps tahmin oyunu",
     "harita bilmece",
-    "türkiyeguessr",
-    "turkiyeguessr",
     "online harita oyunu türkiye",
     "yer tahmin etme oyunu",
     "neredeyim ben alternatifi",
+    "türkiye coğrafya quiz",
+    "ücretsiz coğrafya oyunu",
   ],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -112,6 +132,12 @@ function JsonLd() {
     name: SITE_NAME,
     url: SITE_URL,
     logo: `${SITE_URL}/icon-512.png`,
+    contactPoint: {
+      "@type": "ContactPoint",
+      email: "sahinbasci2002@gmail.com",
+      contactType: "customer support",
+      availableLanguage: "Turkish",
+    },
     sameAs: [
       "https://twitter.com/turkiyeguessr",
     ],
@@ -134,6 +160,7 @@ function JsonLd() {
         "@type": "Offer",
         price: "0",
         priceCurrency: "TRY",
+        availability: "https://schema.org/InStock",
       },
       author: { "@type": "Organization", ...orgFields },
       potentialAction: {
@@ -147,6 +174,7 @@ function JsonLd() {
           ],
         },
       },
+      screenshot: `${SITE_URL}/og-image.png`,
     },
     {
       "@context": "https://schema.org",
@@ -157,9 +185,19 @@ function JsonLd() {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: SITE_NAME,
+      alternateName: ["TurkiyeGuessr", "Türkiye Guessr", "Turkiye Guessr"],
       url: SITE_URL,
       inLanguage: "tr",
+      description: DESCRIPTION,
       publisher: { "@type": "Organization", ...orgFields },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/blog?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
     },
   ];
 
@@ -182,12 +220,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr">
+    <html lang="tr" className={`${bebasNeue.variable} ${dmSans.variable}`}>
       <head>
         <link rel="preconnect" href="https://maps.googleapis.com" />
         <link rel="preconnect" href="https://maps.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Font preconnects removed — next/font self-hosts, no external request */}
         <JsonLd />
         <ConsentModeInit />
       </head>

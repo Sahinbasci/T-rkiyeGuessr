@@ -184,7 +184,7 @@ export function GameScreen({
                 </button>
               )}
               <button onClick={onLeaveRoom} className="btn-secondary px-6">
-                Lobiye Dön
+                Odadan Ayrıl
               </button>
             </div>
             {!isHost && (

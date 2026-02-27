@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getCityBySlug, getAllRegions } from "@/data/seoData";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
@@ -45,7 +46,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "TürkiyeGuessr — Şehir Tahmin Oyunu",
-  url: "https://turkiyeguessr.xyz/sehir-tahmin-oyunu",
+  url: `${SITE_URL}/sehir-tahmin-oyunu`,
   description:
     "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon.",
   applicationCategory: "GameApplication",

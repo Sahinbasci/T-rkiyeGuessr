@@ -17,17 +17,19 @@ const database = getDatabase(app);
 const auth = getAuth(app);
 
 // Anonymous Auth: Uygulama başladığında otomatik giriş yap
-let authReady: Promise<User>;
-const authReadyPromise = new Promise<User>((resolve) => {
-  authReady = signInAnonymously(auth).then((cred) => {
-    return cred.user;
-  }).catch((err) => {
-    console.error("[Auth] Anonymous sign-in failed:", err);
-    throw err;
+const authReadyPromise = new Promise<User>((resolve, reject) => {
+  // Timeout: if auth doesn't resolve in 15s, reject to prevent infinite hang
+  const timeout = setTimeout(() => {
+    reject(new Error("[Auth] Anonymous sign-in timed out after 15s"));
+  }, 15000);
+
+  signInAnonymously(auth).catch(() => {
+    // signInAnonymously failed — onAuthStateChanged may still resolve if cached
   });
-  // Eğer zaten giriş yapılmışsa onAuthStateChanged ile yakala
+
   const unsub = onAuthStateChanged(auth, (user) => {
     if (user) {
+      clearTimeout(timeout);
       resolve(user);
       unsub();
     }

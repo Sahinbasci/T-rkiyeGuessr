@@ -126,7 +126,7 @@
           "$playerId": {
             ".validate": "$playerId.matches(/^.{1,128}$/)",
             ".read": "auth != null",
-            ".write": "auth != null && (auth.uid == $playerId || data.parent().parent().child('hostId').val() == auth.uid || newData.parent().parent().child('hostId').val() == auth.uid)",
+            ".write": "auth != null && (auth.uid == $playerId || data.parent().parent().child('hostId').val() == auth.uid || newData.parent().parent().child('hostId').val() == auth.uid) && (data.exists() || data.parent().numChildren() < 8)",
 
             "id": {
               ".validate": "newData.isString() && newData.val() == $playerId"

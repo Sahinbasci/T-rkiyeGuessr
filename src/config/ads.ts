@@ -60,12 +60,19 @@ type RoomStatus = "waiting" | "playing" | "roundEnd" | "gameOver" | null;
  * - User consented to marketing cookies
  * - Room is NOT in active playing state
  * - (optional) slot is configured with a real ID
+ *
+ * BUG-005 FIX: During AdSense review, slot IDs are placeholders.
+ * Google auto-ads work without real slot IDs (pagead2.js handles placement).
+ * We allow placeholder slots so manual AdSlot components still render
+ * and Google can fill them via auto-ads during the review period.
  */
 export function canShowAd(roomStatus?: RoomStatus, slotId?: string): boolean {
   if (!ADS_ENABLED) return false;
   if (!isMarketingAllowed()) return false;
   if (roomStatus === "playing") return false;
-  if (slotId && !isSlotConfigured(slotId)) return false;
+  // BUG-005: Allow placeholder slots — Google auto-ads can fill them during review
+  // Only reject truly invalid slots (empty string or unexpected values)
+  if (slotId !== undefined && slotId.length === 0) return false;
   return true;
 }
 

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
@@ -22,7 +23,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   name: "TürkiyeGuessr — Ücretsiz Coğrafya Oyunu",
-  url: "https://turkiyeguessr.xyz",
+  url: SITE_URL,
   applicationCategory: "GameApplication",
   operatingSystem: "Web",
   offers: {

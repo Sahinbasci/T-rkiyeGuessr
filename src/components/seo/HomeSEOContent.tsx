@@ -33,13 +33,13 @@ export function HomeSEOContent() {
 
         {/* Açıklama */}
         <section className="text-center space-y-3">
-          <h2 className="text-2xl font-bold text-gray-200" style={{ fontFamily: "var(--font-display)" }}>
-            Türkiye Konum Tahmin Oyunu
-          </h2>
-          <p className="text-gray-500 text-sm max-w-xl mx-auto leading-relaxed">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-200" style={{ fontFamily: "var(--font-display)" }}>
+            TürkiyeGuessr — Türkiye Konum Tahmin Oyunu
+          </h1>
+          <p className="text-gray-500 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
             TürkiyeGuessr ile Google Street View üzerinden Türkiye&apos;nin dört bir yanını keşfet.
             142+ lokasyon, 7 coğrafi bölge ve 2-8 kişilik multiplayer modlarla arkadaşlarınla yarış.
-            Tamamen ücretsiz, kayıt gerektirmez.
+            Tamamen ücretsiz, kayıt gerektirmez. GeoGuessr&apos;ın en iyi Türkçe alternatifi.
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <Link href="/nasil-oynanir" className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
@@ -65,11 +65,11 @@ export function HomeSEOContent() {
 
         {/* Bölgeler */}
         <section className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-300 text-center">
+          <h2 className="text-lg font-semibold text-gray-300 text-center">
             <Link href="/bolgeler" className="hover:text-white transition-colors">
               7 Coğrafi Bölge
             </Link>
-          </h3>
+          </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {REGIONS.map((r) => (
               <Link
@@ -85,11 +85,11 @@ export function HomeSEOContent() {
 
         {/* Popüler Şehirler */}
         <section className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-300 text-center">
+          <h2 className="text-lg font-semibold text-gray-300 text-center">
             <Link href="/sehirler" className="hover:text-white transition-colors">
               Popüler Lokasyonlar
             </Link>
-          </h3>
+          </h2>
           <div className="flex flex-wrap justify-center gap-2">
             {POPULAR_CITIES.map((c) => (
               <Link
@@ -105,11 +105,11 @@ export function HomeSEOContent() {
 
         {/* Blog */}
         <section className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-300 text-center">
+          <h2 className="text-lg font-semibold text-gray-300 text-center">
             <Link href="/blog" className="hover:text-white transition-colors">
               Blog
             </Link>
-          </h3>
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {BLOG_LINKS.map((b) => (
               <Link

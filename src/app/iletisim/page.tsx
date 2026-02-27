@@ -1,9 +1,11 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { Mail, Clock, MessageSquare } from "lucide-react";
+import { ContactForm } from "@/components/seo/ContactForm";
 
 export const metadata: Metadata = {
-  title: "İletişim",
+  title: "İletişim — Bize Ulaşın",
   description:
     "TürkiyeGuessr ile iletişime geçin. Soru, öneri, hata bildirimi ve iş birliği teklifleri için bize ulaşın.",
   alternates: { canonical: "/iletisim" },
@@ -27,7 +29,7 @@ export default function IletisimPage() {
           </h1>
           <p className="text-gray-400 mt-3 leading-relaxed">
             TürkiyeGuessr hakkında soru, öneri, hata bildirimi veya iş birliği
-            teklifiniz mi var? Bize ulaşın, en kısa sürede dönelim.
+            teklifiniz mi var? Aşağıdaki formu doldurun veya doğrudan e-posta gönderin.
           </p>
         </header>
 
@@ -60,10 +62,17 @@ export default function IletisimPage() {
           </div>
         </section>
 
+        {/* Contact Form */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">İletişim Formu</h2>
+          <ContactForm />
+        </section>
+
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">E-posta Konu Başlıkları</h2>
           <p className="text-gray-400 leading-relaxed text-sm">
-            Mesajınızın daha hızlı işlenmesi için konu başlığınıza şu etiketlerden birini ekleyebilirsiniz:
+            Doğrudan e-posta gönderiyorsanız, mesajınızın daha hızlı işlenmesi için konu başlığınıza
+            şu etiketlerden birini ekleyebilirsiniz:
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             {[
@@ -95,9 +104,9 @@ export default function IletisimPage() {
                 </p>
                 <p className="text-gray-500 text-sm mt-1">
                   E-posta göndermeden önce{" "}
-                  <a href="/sss" className="text-red-400 hover:underline">
+                  <Link href="/sss" className="text-red-400 hover:underline">
                     Sıkça Sorulan Sorular
-                  </a>{" "}
+                  </Link>{" "}
                   sayfamıza göz atmanızı öneririz.
                 </p>
               </div>
@@ -111,6 +120,11 @@ export default function IletisimPage() {
             TürkiyeGuessr, bireysel bir geliştirici tarafından geliştirilen ve işletilen
             bağımsız bir web projesidir. Bir şirket veya ticari kuruluşla
             bağlantılı değildir. Proje tamamen ücretsiz olarak sunulmaktadır.
+            Daha fazla bilgi için{" "}
+            <Link href="/hakkimizda" className="text-red-400 hover:underline">
+              Hakkımızda
+            </Link>{" "}
+            sayfamızı ziyaret edebilirsiniz.
           </p>
         </section>
       </article>

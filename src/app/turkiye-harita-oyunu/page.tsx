@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getCityBySlug, getAllRegions } from "@/data/seoData";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
@@ -29,7 +30,7 @@ export default function TurkiyeHaritaOyunuPage() {
       {
         "@type": "WebApplication",
         name: "TürkiyeGuessr - Türkiye Harita Oyunu",
-        url: "https://turkiyeguessr.xyz/turkiye-harita-oyunu",
+        url: `${SITE_URL}/turkiye-harita-oyunu`,
         applicationCategory: "GameApplication",
         operatingSystem: "Web",
         offers: {
@@ -48,13 +49,13 @@ export default function TurkiyeHaritaOyunuPage() {
             "@type": "ListItem",
             position: 1,
             name: "Anasayfa",
-            item: "https://turkiyeguessr.xyz",
+            item: SITE_URL,
           },
           {
             "@type": "ListItem",
             position: 2,
             name: "Türkiye Harita Oyunu",
-            item: "https://turkiyeguessr.xyz/turkiye-harita-oyunu",
+            item: `${SITE_URL}/turkiye-harita-oyunu`,
           },
         ],
       },

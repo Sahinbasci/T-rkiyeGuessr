@@ -11,6 +11,8 @@ import { GameErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { trackError } from "@/utils/telemetry";
 import { incrementRoundsPlayed } from "@/utils/adsFrequency";
 import { logger } from "@/utils/logger";
+import { cleanupStaleSessions } from "@/utils";
+import { SITE_URL } from "@/config/site";
 
 const GameScreen = dynamic(
   () => import("@/components/screens/GameScreen").then((m) => ({ default: m.GameScreen })),
@@ -59,9 +61,19 @@ export default function HomeClient() {
 
   const { guessMapRef, initializeMap, resetMap } = useGuessMap(setGuessLocation);
 
+  // BUG-013 FIX: Ref to access latest guessLocation in onTimeUp without stale closure
+  const guessLocationRef = useRef<Coordinates | null>(null);
+  guessLocationRef.current = guessLocation;
+
   const { timeRemaining, formattedTime, isRunning: timerRunning, percentRemaining } = useTimer({
     initialTime: room?.timeLimit || 90,
     onTimeUp: () => {
+      // BUG-013 FIX: Auto-submit pending guess when timer expires (all players)
+      const pendingGuess = guessLocationRef.current;
+      if (pendingGuess && !currentPlayer?.hasGuessed) {
+        // Fire-and-forget: server has GUESS_GRACE_PERIOD_MS for late submissions
+        submitGuess(pendingGuess).catch(() => {});
+      }
       if (isHost) handleTimeUp();
     },
     serverStartTime: room?.roundStartTime || null,
@@ -113,13 +125,14 @@ export default function HomeClient() {
 
   // ==================== EFFECTS ====================
 
-  // Offline detection
+  // Offline detection + BUG-011 FIX: stale session cleanup on mount
   useEffect(() => {
     const handleOffline = () => setIsOffline(true);
     const handleOnline = () => setIsOffline(false);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
     setIsOffline(!navigator.onLine);
+    cleanupStaleSessions();
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
@@ -248,7 +261,10 @@ export default function HomeClient() {
     setTimeout(run, 0);
 
     return () => { cancelled = true; };
-  }, [screen, room?.status, room?.currentRound]); // eslint-disable-line react-hooks/exhaustive-deps
+    // room?.currentPanoPackageId: defensive — ensures effect re-runs even if
+    // currentRound update is observed before currentPanoPackage in rare edge cases.
+    // DEDUP guard (line 208-214) prevents double execution safely.
+  }, [screen, room?.status, room?.currentRound, room?.currentPanoPackageId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reset state on round change
   useEffect(() => {
@@ -483,14 +499,22 @@ export default function HomeClient() {
       setGuessLocation(null);
       resetMoves();
       try {
-        await restartGame();
-        setScreen("lobby");
+        // Reset pano service state (used locations, province bag, pool)
+        // so next game doesn't get stale/duplicate locations
+        await onNewGameStart();
+        const committed = await restartGame();
+        if (committed) {
+          setScreen("lobby");
+        } else {
+          showTrackedToast("Oyun yeniden başlatılamadı. Tekrar deneyin.");
+        }
       } catch (err) {
         trackError(err instanceof Error ? err : String(err), "handleRestartGame");
         showTrackedToast("Oyun yeniden başlatılamadı. Tekrar deneyin.");
       } finally {
         // Release after a tick so status-change effect doesn't race
-        setTimeout(() => { isRestartingRef.current = false; }, 100);
+        // 500ms gives Firebase listener time to propagate the "waiting" status
+        setTimeout(() => { isRestartingRef.current = false; }, 500);
       }
     }, "restartGame");
   };
@@ -521,12 +545,16 @@ export default function HomeClient() {
 
   const shareWhatsApp = () => {
     if (room?.id) {
-      const text = `🎯 TürkiyeGuessr'da bana katıl!\n\nOda Kodu: ${room.id}\n\nhttps://turkiyeguessr.xyz?room=${room.id}`;
+      const text = `🎯 TürkiyeGuessr'da bana katıl!\n\nOda Kodu: ${room.id}\n\n${SITE_URL}?room=${room.id}`;
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
     }
   };
 
   const handleReturnToMenu = () => {
+    // Clean up server-side player entry to prevent ghost players in Firebase
+    if (room) {
+      leaveRoom().catch(() => {});
+    }
     setScreen("menu");
     resetMap();
     setGuessLocation(null);

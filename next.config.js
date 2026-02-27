@@ -9,6 +9,13 @@ const nextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
+            // BUG-009 NOTE: unsafe-eval + unsafe-inline are REQUIRED by:
+            //   - Google Maps JS API (uses eval internally for tile rendering)
+            //   - Google AdSense pagead2.js (dynamic ad code execution)
+            //   - ConsentModeInit inline script (must run before any 3rd-party scripts)
+            //   - JSON-LD structured data (dangerouslySetInnerHTML)
+            // Nonce-based CSP is not feasible with these external dependencies.
+            // This is a known trade-off accepted by most Google API consumers.
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseio.com https://pagead2.googlesyndication.com https://*.googleadservices.com https://adservice.google.com https://www.googletagservices.com https://tpc.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://fundingchoicesmessages.google.com https://www.googletagmanager.com",
@@ -43,13 +50,15 @@ const nextConfig = {
         ],
       },
       {
-        source: "/(nasil-oynanir|multiplayer|sss|hakkimizda|geoguessr-alternatifi|bolgeler|sehirler)",
+        // All SEO content + legal pages — edge-cached 7d, browser-cached 1d
+        source: "/(nasil-oynanir|multiplayer|sss|hakkimizda|iletisim|geoguessr-alternatifi|turkiye-harita-oyunu|sehir-tahmin-oyunu|ucretsiz-cografya-oyunu|bolgeler|sehirler|blog|gizlilik-politikasi|cerez-politikasi|kullanim-kosullari|kvkk)",
         headers: [
           { key: "Cache-Control", value: "public, max-age=86400, s-maxage=604800" },
         ],
       },
       {
-        source: "/(sehirler|bolgeler)/:path*",
+        // Dynamic SEO subpages (cities, regions, blog posts)
+        source: "/(sehirler|bolgeler|blog)/:path*",
         headers: [
           { key: "Cache-Control", value: "public, max-age=86400, s-maxage=604800" },
         ],

@@ -150,6 +150,35 @@ export function clearSessionToken(roomId: string): void {
   }
 }
 
+/**
+ * BUG-011 FIX: Stale session token cleanup.
+ * Keeps the most recent MAX_SESSIONS session tokens, removes the rest.
+ * Called on app init to prevent unbounded localStorage growth.
+ */
+const MAX_SESSIONS = 5;
+const SESSION_PREFIX = "turkiye_guessr_session_";
+
+export function cleanupStaleSessions(): void {
+  if (typeof window === "undefined" || !window.localStorage) return;
+  try {
+    const sessionKeys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(SESSION_PREFIX)) {
+        sessionKeys.push(key);
+      }
+    }
+    // Keep only the most recent MAX_SESSIONS (sorted by key which includes timestamp)
+    if (sessionKeys.length > MAX_SESSIONS) {
+      sessionKeys.sort();
+      const toRemove = sessionKeys.slice(0, sessionKeys.length - MAX_SESSIONS);
+      toRemove.forEach((key) => localStorage.removeItem(key));
+    }
+  } catch {
+    // Silent fail — cleanup is best-effort
+  }
+}
+
 // Koordinatlardan il/ilçe bilgisi al (Reverse Geocoding)
 export async function getLocationName(coord: Coordinates): Promise<string> {
   if (typeof google === "undefined" || !google.maps) {

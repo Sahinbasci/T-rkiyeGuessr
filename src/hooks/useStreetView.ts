@@ -256,7 +256,10 @@ export function useStreetView(roomId?: string, playerId?: string) {
       globalLoader = new Loader({
         apiKey: GOOGLE_MAPS_API_KEY,
         version: "weekly",
-        libraries: ["geometry"],
+        // BUG-006: "marker" library loaded for future AdvancedMarkerElement migration.
+        // Full migration requires a mapId from Google Cloud Console + code changes in useGuessMap.ts.
+        // Legacy google.maps.Marker still works but shows deprecation console warnings.
+        libraries: ["geometry", "marker"],
       });
     }
 
@@ -560,6 +563,17 @@ export function useStreetView(roomId?: string, playerId?: string) {
       } else {
         // REUSE existing panorama — clear listeners but keep the object
         google.maps.event.clearInstanceListeners(panoramaRef.current);
+
+        // BUG-001 FIX: If same panoId is set on reused panorama, Google Maps
+        // may not visually update. Force a reset by briefly setting position
+        // before calling setPano to ensure the view refreshes.
+        const currentPano = panoramaRef.current.getPano();
+        if (currentPano === panoId) {
+          logger.debug(`[Nav] BUG-001: Same panoId detected (${panoId.substring(0, 12)}), forcing visual reset`);
+          // Force visual refresh: set position to trigger internal state change,
+          // then immediately setPano to render the correct view
+          panoramaRef.current.setPosition({ lat: 0, lng: 0 });
+        }
 
         // Just change the pano on the existing panorama
         panoramaRef.current.setPano(panoId);

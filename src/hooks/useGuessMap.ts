@@ -8,7 +8,7 @@
  * Sorun: initializeMap erken return yapıyordu, listener kaybediliyordu
  */
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Coordinates } from "@/types";
 import { MAPS_CONFIG, TURKEY_MAP_RESTRICTION } from "@/config/maps";
 import { getTurkeyCenter, getTurkeyZoom, isLikelyInTurkey, trackEvent } from "@/utils";
@@ -212,6 +212,29 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
     });
 
     mapRef.current.fitBounds(bounds, 50);
+  }, []);
+
+  // Cleanup on unmount — prevent Google Maps instance + listener leak
+  useEffect(() => {
+    return () => {
+      if (clickListenerRef.current) {
+        google.maps.event.removeListener(clickListenerRef.current);
+        clickListenerRef.current = null;
+      }
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      markersRef.current.forEach((m) => m.setMap(null));
+      markersRef.current = [];
+      polylinesRef.current.forEach((p) => p.setMap(null));
+      polylinesRef.current = [];
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+      mapRef.current = null;
+    };
   }, []);
 
   return {

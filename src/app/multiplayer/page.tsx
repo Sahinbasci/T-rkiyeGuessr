@@ -15,6 +15,31 @@ export const metadata: Metadata = {
   alternates: { canonical: "/multiplayer" },
 };
 
+const MULTIPLAYER_FAQ = [
+  { q: "Multiplayer oynamak ücretli mi?", a: "Hayır, TürkiyeGuessr tamamen ücretsizdir. Kayıt, e-posta veya ödeme gerekmez." },
+  { q: "Maksimum kaç kişi oynayabilir?", a: "Bir odada 2 ile 8 kişi arasında oyuncu yarışabilir." },
+  { q: "Oda kodu nasıl paylaşılır?", a: "Oda oluşturulduktan sonra 6 haneli kod ekranda görünür. Bu kodu arkadaşlarınıza WhatsApp, SMS veya herhangi bir mesajlaşma uygulaması ile gönderebilirsiniz." },
+  { q: "Oyun ortasında katılabilir miyim?", a: "Oyun başladıktan sonra yeni oyuncu katılamaz. Herkesin lobiye girmesi gerekir." },
+];
+
+function MultiplayerFaqJsonLd() {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: MULTIPLAYER_FAQ.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: { "@type": "Answer", text: faq.a },
+    })),
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
 export default function MultiplayerPage() {
   return (
     <SeoLayout
@@ -23,6 +48,7 @@ export default function MultiplayerPage() {
         { name: "Multiplayer", url: "/multiplayer" },
       ]}
     >
+      <MultiplayerFaqJsonLd />
       <article className="space-y-10">
         <header>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-wide" style={{ fontFamily: "var(--font-display)" }}>
@@ -82,6 +108,41 @@ export default function MultiplayerPage() {
             Hemen Oyna — Ücretsiz!
           </a>
           <p className="text-gray-600 text-sm mt-3">Kayıt gerektirmez. Tarayıcını aç ve başla.</p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Multiplayer İpuçları</h2>
+          <div className="space-y-3 text-gray-400 leading-relaxed">
+            <p>
+              Multiplayer modda başarılı olmak için birkaç strateji öne çıkar. İlk olarak,
+              <strong className="text-gray-300"> süreyi verimli kullanın</strong>: Sokak
+              görünümünde etrafınıza bakarak plaka kodu, tabela veya doğal ipuçları arayın.
+              İlk 10 saniyede hızlıca etrafı tarayıp bir hipotez oluşturun.
+            </p>
+            <p>
+              İkinci olarak, <strong className="text-gray-300">hareket haklarınızı stratejik kullanın</strong>.
+              Urban modda 3, Geo modda 4 hareket hakkınız var. Her adımda yeni bilgi elde etmeye
+              çalışın — aynı yönde ilerlemeye devam etmek yerine, farklı yönlere bakarak
+              daha fazla ipucu toplayabilirsiniz.
+            </p>
+            <p>
+              Son olarak, <strong className="text-gray-300">yaklaşık tahmin yapmaktan korkmayın</strong>.
+              Hiç tahmin yapmamanız 0 puan demektir. Bölgeyi doğru tahmin etmek bile
+              ciddi puan getirir — mükemmel konum bilmek şart değil.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Sık Sorulan Sorular</h2>
+          <div className="space-y-3">
+            {MULTIPLAYER_FAQ.map((faq) => (
+              <div key={faq.q} className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4">
+                <h3 className="font-semibold text-gray-200 text-sm">{faq.q}</h3>
+                <p className="text-gray-500 text-sm mt-1">{faq.a}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* İlgili İçerikler */}
