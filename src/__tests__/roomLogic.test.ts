@@ -1353,14 +1353,15 @@ describe("classifyHeartbeatError", () => {
     expect(classifyHeartbeatError("", "Room deleted", 0)).toBe("lost");
   });
 
-  test("network error with <3 fails → reconnecting", () => {
+  test("network error with <6 fails → reconnecting", () => {
     expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 1)).toBe("reconnecting");
     expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 2)).toBe("reconnecting");
+    expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 5)).toBe("reconnecting");
   });
 
-  test("network error with >=3 fails → lost", () => {
-    expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 3)).toBe("lost");
-    expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 5)).toBe("lost");
+  test("network error with >=6 fails → lost", () => {
+    expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 6)).toBe("lost");
+    expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 10)).toBe("lost");
   });
 
   test("unknown error first time → reconnecting", () => {
@@ -2256,13 +2257,14 @@ describe("BUG-FIX Edge Cases: Multiplayer Race Conditions", () => {
       expect(classifyHeartbeatError("", "Room not found or deleted", 0)).toBe("lost");
     });
 
-    test("3+ consecutive network fails → lost", () => {
-      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 3)).toBe("lost");
+    test("6+ consecutive network fails → lost (HEARTBEAT_FAIL_THRESHOLD)", () => {
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 6)).toBe("lost");
     });
 
-    test("1-2 network fails → reconnecting", () => {
+    test("below threshold network fails → reconnecting", () => {
       expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 1)).toBe("reconnecting");
-      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 2)).toBe("reconnecting");
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 3)).toBe("reconnecting");
+      expect(classifyHeartbeatError("NETWORK_ERROR", "timeout", 5)).toBe("reconnecting");
     });
 
     test("single transient error → reconnecting (not lost)", () => {

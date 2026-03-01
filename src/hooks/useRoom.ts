@@ -45,8 +45,6 @@ function getServerNowMs(): number {
 }
 import {
   generateRoomCode,
-  calculateDistance,
-  calculateScore,
   canCreateRoom,
   canJoinRoom,
   canSubmitGuess,
@@ -82,7 +80,7 @@ import {
   electNewHost,
   computeRoundResults,
   updatePlayersAfterRound,
-  countOnlinePlayers as countOnline,
+  HEARTBEAT_FAIL_THRESHOLD,
 } from "@/utils/roomLogic";
 
 // ==================== TYPES ====================
@@ -239,6 +237,9 @@ export function useRoom() {
   // BUG-006 FIX: gameInstanceId guard — detects restart and resets stale in-flight state
   const localGameInstanceIdRef = useRef<string | null>(null);
 
+  // BUG-A FIX: Suppress "Oda silindi" toast when player intentionally leaves
+  const isLeavingRef = useRef<boolean>(false);
+
   // Client resync watchdog refs (Effect 7) — non-host stuck detection
   const clientResyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const clientResyncDelayRef = useRef<NodeJS.Timeout | null>(null);
@@ -374,7 +375,7 @@ export function useRoom() {
         } else {
           // Network/transient error
           consecutiveHeartbeatFailsRef.current++;
-          if (consecutiveHeartbeatFailsRef.current >= 6) {
+          if (consecutiveHeartbeatFailsRef.current >= HEARTBEAT_FAIL_THRESHOLD) {
             setConnectionState('lost');
           } else if (consecutiveHeartbeatFailsRef.current >= 2) {
             setConnectionState('reconnecting');
@@ -928,7 +929,10 @@ export function useRoom() {
 
       } else {
         setRoom(null);
-        setError("Oda silindi veya bulunamadı");
+        // BUG-A FIX: Don't show error toast if player intentionally left (deleted room)
+        if (!isLeavingRef.current) {
+          setError("Oda silindi veya bulunamadı");
+        }
       }
     });
 
@@ -2253,6 +2257,10 @@ export function useRoom() {
   const leaveRoom = useCallback(async () => {
     if (!room || !playerId) return;
 
+    // BUG-A FIX: Mark as intentional leave BEFORE any Firebase ops
+    // so Effect 5 won't show "Oda silindi" toast when room is deleted
+    isLeavingRef.current = true;
+
     const playerList = Object.values(room.players || {});
     const roomId = room.id;
 
@@ -2289,12 +2297,17 @@ export function useRoom() {
       // This prevents the host cleanup timer from double-decrementing between
       // a separate remove() and decrement transaction.
       {
-        const myPlayer = room.players?.[playerId];
-        const shouldDecrement = room.status === "playing" && myPlayer && !myPlayer.hasGuessed;
         const roomRef = ref(database, `rooms/${roomId}`);
         await runTransaction(roomRef, (currentRoom) => {
           if (!currentRoom) return currentRoom;
           const players = { ...currentRoom.players };
+
+          // BUG-S FIX: Read shouldDecrement from FRESH Firebase data inside transaction,
+          // not from stale React closure. This prevents wrong decrement if player
+          // guessed between last render and leaveRoom call.
+          const freshPlayer = players[playerId];
+          const shouldDecrement = currentRoom.status === "playing" && freshPlayer && !freshPlayer.hasGuessed;
+
           delete players[playerId];
 
           const updatedRoom: any = {
@@ -2302,7 +2315,7 @@ export function useRoom() {
             players,
           };
 
-          if (shouldDecrement && currentRoom.status === "playing") {
+          if (shouldDecrement) {
             updatedRoom.expectedGuesses = Math.max(0, (currentRoom.expectedGuesses || 0) - 1);
           }
 
@@ -2338,6 +2351,14 @@ export function useRoom() {
   const restartGame = useCallback(async (): Promise<boolean> => {
     if (!room || playerId !== room.hostId) return false;
 
+    // IDEMPOTENCY: If room is already in "waiting" status, no transaction needed.
+    // This prevents double-click errors where the first call succeeds (→ waiting)
+    // and the second call aborts because status !== "gameOver".
+    if (room.status === "waiting") {
+      logger.debug("[MP] restartGame: room already in 'waiting' — idempotent return");
+      return true;
+    }
+
     const newGameInstanceId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     // BUG-006 FIX: Update local ref immediately so listener ignores stale events
     localGameInstanceIdRef.current = newGameInstanceId;
@@ -2354,7 +2375,13 @@ export function useRoom() {
       committed = false;
       if (!currentRoom) return currentRoom;
       if (currentRoom.hostId !== playerId) return; // abort — not host
-      if (currentRoom.status !== "gameOver") return; // abort — stale click guard
+      // IDEMPOTENCY: allow if gameOver OR already waiting (concurrent click landed after first succeeded)
+      if (currentRoom.status !== "gameOver" && currentRoom.status !== "waiting") return; // abort — unexpected status
+      // If already waiting, treat as success — no need to re-write
+      if (currentRoom.status === "waiting") {
+        committed = true;
+        return; // abort transaction (no write needed), but mark committed
+      }
 
       const updatedPlayers: { [key: string]: Player } = {};
       Object.entries(currentRoom.players || {}).forEach(([id, player]: [string, any]) => {
@@ -2453,5 +2480,6 @@ export function useRoom() {
     nextRoundWithPanoPackage,
     leaveRoom,
     restartGame,
+    returnToLobby: restartGame, // Canonical alias: idempotent lobby reset
   };
 }

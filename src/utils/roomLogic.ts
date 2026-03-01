@@ -18,6 +18,9 @@ import {
 import { calculateDistance, calculateScore, isLikelyInTurkey } from "@/utils";
 import { isValidPlayerName, isValidTurkeyCoordinate, ROOM_LIFECYCLE } from "@/config/production";
 
+/** Shared constant: consecutive heartbeat failures before connection is declared "lost". */
+export const HEARTBEAT_FAIL_THRESHOLD = 6;
+
 // Re-export RoundEndLock type for use in tests
 export interface RoundEndLock {
   lockedBy: string;
@@ -729,7 +732,7 @@ export function classifyHeartbeatError(
     return "lost";
   }
   // Network/transient error
-  if (consecutiveFails >= 3) {
+  if (consecutiveFails >= HEARTBEAT_FAIL_THRESHOLD) {
     return "lost";
   }
   return "reconnecting";

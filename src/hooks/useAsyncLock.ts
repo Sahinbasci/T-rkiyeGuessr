@@ -36,9 +36,11 @@ export function useAsyncLock(): UseAsyncLockReturn {
 
   const isLocked = lockedKeys.size > 0;
 
+  // BUG-F FIX: Read from reactive state (not ref) so components re-render
+  // when lock status changes. Ref is for synchronous guards in run().
   const isKeyLocked = useCallback((key: string): boolean => {
-    return lockedKeysRef.current.has(key);
-  }, []);
+    return lockedKeys.has(key);
+  }, [lockedKeys]);
 
   const run = useCallback(async <T>(
     action: () => Promise<T>,

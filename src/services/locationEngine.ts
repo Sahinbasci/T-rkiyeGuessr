@@ -24,7 +24,7 @@
 
 import { PanoPackage, GameMode } from "@/types";
 import { URBAN_PACKAGES, GEO_PACKAGES } from "@/data/panoPackages";
-import { TURKEY_CITIES } from "./dynamicPanoService";
+import { TURKEY_CITIES } from "@/data/turkeyCities";
 import { logger } from "@/utils/logger";
 
 // ==================== TYPES ====================

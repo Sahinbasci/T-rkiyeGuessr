@@ -48,7 +48,7 @@ export default function HomeClient() {
     connectionState, notifications, dismissNotification,
     createRoom, joinRoom, setGameMode, startGame, startGameWithPanoPackage,
     submitGuess, checkAllGuessed, handleTimeUp, nextRound, nextRoundWithPanoPackage,
-    leaveRoom, restartGame,
+    leaveRoom, restartGame, returnToLobby,
   } = useRoom();
 
   const {
@@ -488,6 +488,11 @@ export default function HomeClient() {
     }, "skipRound");
   };
 
+  // P1 FIX: Shared lock key prevents concurrent lobby/leave operations.
+  // Previously "restartGame" and "leaveRoom" used separate keys, allowing
+  // concurrent execution that could corrupt room state (host migration + restart race).
+  const ROOM_TRANSITION_KEY = "roomTransition";
+
   const handleRestartGame = async () => {
     await runLocked(async () => {
       // BUG-006 FIX: Suppress screen-transition effect during restart
@@ -516,7 +521,37 @@ export default function HomeClient() {
         // 500ms gives Firebase listener time to propagate the "waiting" status
         setTimeout(() => { isRestartingRef.current = false; }, 500);
       }
-    }, "restartGame");
+    }, ROOM_TRANSITION_KEY);
+  };
+
+  // P1+P2 FIX: Canonical "return to lobby" handler.
+  // Uses returnToLobby (idempotent restartGame) — preserves room, resets game state.
+  // Single player: room stays alive, no new room needed.
+  // Multiplayer host: room resets to "waiting", all players transition to lobby.
+  const handleReturnToLobby = async () => {
+    await runLocked(async () => {
+      isRestartingRef.current = true;
+      lastShownPanoRoundRef.current = null;
+      prevRoundRef.current = null;
+      prevStatusRef.current = null;
+      resetMap();
+      setGuessLocation(null);
+      resetMoves();
+      try {
+        await onNewGameStart();
+        const committed = await returnToLobby();
+        if (committed) {
+          setScreen("lobby");
+        } else {
+          showTrackedToast("Lobiye dönülemedi. Tekrar deneyin.");
+        }
+      } catch (err) {
+        trackError(err instanceof Error ? err : String(err), "handleReturnToLobby");
+        showTrackedToast("Lobiye dönülemedi. Tekrar deneyin.");
+      } finally {
+        setTimeout(() => { isRestartingRef.current = false; }, 500);
+      }
+    }, ROOM_TRANSITION_KEY);
   };
 
   const handleLeaveRoom = async () => {
@@ -526,7 +561,7 @@ export default function HomeClient() {
       resetMap();
       setGuessLocation(null);
       resetMoves();
-    }, "leaveRoom");
+    }, ROOM_TRANSITION_KEY);
   };
 
   const copyRoomCode = () => {
@@ -550,15 +585,18 @@ export default function HomeClient() {
     }
   };
 
-  const handleReturnToMenu = () => {
-    // Clean up server-side player entry to prevent ghost players in Firebase
-    if (room) {
-      leaveRoom().catch(() => {});
-    }
-    setScreen("menu");
-    resetMap();
-    setGuessLocation(null);
-    resetMoves();
+  // BUG-U FIX: Wrap with runLocked to prevent race with concurrent operations
+  const handleReturnToMenu = async () => {
+    await runLocked(async () => {
+      // Clean up server-side player entry to prevent ghost players in Firebase
+      if (room) {
+        await leaveRoom();
+      }
+      setScreen("menu");
+      resetMap();
+      setGuessLocation(null);
+      resetMoves();
+    }, ROOM_TRANSITION_KEY);
   };
 
   // ==================== RENDER ====================
@@ -644,6 +682,7 @@ export default function HomeClient() {
             onSubmitGuess={handleSubmitGuess}
             onNextRound={handleNextRound}
             onRestart={handleRestartGame}
+            onReturnToLobby={handleReturnToLobby}
             onLeaveRoom={handleLeaveRoom}
             returnToStart={returnToStart}
             onReturnToMenu={handleReturnToMenu}
@@ -651,6 +690,7 @@ export default function HomeClient() {
             onSkipRound={handleSkipRound}
             isSubmitting={isKeyLocked("submitGuess")}
             isNextRoundLoading={isKeyLocked("nextRound")}
+            isTransitioning={isKeyLocked(ROOM_TRANSITION_KEY)}
           />
         </GameErrorBoundary>
       </>

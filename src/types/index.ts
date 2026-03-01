@@ -113,6 +113,8 @@ export interface RoundResult {
 }
 
 // ==================== SABİTLER ====================
+// Random coordinate üretimi için daraltılmış sınırlar (deniz üstü probe'ları azaltır).
+// Guess validation için SECURITY.TURKEY_BOUNDS (production.ts: 35-43, 25-46) kullanılır.
 export const TURKEY_BOUNDS = {
   north: 42.0,
   south: 36.0,

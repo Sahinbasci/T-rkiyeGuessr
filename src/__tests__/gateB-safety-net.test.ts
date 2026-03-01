@@ -371,7 +371,7 @@ describe("B2: Golden Master Snapshots", () => {
       expect(results[0].distance).toBeGreaterThan(349);
       expect(results[0].distance).toBeLessThan(354);
       expect(results[0].score).toBeGreaterThan(0);
-      expect(results[0].score).toBeLessThan(200); // Far guess
+      expect(results[0].score).toBeLessThan(700); // ~352km → ~614 with exponential decay k=3
 
       // Bob guessed Antalya (~482km from Istanbul)
       expect(results[1].playerId).toBe("p2");
@@ -386,11 +386,12 @@ describe("B2: Golden Master Snapshots", () => {
   });
 
   describe("State transition golden masters", () => {
-    const VALID_TRANSITIONS: [string, string][] = [
-      ["waiting", "playing"],
-      ["playing", "roundEnd"],
-      ["roundEnd", "playing"],
-      ["roundEnd", "gameOver"],
+    // [from, to, currentRound, totalRounds, onlineCount]
+    const VALID_TRANSITIONS: [string, string, number, number, number][] = [
+      ["waiting", "playing", 0, 5, 2],
+      ["playing", "roundEnd", 3, 5, 2],
+      ["roundEnd", "playing", 3, 5, 2],
+      ["roundEnd", "gameOver", 5, 5, 2], // Must be last round
     ];
 
     const INVALID_TRANSITIONS: [string, string][] = [
@@ -406,15 +407,15 @@ describe("B2: Golden Master Snapshots", () => {
 
     test.each(VALID_TRANSITIONS)(
       "%s → %s is valid (for host)",
-      (from, to) => {
+      (from, to, round, total, online) => {
         const result = validateRoundTransition(
           from as any,
           to as any,
           "host",
           "host",
-          3,
-          5,
-          2
+          round,
+          total,
+          online
         );
         expect(result.valid).toBe(true);
       }
@@ -972,13 +973,16 @@ describe("T2: Reconnect & Resync", () => {
       ).toBe("lost");
     });
 
-    test("3+ consecutive fails → lost", () => {
+    test("6+ consecutive fails → lost (HEARTBEAT_FAIL_THRESHOLD)", () => {
       expect(
-        classifyHeartbeatError("NETWORK", "timeout", 3)
+        classifyHeartbeatError("NETWORK", "timeout", 6)
       ).toBe("lost");
     });
 
-    test("1-2 fails → reconnecting", () => {
+    test("below threshold → reconnecting", () => {
+      expect(
+        classifyHeartbeatError("NETWORK", "timeout", 3)
+      ).toBe("reconnecting");
       expect(
         classifyHeartbeatError("NETWORK", "timeout", 1)
       ).toBe("reconnecting");
@@ -1056,7 +1060,7 @@ describe("T4: Security", () => {
     const XSS_PAYLOADS = [
       '<script>alert("xss")</script>',
       '<img src=x onerror=alert(1)>',
-      ""><script>",
+      '"><script>',
       "name'--",
       "name&amp;",
       '<a href="javascript:void(0)">click</a>',
@@ -1228,6 +1232,8 @@ describe("T5: SEO & Ads", () => {
 // ====================================================================
 
 describe("B4: Firebase Rules Contract Approximation", () => {
+  const projectRoot = path.resolve(__dirname, "../..");
+
   describe("max players enforcement", () => {
     test("MAX_PLAYERS_PER_ROOM is 8", () => {
       expect(ROOM_LIFECYCLE.MAX_PLAYERS_PER_ROOM).toBe(8);

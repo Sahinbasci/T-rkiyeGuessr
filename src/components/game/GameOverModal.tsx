@@ -1,4 +1,4 @@
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, LogOut } from "lucide-react";
 import { Player } from "@/types";
 import { PLAYER_COLORS } from "@/constants/playerColors";
 import { AdSlot } from "@/components/ads/AdSlot";
@@ -9,10 +9,12 @@ interface GameOverModalProps {
   playerId: string;
   isHost: boolean;
   onRestart: () => void;
+  onReturnToLobby: () => void;
   onLeave: () => void;
+  isTransitioning?: boolean;
 }
 
-export function GameOverModal({ players, playerId, isHost, onRestart, onLeave }: GameOverModalProps) {
+export function GameOverModal({ players, playerId, isHost, onRestart, onReturnToLobby, onLeave, isTransitioning }: GameOverModalProps) {
   const finalRankings = [...players].sort((a, b) => b.totalScore - a.totalScore);
 
   return (
@@ -75,17 +77,27 @@ export function GameOverModal({ players, playerId, isHost, onRestart, onLeave }:
 
         {isHost ? (
           <div className="space-y-2">
+            {/* P1+P2 FIX: Primary action is "Lobiye Dön" (return to lobby).
+                Preserves room, resets game state. Works for both single & multiplayer. */}
             <button
-              onClick={onRestart}
+              onClick={onReturnToLobby}
+              disabled={!!isTransitioning}
               className="btn-primary w-full py-3.5 sm:py-4 flex items-center justify-center gap-2 text-base"
+              aria-busy={!!isTransitioning}
             >
-              <RotateCcw size={20} />
-              Tekrar Oyna
+              {isTransitioning ? (
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <RotateCcw size={20} />
+              )}
+              {isTransitioning ? "Lobiye dönülüyor..." : "Lobiye Dön"}
             </button>
             <button
               onClick={onLeave}
-              className="w-full py-2 text-gray-400 hover:text-white transition text-sm"
+              disabled={!!isTransitioning}
+              className="w-full py-2 text-gray-400 hover:text-white transition text-sm flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
             >
+              <LogOut size={14} />
               Odadan Ayrıl
             </button>
           </div>
@@ -97,8 +109,10 @@ export function GameOverModal({ players, playerId, isHost, onRestart, onLeave }:
             </div>
             <button
               onClick={onLeave}
-              className="w-full py-2 text-gray-400 hover:text-white transition text-sm"
+              disabled={!!isTransitioning}
+              className="w-full py-2 text-gray-400 hover:text-white transition text-sm flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none"
             >
+              <LogOut size={14} />
               Odadan Ayrıl
             </button>
           </div>

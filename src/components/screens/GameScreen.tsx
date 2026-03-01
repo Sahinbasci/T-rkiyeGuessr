@@ -45,6 +45,7 @@ interface GameScreenProps {
   onSubmitGuess: () => void;
   onNextRound: () => void;
   onRestart: () => void;
+  onReturnToLobby: () => void;
   onLeaveRoom: () => void;
   returnToStart: () => void;
   onReturnToMenu: () => void;
@@ -54,6 +55,8 @@ interface GameScreenProps {
   // BUG-004: Loading states
   isSubmitting?: boolean;
   isNextRoundLoading?: boolean;
+  // P1 FIX: Room transition loading state (return to lobby / leave room)
+  isTransitioning?: boolean;
 }
 
 export function GameScreen({
@@ -81,6 +84,7 @@ export function GameScreen({
   onSubmitGuess,
   onNextRound,
   onRestart,
+  onReturnToLobby,
   onLeaveRoom,
   returnToStart,
   onReturnToMenu,
@@ -88,6 +92,7 @@ export function GameScreen({
   onSkipRound,
   isSubmitting,
   isNextRoundLoading,
+  isTransitioning,
 }: GameScreenProps) {
   // Connection lost fallback
   if (!room) {
@@ -277,7 +282,9 @@ export function GameScreen({
           playerId={playerId}
           isHost={isHost}
           onRestart={onRestart}
+          onReturnToLobby={onReturnToLobby}
           onLeave={onLeaveRoom}
+          isTransitioning={isTransitioning}
         />
       )}
 
