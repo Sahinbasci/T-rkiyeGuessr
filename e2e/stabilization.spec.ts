@@ -105,20 +105,24 @@ test.describe("A4: WhatsApp share URL", () => {
     await page.reload();
     await createRoom(page);
 
-    // Intercept window.open to capture URL
+    // Disable Web Share API to force WhatsApp fallback path, then capture window.open URL
     const [url] = await Promise.all([
       page.evaluate(() => {
         return new Promise<string>((resolve) => {
+          // Force WhatsApp fallback by removing navigator.share
+          Object.defineProperty(navigator, "share", { value: undefined, writable: true });
+
           const orig = window.open;
           window.open = function (url: any) {
             resolve(url);
             window.open = orig;
             return null;
           } as any;
-          // Find and click WhatsApp button
+          // Find and click share/WhatsApp button
           const btns = document.querySelectorAll("button");
           for (const btn of btns) {
-            if (btn.textContent?.includes("WhatsApp")) {
+            const text = btn.textContent || "";
+            if (text.includes("WhatsApp") || text.includes("Paylaş") || text.includes("share")) {
               btn.click();
               break;
             }

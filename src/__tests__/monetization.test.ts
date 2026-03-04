@@ -2,7 +2,7 @@
  * Monetization Pipeline Tests
  *
  * Covers:
- *  1. Consent gating — no AdSense/GA4 before consent
+ *  1. Consent gating — no ad rendering before consent (script loads unconditionally; Consent Mode v2 defaults to "denied")
  *  2. Gameplay ad blocking — no ads during "playing"
  *  3. CLS — ad containers have min-height
  *  4. Analytics events — correct events fired
@@ -13,6 +13,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach, beforeAll, afterAll } from "vitest";
+import fs from "fs";
+import path from "path";
 
 // ── Mock localStorage & sessionStorage ──────────────────────────────────────
 
@@ -545,46 +547,27 @@ describe("Consent Mode v2", () => {
 
 // ── 7. ads.txt ──────────────────────────────────────────────────────────────
 
-describe("ads.txt Route", () => {
-  beforeEach(() => {
-    vi.resetModules();
-  });
+describe("ads.txt Static File", () => {
+  const adsPath = path.resolve(__dirname, "../../public/ads.txt");
 
-  it("returns correct content-type and body format", async () => {
-    vi.stubEnv("NEXT_PUBLIC_ADSENSE_CLIENT", "ca-pub-4031611961368310");
+  it("exists in public/ and has correct format", () => {
+    expect(fs.existsSync(adsPath)).toBe(true);
 
-    const { GET } = await import("@/app/ads.txt/route");
-    const response = GET();
-
-    expect(response.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
-
-    const body = await response.text();
+    const body = fs.readFileSync(adsPath, "utf-8");
     expect(body).toContain("google.com");
     expect(body).toContain("pub-4031611961368310");
     expect(body).toContain("DIRECT");
     expect(body).toContain("f08c47fec0942fa0");
-
-    vi.unstubAllEnvs();
   });
 
-  it("has correct cache control header", async () => {
-    const { GET } = await import("@/app/ads.txt/route");
-    const response = GET();
+  it("follows IAB ads.txt format", () => {
+    const body = fs.readFileSync(adsPath, "utf-8").trim();
 
-    expect(response.headers.get("Cache-Control")).toBe("public, max-age=86400");
-  });
-
-  it("strips ca- prefix from publisher ID", async () => {
-    vi.stubEnv("NEXT_PUBLIC_ADSENSE_CLIENT", "ca-pub-9999999999");
-
-    const { GET } = await import("@/app/ads.txt/route");
-    const response = GET();
-    const body = await response.text();
-
-    expect(body).toContain("pub-9999999999");
-    expect(body).not.toContain("ca-pub-9999999999");
-
-    vi.unstubAllEnvs();
+    // Format: <domain>, <publisher-id>, <relationship>, <cert-id>
+    const parts = body.split(",").map((s: string) => s.trim());
+    expect(parts).toHaveLength(4);
+    expect(parts[0]).toBe("google.com");
+    expect(parts[2]).toBe("DIRECT");
   });
 });
 

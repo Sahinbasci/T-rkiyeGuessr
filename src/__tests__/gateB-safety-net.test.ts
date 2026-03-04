@@ -1194,13 +1194,12 @@ describe("T5: SEO & Ads", () => {
   const projectRoot = path.resolve(__dirname, "../..");
 
   test("ads.txt contains correct AdSense publisher line", () => {
-    // The ads.txt is served by a route handler, check the source
-    const adsRoute = path.join(projectRoot, "src/app/ads.txt/route.ts");
-    if (fs.existsSync(adsRoute)) {
-      const content = fs.readFileSync(adsRoute, "utf-8");
-      expect(content).toContain("google.com");
-      expect(content).toContain("pub-");
-    }
+    // ads.txt is a static file in public/
+    const adsFile = path.join(projectRoot, "public/ads.txt");
+    expect(fs.existsSync(adsFile)).toBe(true);
+    const content = fs.readFileSync(adsFile, "utf-8");
+    expect(content).toContain("google.com");
+    expect(content).toContain("pub-");
   });
 
   test("robots.ts exists and exports metadata", () => {

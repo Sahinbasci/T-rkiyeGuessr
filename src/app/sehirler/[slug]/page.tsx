@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllCities, getCityBySlug, getRegionBySlug } from "@/data/seoData";
+import { getCityDescription } from "@/data/cityDescriptions";
 
 interface Props {
   params: { slug: string };
@@ -16,9 +17,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const city = getCityBySlug(params.slug);
   if (!city) return {};
 
+  const desc = getCityDescription(city);
+  const metaDesc = desc.about.slice(0, 155) + "...";
+
   return {
     title: `${city.locationName} Konum Tahmin Oyunu — TürkiyeGuessr`,
-    description: `${city.locationName} sokak görünümünde konum tahmin et! ${city.regionDisplayName} lokasyonlarını keşfet. ${city.hintTags.slice(0, 3).join(", ")} ipuçlarıyla bul. Ücretsiz.`,
+    description: metaDesc,
     alternates: { canonical: `/sehirler/${city.slug}` },
   };
 }
@@ -87,11 +91,13 @@ export default function SehirDetailPage({ params }: Props) {
 
   const region = getRegionBySlug(city.region);
   const difficulty = getDifficultyLabel(city.qualityScore);
+  const cityDesc = getCityDescription(city);
 
   const placeJsonLd = {
     "@context": "https://schema.org",
     "@type": "Place",
     name: city.locationName,
+    description: cityDesc.about,
     geo: {
       "@type": "GeoCoordinates",
       latitude: city.coordinates.lat,
@@ -117,6 +123,10 @@ export default function SehirDetailPage({ params }: Props) {
     {
       q: `TürkiyeGuessr'da ${city.district} nasıl oynanır?`,
       a: `TürkiyeGuessr'da oda kurarak veya mevcut bir odaya katılarak ${city.district} lokasyonunu oynayabilirsiniz. Oyun ücretsizdir ve kayıt gerektirmez.`,
+    },
+    {
+      q: `${city.district} konum tahmin stratejisi nedir?`,
+      a: cityDesc.strategy,
     },
   ];
 
@@ -189,29 +199,51 @@ export default function SehirDetailPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Açıklama */}
+        {/* Lokasyon Hakkında — unique per city */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">
-            {city.locationName} Konum Tahmin
+            {city.locationName} Hakkında
           </h2>
           <p className="text-gray-400 leading-relaxed">
-            {city.locationName}, {city.regionDisplayName} içinde yer alan TürkiyeGuessr lokasyonlarından biridir.
-            Bu konumda sokak görünümü üzerinden çevrendeki ipuçlarını kullanarak haritada doğru noktayı bulmaya çalışırsın.
-            {city.hintTags.length > 0 && (
-              <> Dikkat etmen gereken ipuçları arasında{" "}
-                <strong className="text-gray-300">
-                  {city.hintTags.slice(0, 3).map(getHintLabel).join(", ")}
-                </strong>{" "}
-                bulunur.
-              </>
-            )}
+            {cityDesc.about}
           </p>
         </section>
+
+        {/* Strateji İpuçları — unique per city */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">
+            Strateji ve İpuçları
+          </h2>
+          <p className="text-gray-400 leading-relaxed">
+            {cityDesc.strategy}
+          </p>
+          <p className="text-gray-500 text-sm">
+            Daha fazla strateji için{" "}
+            <Link href="/nasil-oynanir" className="text-red-400 hover:underline">
+              Nasıl Oynanır
+            </Link>{" "}
+            rehberimize veya{" "}
+            <Link href="/blog/geoguessr-taktikleri-ipuclari" className="text-red-400 hover:underline">
+              GeoGuessr Taktikleri
+            </Link>{" "}
+            yazımıza göz atın.
+          </p>
+        </section>
+
+        {/* Fun Fact — only for popular cities */}
+        {cityDesc.funFact && (
+          <section className="bg-gray-800/40 border border-gray-700/40 rounded-xl p-5 space-y-2">
+            <h2 className="text-lg font-semibold text-red-400">Biliyor muydunuz?</h2>
+            <p className="text-gray-400 leading-relaxed text-sm">
+              {cityDesc.funFact}
+            </p>
+          </section>
+        )}
 
         {/* İpucu etiketleri */}
         {city.hintTags.length > 0 && (
           <section className="space-y-3">
-            <h2 className="text-xl font-semibold text-red-400">İpuçları</h2>
+            <h2 className="text-xl font-semibold text-red-400">Görsel İpuçları</h2>
             <div className="flex flex-wrap gap-2">
               {city.hintTags.map((tag) => (
                 <span
@@ -222,27 +254,6 @@ export default function SehirDetailPage({ params }: Props) {
                 </span>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* İpucu Rehberi */}
-        {city.hintTags.length > 0 && (
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold text-red-400">
-              {city.district} İpucu Rehberi
-            </h2>
-            <p className="text-gray-400 leading-relaxed">
-              Bu lokasyonda dikkat edilecek ipuçları:{" "}
-              <strong className="text-gray-300">
-                {city.hintTags.map(getHintLabel).join(", ")}
-              </strong>.
-              Sokak görünümünde bu detaylara dikkat ederek konumu daha hızlı ve doğru tahmin edebilirsiniz.
-              Daha fazla strateji için{" "}
-              <Link href="/nasil-oynanir" className="text-red-400 hover:underline">
-                Nasıl Oynanır
-              </Link>{" "}
-              rehberimize göz atın.
-            </p>
           </section>
         )}
 

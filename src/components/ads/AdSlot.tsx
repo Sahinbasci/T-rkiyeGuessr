@@ -44,7 +44,11 @@ export function AdSlot({
 }: Props) {
   const insRef = useRef<HTMLModElement>(null);
   const [adStatus, setAdStatus] = useState<AdStatus>("loading");
+  const [mounted, setMounted] = useState(false);
   const premium = isPremiumUser();
+
+  // Hydration-safe: defer client-only checks until after mount
+  useEffect(() => setMounted(true), []);
 
   // Consent revoke listener — collapse if marketing denied after ad was displayed
   useEffect(() => {
@@ -145,6 +149,9 @@ export function AdSlot({
       observer.disconnect();
     };
   }, [premium, roomStatus, slot, format]);
+
+  // Before mount, render nothing to match server HTML (prevents hydration mismatch)
+  if (!mounted) return null;
 
   // Premium users see no ads at all
   if (premium) return null;
