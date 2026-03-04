@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { database, ref, set, get, onValue, update, remove, onDisconnect, runTransaction, serverTimestamp, getAuthUid } from "@/config/firebase";
+import { database, ref, set, get, onValue, update, remove, runTransaction, getAuthUid } from "@/config/firebase";
 import {
   Room,
   Player,
@@ -80,18 +80,22 @@ import {
   electNewHost,
   computeRoundResults,
   updatePlayersAfterRound,
-  HEARTBEAT_FAIL_THRESHOLD,
 } from "@/utils/roomLogic";
+
+// ==================== EXTRACTED HOOKS ====================
+import { useProcessingGuard } from "@/hooks/room/useProcessingGuard";
+import { useNotifications } from "@/hooks/room/useNotifications";
+import { usePresence } from "@/hooks/room/usePresence";
+import { useHostCleanup } from "@/hooks/room/useHostCleanup";
+import { useBeforeUnload } from "@/hooks/room/useBeforeUnload";
+import { useHostWatchdog } from "@/hooks/room/useHostWatchdog";
+import { useClientResync } from "@/hooks/room/useClientResync";
+import { ROOM_CONSTANTS } from "@/hooks/room/types";
 
 // ==================== TYPES ====================
 
-export interface GameNotification {
-  id: string;
-  type: "player_left" | "player_joined" | "host_changed" | "error";
-  message: string;
-  playerName?: string;
-  timestamp: number;
-}
+// Re-export GameNotification for backward compatibility
+export type { GameNotification } from "@/hooks/room/useNotifications";
 
 export interface RoundEndLock {
   lockedBy: string;   // uid of lock owner
@@ -100,22 +104,14 @@ export interface RoundEndLock {
 }
 
 // ==================== CONSTANTS ====================
+// Now imported from ROOM_CONSTANTS (src/hooks/room/types.ts) — single source of truth.
 
-const DISCONNECT_GRACE_PERIOD = 15000;   // 15s before removing disconnected player
-const STALE_HEARTBEAT_THRESHOLD = 30000; // 30s no heartbeat → mark disconnected
-const HEARTBEAT_INTERVAL = 5000;         // 5s heartbeat
-const CLEANUP_INTERVAL = 10000;          // 10s cleanup cycle
-const ROUND_END_RECOVERY_BUFFER = 3;     // seconds past time limit before recovery kicks in
-const WATCHDOG_INTERVAL = 5000;          // 5s watchdog tick
-const WATCHDOG_BUFFER = 5;              // seconds past timeLimit before watchdog acts
-const WATCHDOG_MAX_ATTEMPTS = 8;         // BUG-008 FIX: raised from 3 → 8 for more resilience
-const WATCHDOG_LOCK_STALE_THRESHOLD = 10000; // 10s — lock older than this is considered stale
-const PROCESSING_STUCK_THRESHOLD = 15000;   // STABILITY FIX: 15s — if isProcessingRoundRef stuck longer, force reset
-/** BUG-004 FIX: Harmonized grace period for both submitGuess and handleTimeUp.
- * submitGuess accepts guesses up to roundEnd + GUESS_GRACE_PERIOD_MS.
- * handleTimeUp waits until roundEnd + GUESS_GRACE_PERIOD_MS before triggering.
- * This closes the race window where guesses are accepted but roundEnd already fired. */
-const GUESS_GRACE_PERIOD_MS = 3000;
+const {
+  DISCONNECT_GRACE_PERIOD,
+  STALE_HEARTBEAT_THRESHOLD,
+  ROUND_END_RECOVERY_BUFFER,
+  GUESS_GRACE_PERIOD_MS,
+} = ROOM_CONSTANTS;
 
 // ==================== INSTRUMENTATION ====================
 
@@ -150,7 +146,7 @@ const mpCounters = {
 
 // Expose mpCounters on window for CHAOS validation (console access)
 if (CHAOS_MODE && typeof window !== 'undefined') {
-  (window as any).__mpCounters = mpCounters;
+  window.__mpCounters = mpCounters;
 }
 
 function roomStateDigest(room: Room, trigger: string, clientId: string): void {
@@ -186,26 +182,40 @@ export function useRoom() {
   // Attach server time offset listener once
   useEffect(() => { attachServerTimeOffsetListener(); }, []);
 
-  // Notification system
-  const [notifications, setNotifications] = useState<GameNotification[]>([]);
+  // ==================== EXTRACTED HOOKS ====================
+
+  // Notification system (extracted to useNotifications)
+  const {
+    notifications,
+    addNotification,
+    dismissNotification,
+    cleanupTimers: _cleanupNotificationTimers,
+    clearAll: clearAllNotifications,
+  } = useNotifications();
+
+  // Processing guard (extracted to useProcessingGuard)
+  const processingGuard = useProcessingGuard();
+  const {
+    startProcessing,
+    stopProcessing,
+    forceResetProcessing,
+    isProcessingRef: isProcessingRoundRef,
+    processingRoundIdRef,
+    processingStartTimeRef,
+  } = processingGuard;
+
+  // Notification tracking refs (still needed for Effect 5 snapshot diff)
   const previousPlayersRef = useRef<string[]>([]);
   const previousHostIdRef = useRef<string | null>(null);
   const notifiedJoinedRef = useRef<Set<string>>(new Set());
   const notifiedLeftRef = useRef<Set<string>>(new Set());
   const isFirstLoadRef = useRef(true);
-  // Name cache: stores player names from PREVIOUS snapshot for reliable left-notification
   const previousPlayerNamesRef = useRef<Map<string, string>>(new Map());
-  // Track notification auto-dismiss timeouts for cleanup on unmount
+  // Track notification auto-dismiss timeouts for cleanup on unmount (used by Effect 5 inline timers)
   const notificationTimerIdsRef = useRef<Set<NodeJS.Timeout>>(new Set());
 
-  // Round processing guards
-  const isProcessingRoundRef = useRef<boolean>(false);
-  const processingRoundIdRef = useRef<number | null>(null);
+  // Round processing guards (remaining)
   const lastStatusRef = useRef<string | null>(null);
-
-  // Connection state tracking
-  const [connectionState, setConnectionState] = useState<'online' | 'reconnecting' | 'lost'>('online');
-  const consecutiveHeartbeatFailsRef = useRef<number>(0);
 
   // Double-submit guard (synchronous, not React state)
   const isSubmittingGuessRef = useRef<boolean>(false);
@@ -216,10 +226,6 @@ export function useRoom() {
   // BUG-13 FIX: Track time-expired recovery setTimeout for cleanup on effect teardown
   const timeExpiredRecoveryRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Presence refs
-  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const cleanupIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   // Post-migration recovery refs (track leaked timeout/interval)
   const postMigrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const postMigrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -227,29 +233,16 @@ export function useRoom() {
 
   // Host migration guard: prevent duplicate migration attempts
   const isMigratingHostRef = useRef<string | null>(null); // old hostId being migrated away from
-
-  // Watchdog refs (Effect 6)
-  const watchdogIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const watchdogAttemptsRef = useRef<number>(0);
-  // STABILITY FIX: Track when isProcessingRoundRef was set — enables stuck detection
-  const processingStartTimeRef = useRef<number | null>(null);
-
   // BUG-006 FIX: gameInstanceId guard — detects restart and resets stale in-flight state
   const localGameInstanceIdRef = useRef<string | null>(null);
 
   // BUG-A FIX: Suppress "Oda silindi" toast when player intentionally leaves
   const isLeavingRef = useRef<boolean>(false);
 
-  // Client resync watchdog refs (Effect 7) — non-host stuck detection
-  const clientResyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const clientResyncDelayRef = useRef<NodeJS.Timeout | null>(null);
-  const clientResyncSafetyRef = useRef<NodeJS.Timeout | null>(null);
-  const clientGuessTimestampRef = useRef<number | null>(null);
-
   // HARDENING: Track allGuessed setTimeout for cleanup on effect teardown (RC-3 fix)
   const allGuessedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mirror refs for heartbeat (avoids stale closure in Effect 1)
+  // Mirror refs for heartbeat (avoids stale closure in usePresence)
   const roomStatusRef = useRef<string | null>(null);
   const roomHostIdRef = useRef<string | null>(null);
   const roomIdRef = useRef<string | null>(null);
@@ -261,249 +254,33 @@ export function useRoom() {
     roomIdRef.current = room?.id || null;
   }, [room?.status, room?.hostId, room?.id]);
 
-  // ==================== PROCESSING HELPERS (A1 HARDENING) ====================
-  // Centralized management of isProcessingRoundRef + processingStartTimeRef.
-  // Prevents double-start, ensures consistent cleanup, adds debug tracing.
+  // Processing helpers are now provided by useProcessingGuard (see above).
+  // startProcessing, stopProcessing, forceResetProcessing are destructured from processingGuard.
+  //
+  // Notification helpers are now provided by useNotifications (see above).
+  // addNotification, dismissNotification are destructured from useNotifications.
 
-  function startProcessing(reason: string, roundId?: number): boolean {
-    if (isProcessingRoundRef.current) {
-      logger.debug(`[MP] startProcessing: already active, skipping (reason=${reason})`);
-      return false;
-    }
-    isProcessingRoundRef.current = true;
-    processingStartTimeRef.current = Date.now();
-    if (roundId !== undefined) {
-      processingRoundIdRef.current = roundId;
-    }
-    trackEvent("processing_start", { reason, roundId });
-    logger.debug(`[MP] startProcessing: reason=${reason} roundId=${roundId ?? 'n/a'}`);
-    return true;
-  }
+  // ==================== EFFECT 1: PRESENCE (extracted to usePresence) ====================
+  const { connectionState } = usePresence({
+    roomId: room?.id || null,
+    playerId,
+    roomStatusRef,
+    roomHostIdRef,
+    roomIdRef,
+  });
 
-  function stopProcessing(reason: string): void {
-    const duration = processingStartTimeRef.current
-      ? Date.now() - processingStartTimeRef.current
-      : 0;
-    isProcessingRoundRef.current = false;
-    processingStartTimeRef.current = null;
-    trackEvent("processing_stop", { reason, durationMs: duration });
-    logger.debug(`[MP] stopProcessing: reason=${reason} duration=${duration}ms`);
-  }
+  // ==================== EFFECT 2: HOST-ONLY CLEANUP (extracted to useHostCleanup) ====================
+  useHostCleanup({
+    roomId: room?.id || null,
+    hostId: room?.hostId || null,
+    playerId,
+  });
 
-  function forceResetProcessing(reason: string): void {
-    const wasProcessing = isProcessingRoundRef.current;
-    isProcessingRoundRef.current = false;
-    processingStartTimeRef.current = null;
-    processingRoundIdRef.current = null;
-    if (wasProcessing) {
-      trackEvent("processing_force_reset", { reason });
-      logger.warn(`[MP] forceResetProcessing: was stuck, forced reset (reason=${reason})`);
-    }
-  }
-
-  // ==================== NOTIFICATION HELPERS ====================
-
-  const addNotification = useCallback((
-    type: GameNotification["type"],
-    message: string,
-    pName?: string
-  ) => {
-    mpCounters.notificationFiredCount++;
-    const notification: GameNotification = {
-      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      message,
-      playerName: pName,
-      timestamp: Date.now(),
-    };
-
-    setNotifications(prev => [...prev, notification]);
-
-    // Auto-dismiss after 5s (tracked for cleanup on unmount)
-    const timerId = setTimeout(() => {
-      notificationTimerIdsRef.current.delete(timerId);
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, 5000);
-    notificationTimerIdsRef.current.add(timerId);
-  }, []);
-
-  const dismissNotification = useCallback((notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-  }, []);
-
-  // ==================== EFFECT 1: PRESENCE (heartbeat + onDisconnect) ====================
-  // Single onDisconnect registration per mount. Heartbeat updates lastSeen only.
-
-  useEffect(() => {
-    if (!room?.id || !playerId) return;
-
-    const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
-
-    // Register onDisconnect ONCE — marks player as disconnected on server-side
-    const disconnectRef = onDisconnect(playerRef);
-    disconnectRef.update({
-      status: 'disconnected' as PlayerStatus,
-    });
-
-    // Heartbeat: update lastSeen every HEARTBEAT_INTERVAL
-    const updatePresence = async () => {
-      try {
-        await update(playerRef, {
-          lastSeen: Date.now(),
-          status: 'online' as PlayerStatus,
-        });
-        // FLOOD CONTROL: Only write serverNow while room is "playing"
-        // (watchdog only runs in "playing" — no need for serverNow in other statuses)
-        // Uses refs instead of closure to avoid stale room.status/room.hostId
-        if (playerId === roomHostIdRef.current && roomStatusRef.current === "playing" && roomIdRef.current) {
-          await update(ref(database, `rooms/${roomIdRef.current}/meta`), {
-            serverNow: serverTimestamp(),
-          });
-        }
-        consecutiveHeartbeatFailsRef.current = 0;
-        setConnectionState('online');
-      } catch (err: any) {
-        // Classify error to determine connection state
-        const code = err?.code || '';
-        const message = err?.message || '';
-        if (code === 'PERMISSION_DENIED' || code === 'permission-denied') {
-          // Player was removed from room
-          setConnectionState('lost');
-        } else if (message.includes('not found') || message.includes('deleted')) {
-          // Room no longer exists
-          setConnectionState('lost');
-        } else {
-          // Network/transient error
-          consecutiveHeartbeatFailsRef.current++;
-          if (consecutiveHeartbeatFailsRef.current >= HEARTBEAT_FAIL_THRESHOLD) {
-            setConnectionState('lost');
-          } else if (consecutiveHeartbeatFailsRef.current >= 2) {
-            setConnectionState('reconnecting');
-          }
-        }
-      }
-    };
-
-    // Immediate first heartbeat
-    updatePresence();
-    presenceIntervalRef.current = setInterval(updatePresence, HEARTBEAT_INTERVAL);
-
-    return () => {
-      if (presenceIntervalRef.current) {
-        clearInterval(presenceIntervalRef.current);
-        presenceIntervalRef.current = null;
-      }
-      // Cancel onDisconnect on clean unmount (leaveRoom handles explicit removal)
-      disconnectRef.cancel();
-    };
-  }, [room?.id, playerId]);
-
-  // ==================== EFFECT 2: HOST-ONLY CLEANUP ====================
-  // Runs in ALL statuses including "waiting". Single authority: host only.
-  // Detects: (a) status='disconnected' + grace exceeded, (b) stale heartbeat (online but no update).
-  // Transaction-based, idempotent.
-
-  useEffect(() => {
-    if (!room?.id || !playerId) return;
-    // Only host runs cleanup
-    if (playerId !== room.hostId) return;
-
-    const roomId = room.id;
-
-    const checkOfflinePlayers = async () => {
-      // READ FRESH DATA from Firebase instead of relying on stale closure.
-      // This prevents the race where a player reconnects between React renders
-      // but the closure still sees old lastSeen values.
-      let freshRoom: Room | null;
-      try {
-        const freshSnap = await get(ref(database, `rooms/${roomId}`));
-        freshRoom = freshSnap.val() as Room | null;
-      } catch {
-        return; // Firebase read failed — skip this cycle
-      }
-
-      if (!freshRoom?.players) return;
-
-      const now = Date.now();
-
-      for (const player of Object.values(freshRoom.players)) {
-        if (player.id === playerId) continue; // Never remove self
-
-        const lastSeen = player.lastSeen || now;
-        const timeSinceLastSeen = now - lastSeen;
-        const playerStatus = player.status || 'online';
-
-        // Case A: Explicitly 'disconnected' AND grace period exceeded → remove
-        if (playerStatus === 'disconnected' && timeSinceLastSeen > DISCONNECT_GRACE_PERIOD) {
-          mpCounters.ghostRemovedCount++;
-          logger.debug(`[MP] Ghost cleanup: removing ${player.name} (status=disconnected, ${timeSinceLastSeen}ms stale) [total: ${mpCounters.ghostRemovedCount}]`);
-
-          try {
-            // Remove player node
-            await remove(ref(database, `rooms/${roomId}/players/${player.id}`));
-
-            // If game is playing and player hadn't guessed, decrement expectedGuesses
-            if (freshRoom.status === "playing" && !player.hasGuessed) {
-              const roomRef = ref(database, `rooms/${roomId}`);
-              await runTransaction(roomRef, (currentRoom) => {
-                if (!currentRoom || currentRoom.status !== "playing") return currentRoom;
-                return {
-                  ...currentRoom,
-                  expectedGuesses: Math.max(0, (currentRoom.expectedGuesses || 0) - 1),
-                };
-              });
-            }
-
-            roomStateDigest(freshRoom, `ghostRemoved:${player.name}`, playerId);
-          } catch (err) {
-            logger.warn("[MP] Ghost cleanup failed:", err);
-          }
-        }
-
-        // Case B: Still 'online' but stale heartbeat → mark as disconnected (triggers Case A next cycle)
-        else if (playerStatus === 'online' && timeSinceLastSeen > STALE_HEARTBEAT_THRESHOLD) {
-          logger.debug(`[MP] Stale heartbeat: ${player.name} (${timeSinceLastSeen}ms, still 'online')`);
-          try {
-            await update(ref(database, `rooms/${roomId}/players/${player.id}`), {
-              status: 'disconnected' as PlayerStatus,
-            });
-          } catch (err) {
-            logger.warn("[MP] Failed to mark stale player:", err);
-          }
-        }
-      }
-    };
-
-    // Run immediately + every CLEANUP_INTERVAL
-    checkOfflinePlayers();
-    cleanupIntervalRef.current = setInterval(checkOfflinePlayers, CLEANUP_INTERVAL);
-
-    return () => {
-      if (cleanupIntervalRef.current) {
-        clearInterval(cleanupIntervalRef.current);
-        cleanupIntervalRef.current = null;
-      }
-    };
-  }, [room?.id, room?.hostId, playerId]);
-
-  // ==================== EFFECT 3: BEFOREUNLOAD ====================
-  // Fire-and-forget status update. Primary protection is onDisconnect.
-
-  useEffect(() => {
-    if (!room?.id || !playerId) return;
-
-    const handleBeforeUnload = () => {
-      const playerRef = ref(database, `rooms/${room.id}/players/${playerId}`);
-      // Fire-and-forget — browser may close before this completes, that's OK.
-      // onDisconnect server-side handler is the primary mechanism.
-      update(playerRef, {
-        status: 'disconnected' as PlayerStatus,
-      }).catch(() => { /* tab closing, ignore */ });
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [room?.id, playerId]);
+  // ==================== EFFECT 3: BEFOREUNLOAD (extracted to useBeforeUnload) ====================
+  useBeforeUnload({
+    roomId: room?.id || null,
+    playerId,
+  });
 
   // ==================== EFFECT 4: TELEMETRY INIT ====================
 
@@ -520,15 +297,13 @@ export function useRoom() {
 
     const chaosInterval = setInterval(() => {
       logger.debug("[CHAOS] mpCounters:", JSON.stringify(mpCounters));
+      // Note: presence, cleanup, watchdog intervals are now managed by extracted hooks
       logger.debug("[CHAOS] Intervals:", JSON.stringify({
-        presence: !!presenceIntervalRef.current,
-        cleanup: !!cleanupIntervalRef.current,
-        watchdog: !!watchdogIntervalRef.current,
         postMigrationTimeout: !!postMigrationTimeoutRef.current,
         postMigrationInterval: !!postMigrationIntervalRef.current,
       }));
-      if (typeof performance !== 'undefined' && (performance as any).memory) {
-        const mem = (performance as any).memory;
+      if (typeof performance !== 'undefined' && performance.memory) {
+        const mem = performance.memory;
         logger.debug(`[CHAOS] Heap: used=${(mem.usedJSHeapSize / 1048576).toFixed(1)}MB total=${(mem.totalJSHeapSize / 1048576).toFixed(1)}MB`);
       }
       // Latency percentile (timer-expiry rounds only)
@@ -577,7 +352,7 @@ export function useRoom() {
         if (incomingGid && localGameInstanceIdRef.current && incomingGid !== localGameInstanceIdRef.current) {
           logger.debug(`[MP] gameInstanceId changed: ${localGameInstanceIdRef.current} → ${incomingGid} — resetting in-flight state`);
           forceResetProcessing("gameInstanceId_change");
-          watchdogAttemptsRef.current = 0;
+          // Note: watchdog attempts reset is handled by useHostWatchdog effect remount
           isMigratingHostRef.current = null;
           // RC-6 FIX: Reset handleTimeUp guard so same roundId in new game doesn't skip
           hasHandledTimeUpRef.current = null;
@@ -984,295 +759,34 @@ export function useRoom() {
       clearTimeout(allGuessedTimeoutRef.current);
       allGuessedTimeoutRef.current = null;
     }
-    clientGuessTimestampRef.current = null;
+    // Note: clientGuessTimestamp reset is handled by useClientResync effect remount
     logger.debug("[MP] hardResync: all local locks/guards reset via forceResetProcessing");
   }, []);
 
-  // ==================== EFFECT 7: CLIENT RESYNC WATCHDOG ====================
-  // BUG-1 FIX: Non-host clients poll Firebase after guessing to detect stale snapshot.
-  // If fresh read shows status !== "playing" or round changed, force setRoom(freshData).
-  // This catches the case where onValue snapshot is delayed/missed (network jitter,
-  // tab backgrounding, Firebase SDK queueing).
-  //
-  // Conditions: status=playing && hasGuessed=true && !isHost
-  // Start delay: 2s after hasGuessed detected
-  // Interval: 2s
-  // Max duration: 15s (safety cleanup)
-  // Idempotent: multiple firings are safe (setRoom with same data = no-op rerender)
+  // ==================== EFFECT 7: CLIENT RESYNC WATCHDOG (extracted to useClientResync) ====================
+  useClientResync({
+    roomId: room?.id || null,
+    playerId,
+    hostId: room?.hostId || null,
+    roomStatus: room?.status || null,
+    currentRound: room?.currentRound ?? null,
+    hasGuessed: room?.players?.[playerId]?.hasGuessed || false,
+    hardResync,
+    setRoom,
+  });
 
-  useEffect(() => {
-    if (!room?.id || !playerId) return;
-    // Host has its own watchdog (Effect 6) — skip
-    if (playerId === room.hostId) return;
-    // Only active during playing
-    if (room.status !== "playing") {
-      clientGuessTimestampRef.current = null;
-      return;
-    }
-    // Only active after this client has guessed
-    const myPlayer = room.players?.[playerId];
-    if (!myPlayer?.hasGuessed) return;
-
-    // Record when we first detected hasGuessed
-    if (!clientGuessTimestampRef.current) {
-      clientGuessTimestampRef.current = Date.now();
-    }
-
-    // BUG-27 FIX: Removed `elapsed < 2000` early return that prevented polling from ever
-    // starting (effect dependencies don't re-trigger on time passing). The 2s delay is
-    // already handled by the setTimeout on line below (clientResyncDelayRef).
-
-    const roomId = room.id;
-    const expectedRound = room.currentRound;
-    const roomRefLocal = ref(database, `rooms/${roomId}`);
-
-    // BUG-9 FIX: Track mounted state to prevent interval leak when cleanup races with timeout
-    let isMounted = true;
-
-    // Start polling with 2s delay, then every 2s
-    clientResyncDelayRef.current = setTimeout(() => {
-      if (!isMounted) return; // BUG-9 FIX: Effect already cleaned up
-      clientResyncDelayRef.current = null;
-
-      clientResyncIntervalRef.current = setInterval(async () => {
-        if (!isMounted) return; // BUG-9 FIX: Effect already cleaned up
-        try {
-          const freshSnap = await get(roomRefLocal);
-          const freshRoom = freshSnap.val() as Room | null;
-
-          if (!freshRoom) return; // Room deleted — Effect 5's null handler deals with it
-
-          // Case 1: Status changed (roundEnd, gameOver, waiting)
-          if (freshRoom.status !== "playing") {
-            logger.debug(`[MP] ClientResync: status=${freshRoom.status} (was playing), forcing local update`);
-            trackEvent("resync_applied", { trigger: "status_change", newStatus: freshRoom.status, round: expectedRound });
-            hardResync();
-            setRoom(freshRoom);
-            return;
-          }
-
-          // Case 2: Round changed (we missed a round transition)
-          if (freshRoom.currentRound !== expectedRound) {
-            logger.debug(`[MP] ClientResync: round=${freshRoom.currentRound} (expected ${expectedRound}), forcing local update`);
-            trackEvent("resync_applied", { trigger: "round_mismatch", dbRound: freshRoom.currentRound, expected: expectedRound });
-            hardResync();
-            setRoom(freshRoom);
-            return;
-          }
-
-          // Case 3: roundResults appeared but status still "playing" (edge case)
-          if (freshRoom.roundResults && Array.isArray(freshRoom.roundResults) && freshRoom.roundResults.length > 0) {
-            logger.debug(`[MP] ClientResync: roundResults present but status still playing, forcing local update`);
-            trackEvent("resync_applied", { trigger: "roundResults_leak", round: expectedRound });
-            hardResync();
-            setRoom(freshRoom);
-            return;
-          }
-        } catch (err) {
-          logger.warn("[MP] ClientResync poll failed:", err);
-        }
-      }, 2000);
-    }, 2000);
-
-    // Safety: stop polling after 15s max to prevent infinite Firebase reads
-    clientResyncSafetyRef.current = setTimeout(() => {
-      clientResyncSafetyRef.current = null;
-      if (clientResyncIntervalRef.current) {
-        clearInterval(clientResyncIntervalRef.current);
-        clientResyncIntervalRef.current = null;
-        logger.debug("[MP] ClientResync: safety timeout (15s), stopping polling");
-      }
-    }, 15000);
-
-    return () => {
-      isMounted = false; // BUG-9 FIX: Signal to pending callbacks
-      if (clientResyncDelayRef.current) {
-        clearTimeout(clientResyncDelayRef.current);
-        clientResyncDelayRef.current = null;
-      }
-      if (clientResyncIntervalRef.current) {
-        clearInterval(clientResyncIntervalRef.current);
-        clientResyncIntervalRef.current = null;
-      }
-      if (clientResyncSafetyRef.current) {
-        clearTimeout(clientResyncSafetyRef.current);
-        clientResyncSafetyRef.current = null;
-      }
-      clientGuessTimestampRef.current = null;
-    };
-  }, [room?.id, room?.status, room?.hostId, room?.currentRound, room?.players?.[playerId]?.hasGuessed, playerId]);
-
-  // ==================== EFFECT 6: HOST-ONLY WATCHDOG ====================
-  // Independent interval that guarantees no round stays stuck in "playing" forever.
-  // Uses server-authoritative time (serverNow from meta/) for elapsed calculation.
-  // SAFETY: Never manually clearInterval inside tick — just return. Cleanup is effect-only.
-
-  useEffect(() => {
-    if (!room?.id || !playerId) return;
-    if (playerId !== room.hostId) return;
-    if (room.status !== "playing") return;
-    if (!room.roundStartTime) return;
-
-    const roomId = room.id;
-    const expectedRound = room.currentRound;
-    const timeLimit = room.timeLimit || 90;
-    const roundStartTime = room.roundStartTime;
-
-    // Reset attempts for this new effect run (new round or re-mount)
-    watchdogAttemptsRef.current = 0;
-
-    watchdogIntervalRef.current = setInterval(async () => {
-      // 1. Read FRESH room data
-      let freshSnap;
-      try {
-        freshSnap = await get(ref(database, `rooms/${roomId}`));
-      } catch {
-        return; // Firebase read failed — try next tick
-      }
-
-      const freshRoom = freshSnap.val() as Room | null;
-
-      // 2. Null room → deleted, effect will cleanup via deps
-      if (!freshRoom) return;
-
-      // 3. Status changed → resolved, effect will cleanup via status dep
-      if (freshRoom.status !== "playing") return;
-
-      // 4. Round changed → effect restarting via currentRound dep
-      if (freshRoom.currentRound !== expectedRound) return;
-
-      // 5. No longer host → effect will cleanup via hostId dep
-      if (freshRoom.hostId !== playerId) return;
-
-      // 6. Compute elapsed using server time
-      const meta = freshSnap.child("meta").val() as { serverNow?: number } | null;
-      let elapsed: number;
-      if (meta?.serverNow) {
-        elapsed = (meta.serverNow - roundStartTime) / 1000;
-      } else {
-        elapsed = (Date.now() - roundStartTime) / 1000;
-        logger.debug("[MP] Watchdog using client time fallback (serverNow missing)");
-      }
-
-      // 7. Normal operation — timer hasn't expired yet
-      if (elapsed <= timeLimit + WATCHDOG_BUFFER) return;
-
-      // 8. Timer expired — check if we should resolve
-      // a. Skip if already processing — BUT detect stuck state
-      if (isProcessingRoundRef.current) {
-        const stuckDuration = processingStartTimeRef.current
-          ? Date.now() - processingStartTimeRef.current
-          : 0;
-        if (stuckDuration < PROCESSING_STUCK_THRESHOLD) {
-          return; // Still processing, wait
-        }
-        // STABILITY FIX: Processing stuck for >15s — force reset to unblock recovery
-        forceResetProcessing(`watchdog_stuck_${stuckDuration}ms`);
-        mpCounters.watchdogFiredCount++;
-        // Fall through to attempt resolution
-      }
-
-      // b. Check roundEndLock state
-      let staleLockDetected = false;
-      const existingLock = (freshRoom as any).roundEndLock as RoundEndLock | undefined;
-      if (existingLock && existingLock.roundId === expectedRound) {
-        // Lock exists for this round — check finalization
-        // Note: cast needed because TS narrows status to "playing" from check above,
-        // but fresh Firebase read may see a concurrent status change
-        if ((freshRoom.status as string) === "roundEnd") {
-          // Finalized — watchdog job done (effect will cleanup via status dep)
-          return;
-        }
-        const lockAge = (meta?.serverNow || Date.now()) - existingLock.lockedAt;
-        if (lockAge < WATCHDOG_LOCK_STALE_THRESHOLD) {
-          // Recent lock — someone is actively processing, skip this tick
-          logger.debug(`[MP] Watchdog: lock held by ${existingLock.lockedBy.substring(0, 8)}, age=${lockAge}ms — waiting`);
-          return;
-        }
-        // Stale lock — holder may have crashed, force override
-        staleLockDetected = true;
-        logger.debug(`[MP] Watchdog: stale lock detected (age=${lockAge}ms), forcing override`);
-      }
-
-      // c. Increment attempts
-      watchdogAttemptsRef.current++;
-
-      // d. Max attempts exceeded — BUG-008 FIX: forced recovery with fresh read + idempotency + telemetry
-      if (watchdogAttemptsRef.current > WATCHDOG_MAX_ATTEMPTS) {
-        mpCounters.watchdogFailureCount++;
-        logger.error(`[MP] Watchdog FAILURE: max attempts (${WATCHDOG_MAX_ATTEMPTS}) exceeded — attempting forced recovery`);
-
-        try {
-          // 1. Fresh read (not stale)
-          const emergencySnap = await get(ref(database, `rooms/${roomId}`));
-          const emergencyRoom = emergencySnap.val() as Room | null;
-
-          // 2. Idempotency: already resolved?
-          if (!emergencyRoom || emergencyRoom.status !== "playing") {
-            trackEvent("watchdogRecoverySkipped", { reason: "already_resolved", status: emergencyRoom?.status });
-            return;
-          }
-
-          // 3. Stale watchdog guard: round already advanced?
-          if (emergencyRoom.currentRound !== expectedRound) {
-            trackEvent("watchdogRecoverySkipped", { reason: "round_mismatch", dbRound: emergencyRoom.currentRound, expected: expectedRound });
-            return;
-          }
-
-          // 4. Score calculation (not blind update) + write
-          const emergencyPlayers = Object.values(emergencyRoom.players || {});
-          const emergencyLocation = emergencyRoom.currentLocation;
-          if (emergencyLocation && emergencyPlayers.length > 0) {
-            const results = computeRoundResults(emergencyPlayers, emergencyLocation);
-            const updatedPlayers = updatePlayersAfterRound(emergencyRoom.players || {}, results);
-
-            await update(ref(database, `rooms/${roomId}`), {
-              status: "roundEnd",
-              roundState: "ended",
-              roundResults: results,
-              players: updatedPlayers,
-              roundEndLock: { lockedBy: playerId, roundId: expectedRound, lockedAt: Date.now() },
-            });
-
-            trackEvent("watchdogForceRecovery", {
-              round: expectedRound,
-              attempt: watchdogAttemptsRef.current,
-              playerCount: emergencyPlayers.length,
-              guessCount: results.filter(r => r.distance < 9999).length,
-            });
-            logger.error(`[MP] Watchdog FORCED roundEnd: round=${expectedRound} players=${emergencyPlayers.length}`);
-          } else {
-            trackEvent("watchdogRecoverySkipped", { reason: "no_location_or_players" });
-          }
-        } catch (forceErr) {
-          logger.error("[MP] Watchdog forced recovery error:", forceErr);
-          trackError(forceErr instanceof Error ? forceErr : String(forceErr), "watchdogForceRecovery");
-        }
-        return;
-      }
-
-      // e. Attempt resolution
-      trackEvent("watchdogTick", { attempt: watchdogAttemptsRef.current, elapsed: parseFloat(elapsed.toFixed(1)), status: freshRoom.status, staleLock: staleLockDetected });
-      if (!startProcessing("watchdog", expectedRound)) return;
-      try {
-        mpCounters.watchdogFiredCount++;
-        logger.debug(`[MP] Watchdog resolution: round=${expectedRound} elapsed=${elapsed.toFixed(1)}s attempt=${watchdogAttemptsRef.current} staleLock=${staleLockDetected}`);
-        await acquireAndWriteRoundEnd(roomId, expectedRound, null, freshRoom.currentLocation, playerId, "watchdog", { serverNow: meta?.serverNow }, staleLockDetected);
-      } catch (err) {
-        logger.error("[MP] Watchdog acquireAndWriteRoundEnd error:", err);
-        trackError(err instanceof Error ? err : String(err), "watchdogResolution");
-      } finally {
-        stopProcessing("watchdog_complete");
-      }
-    }, WATCHDOG_INTERVAL);
-
-    return () => {
-      if (watchdogIntervalRef.current) {
-        clearInterval(watchdogIntervalRef.current);
-        watchdogIntervalRef.current = null;
-      }
-    };
-  }, [room?.id, room?.hostId, room?.status, room?.roundStartTime, room?.timeLimit, room?.currentRound, playerId]);
+  // ==================== EFFECT 6: HOST-ONLY WATCHDOG (extracted to useHostWatchdog) ====================
+  useHostWatchdog({
+    roomId: room?.id || null,
+    hostId: room?.hostId || null,
+    playerId,
+    roomStatus: room?.status || null,
+    roundStartTime: room?.roundStartTime || null,
+    timeLimit: room?.timeLimit || null,
+    currentRound: room?.currentRound ?? null,
+    processingGuard,
+    acquireAndWriteRoundEnd,
+  });
 
   // ==================== ROUND END LOCK + WRITE ====================
   // Acquires roundEndLock via transaction, then writes roundEnd atomically.
@@ -2264,54 +1778,49 @@ export function useRoom() {
     const playerList = Object.values(room.players || {});
     const roomId = room.id;
 
-    if (playerList.length === 1) {
-      // Last player — delete room
-      await remove(ref(database, `rooms/${roomId}`));
-    } else {
-      // If we're host, atomically migrate host before leaving
-      if (playerId === room.hostId) {
-        const candidates = playerList
-          .filter((p) => p.id !== playerId && (!p.status || p.status === 'online'))
-          .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-        const newHost = candidates[0] || playerList.find((p) => p.id !== playerId);
-
-        if (newHost) {
-          const roomRef = ref(database, `rooms/${roomId}`);
-          await runTransaction(roomRef, (currentRoom) => {
-            if (!currentRoom) return currentRoom;
-            if (currentRoom.hostId !== playerId) return; // abort — already migrated
-            return {
-              ...currentRoom,
-              hostId: newHost.id,
-              players: {
-                ...currentRoom.players,
-                [newHost.id]: { ...currentRoom.players[newHost.id], isHost: true },
-                [playerId]: { ...currentRoom.players[playerId], isHost: false },
-              },
-            };
-          });
-        }
-      }
-
-      // Atomic: remove ourselves + decrement expectedGuesses in one transaction
-      // This prevents the host cleanup timer from double-decrementing between
-      // a separate remove() and decrement transaction.
-      {
+    try {
+      if (playerList.length === 1) {
+        // Last player — delete room
+        await remove(ref(database, `rooms/${roomId}`));
+      } else {
+        // BUG-HOST-LEAVE FIX: Single transaction for host migration + self-removal.
+        // Previously two separate transactions could leave ghost state if the second
+        // failed after the first succeeded (host migrated but player not removed).
+        const isCurrentHost = playerId === room.hostId;
         const roomRef = ref(database, `rooms/${roomId}`);
+
         await runTransaction(roomRef, (currentRoom) => {
           if (!currentRoom) return currentRoom;
+
+          // Idempotency: if we're already removed, abort cleanly
+          if (!currentRoom.players?.[playerId]) return;
+
           const players = { ...currentRoom.players };
 
-          // BUG-S FIX: Read shouldDecrement from FRESH Firebase data inside transaction,
-          // not from stale React closure. This prevents wrong decrement if player
-          // guessed between last render and leaveRoom call.
+          // Host migration (if we are the current host)
+          let newHostId = currentRoom.hostId;
+          if (isCurrentHost && currentRoom.hostId === playerId) {
+            const candidates = Object.values(players)
+              .filter((p: any) => p.id !== playerId && (!p.status || p.status === 'online'))
+              .sort((a: any, b: any) => (a.joinedAt || 0) - (b.joinedAt || 0));
+            const newHost = candidates[0] || Object.values(players).find((p: any) => p.id !== playerId);
+
+            if (newHost) {
+              newHostId = (newHost as any).id;
+              players[newHostId] = { ...players[newHostId], isHost: true };
+            }
+          }
+
+          // Decrement expectedGuesses if player hasn't guessed during active game
           const freshPlayer = players[playerId];
           const shouldDecrement = currentRoom.status === "playing" && freshPlayer && !freshPlayer.hasGuessed;
 
+          // Remove self
           delete players[playerId];
 
           const updatedRoom: any = {
             ...currentRoom,
+            hostId: newHostId,
             players,
           };
 
@@ -2320,24 +1829,27 @@ export function useRoom() {
           }
 
           return updatedRoom;
-        }).catch(() => {
+        }).catch((err) => {
+          logger.warn("[MP] leaveRoom transaction failed, fallback remove:", err);
           // Fallback: if transaction fails, do the remove directly
-          remove(ref(database, `rooms/${roomId}/players/${playerId}`)).catch(() => {});
+          return remove(ref(database, `rooms/${roomId}/players/${playerId}`)).catch(() => {});
         });
       }
+    } catch (err) {
+      // BUG-HOST-LEAVE FIX: Catch all Firebase errors to prevent unhandled rejection
+      // which triggers the global "Beklenmeyen bir hata oluştu" toast.
+      logger.error("[MP] leaveRoom failed:", err);
+      // Still proceed with local cleanup below — player should leave UI regardless
     }
 
-    // Local cleanup
+    // Local cleanup (always runs, even if Firebase ops fail)
     cleanupRoomData(roomId);
     clearSessionToken(roomId);
     trackEvent("leave", { roomId });
 
     setRoom(null);
     setPlayerId("");
-    setNotifications([]);
-    // Clear all pending notification timers
-    notificationTimerIdsRef.current.forEach(clearTimeout);
-    notificationTimerIdsRef.current.clear();
+    clearAllNotifications();
     previousPlayersRef.current = [];
     previousHostIdRef.current = null;
     previousPlayerNamesRef.current = new Map();
@@ -2370,7 +1882,7 @@ export function useRoom() {
 
     let committed = false;
 
-    const buildRestartPayload = (currentRoom: any, includeGameInstanceId: boolean) => {
+    const buildRestartPayload = (currentRoom: Room | null, includeGameInstanceId: boolean) => {
       // Reset committed on each retry — Firebase may invoke callback multiple times
       committed = false;
       if (!currentRoom) return currentRoom;
@@ -2384,7 +1896,7 @@ export function useRoom() {
       }
 
       const updatedPlayers: { [key: string]: Player } = {};
-      Object.entries(currentRoom.players || {}).forEach(([id, player]: [string, any]) => {
+      Object.entries(currentRoom.players || {}).forEach(([id, player]: [string, Player]) => {
         updatedPlayers[id] = {
           ...player,
           totalScore: 0,

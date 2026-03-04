@@ -44,11 +44,4 @@ export async function getAuthUid(): Promise<string> {
   return user.uid;
 }
 
-/**
- * Senkron auth UID — sadece auth hazır olduktan sonra kullan
- */
-export function getAuthUidSync(): string | null {
-  return auth.currentUser?.uid || null;
-}
-
 export { database, ref, set, get, onValue, update, remove, push, onDisconnect, runTransaction, serverTimestamp, auth };

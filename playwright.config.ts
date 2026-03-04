@@ -90,5 +90,47 @@ export default defineConfig({
       testMatch: 'smoke.spec.ts',
       use: { ...devices['iPhone 14'] },
     },
+
+    // =========================================================
+    // Bug-Catcher E2E Tests
+    // =========================================================
+    {
+      name: 'Bugcatcher - Desktop',
+      testMatch: 'bugcatcher.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Bugcatcher - Mobile',
+      testMatch: 'bugcatcher.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
+
+    // =========================================================
+    // Stabilization Sprint Tests (A1-A4, B1-B4)
+    // =========================================================
+    {
+      name: 'Stabilization - Desktop',
+      testMatch: 'stabilization.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Stabilization - Mobile',
+      testMatch: 'stabilization.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
+
+    // =========================================================
+    // AdSense Readiness Audit (GAP #6)
+    // =========================================================
+    {
+      name: 'AdSense Audit - Desktop',
+      testMatch: 'adsense-audit.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'AdSense Audit - Mobile',
+      testMatch: 'adsense-audit.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
   ],
 });

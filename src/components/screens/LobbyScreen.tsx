@@ -18,6 +18,7 @@ interface LobbyScreenProps {
   onSetGameMode: (mode: GameMode) => void;
   onStartGame: () => void;
   onLeaveRoom: () => void;
+  isTransitioning?: boolean;
 }
 
 export function LobbyScreen({
@@ -33,6 +34,7 @@ export function LobbyScreen({
   onSetGameMode,
   onStartGame,
   onLeaveRoom,
+  isTransitioning,
 }: LobbyScreenProps) {
   const modeConfig = GAME_MODE_CONFIG[room.gameMode || "urban"];
 
@@ -183,16 +185,17 @@ export function LobbyScreen({
             <div className="text-center py-4">
               <div className="inline-flex items-center gap-3 bg-gray-800/50 px-6 py-3 rounded-xl">
                 <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
-                <span className="text-gray-300">Host'un başlatması bekleniyor</span>
+                <span className="text-gray-300">Host&apos;un başlatması bekleniyor</span>
               </div>
             </div>
           )}
 
           <button
             onClick={onLeaveRoom}
-            className="w-full mt-3 py-2 text-gray-500 hover:text-red-400 transition text-sm"
+            disabled={isTransitioning}
+            className="w-full mt-3 py-2 text-gray-500 hover:text-red-400 transition text-sm disabled:opacity-50 disabled:pointer-events-none"
           >
-            Odadan Ayrıl
+            {isTransitioning ? "Ayrılıyor..." : "Odadan Ayrıl"}
           </button>
         </div>
       </div>

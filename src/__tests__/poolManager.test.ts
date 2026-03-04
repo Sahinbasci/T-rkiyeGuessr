@@ -114,7 +114,7 @@ function makeChunk(
 
 // ==================== MOCKING ====================
 
-let mockFetchResponses: Map<string, unknown> = new Map();
+const mockFetchResponses: Map<string, unknown> = new Map();
 
 function setupMockFetch(): void {
   const originalFetch = global.fetch;

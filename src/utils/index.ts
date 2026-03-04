@@ -207,15 +207,19 @@ export async function getLocationName(coord: Coordinates): Promise<string> {
     let ilce = "";
     let il = "";
 
-    // Sonuçları tara ve il/ilçe bul
+    // GAP #5: Robust district/province extraction with sublocality fallback
     for (const r of result) {
       for (const component of r.address_components) {
-        // İlçe (administrative_area_level_2 veya locality)
-        if (
-          component.types.includes("administrative_area_level_2") ||
-          component.types.includes("locality")
-        ) {
-          if (!ilce) ilce = component.long_name;
+        // İlçe: administrative_area_level_2 > locality > sublocality (fallback chain)
+        if (!ilce) {
+          if (
+            component.types.includes("administrative_area_level_2") ||
+            component.types.includes("locality")
+          ) {
+            ilce = component.long_name;
+          } else if (component.types.includes("sublocality") || component.types.includes("sublocality_level_1")) {
+            ilce = component.long_name;
+          }
         }
         // İl (administrative_area_level_1)
         if (component.types.includes("administrative_area_level_1")) {
@@ -226,10 +230,13 @@ export async function getLocationName(coord: Coordinates): Promise<string> {
       if (il && ilce) break;
     }
 
-    // Sonucu formatla
+    // Sonucu formatla — "İlçe, İl" format
     if (ilce && il) {
       // İlçe ve il aynıysa (merkez ilçe) sadece il göster
-      if (ilce === il || ilce.includes("Merkez")) {
+      if (
+        ilce.toLocaleLowerCase("tr-TR") === il.toLocaleLowerCase("tr-TR") ||
+        ilce.toLocaleLowerCase("tr-TR").includes("merkez")
+      ) {
         return il;
       }
       return `${ilce}, ${il}`;

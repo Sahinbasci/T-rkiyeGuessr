@@ -31,6 +31,8 @@ export type TelemetryEvent =
   | "blackScreenDetected"
   | "blackScreenRecovery"
   | "bfcacheRestore"
+  // B1-FIX v2: POV corruption recovery
+  | "povCorruptionRecovery"
   // BUG-008: Watchdog telemetry
   | "watchdogTick"
   | "watchdogForceRecovery"
@@ -51,6 +53,20 @@ export type TelemetryEvent =
   // Consent Mode v2
   | "consentModeInit"
   | "consentModeUpdate"
+  // AdSense script lifecycle
+  | "adSenseScriptLoaded"
+  | "adSenseScriptFailed"
+  // GA4 analytics
+  | "ga4ScriptLoaded"
+  | "ga4ScriptFailed"
+  // Game funnel (GA4 forwarded)
+  | "game_start"
+  | "round_complete"
+  | "game_complete"
+  | "room_created"
+  | "room_joined"
+  | "ad_impression"
+  | "premium_cta_click"
   // HARDENING: Multiplayer stabilization events
   | "round_end_stuck_reset"
   | "all_guessed_detected"
@@ -140,6 +156,7 @@ export function initTelemetry(): void {
       blackScreenDetected: 0,
       blackScreenRecovery: 0,
       bfcacheRestore: 0,
+      povCorruptionRecovery: 0,
       watchdogTick: 0,
       watchdogForceRecovery: 0,
       watchdogRecoverySkipped: 0,
@@ -155,6 +172,20 @@ export function initTelemetry(): void {
       consentModalSaved: 0,
       consentModeInit: 0,
       consentModeUpdate: 0,
+      // AdSense script lifecycle
+      adSenseScriptLoaded: 0,
+      adSenseScriptFailed: 0,
+      // GA4 analytics
+      ga4ScriptLoaded: 0,
+      ga4ScriptFailed: 0,
+      // Game funnel (GA4 forwarded)
+      game_start: 0,
+      round_complete: 0,
+      game_complete: 0,
+      room_created: 0,
+      room_joined: 0,
+      ad_impression: 0,
+      premium_cta_click: 0,
       // HARDENING: Multiplayer stabilization counters
       round_end_stuck_reset: 0,
       all_guessed_detected: 0,

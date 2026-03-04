@@ -106,6 +106,12 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
           strictBounds: true, // BUG-008: Strict Turkey bounds restriction
         },
       });
+    } else {
+      // BUG-ZOOM FIX: Map exists and div is same — reset zoom/center for new round.
+      // resetMap() may have run on a stale mapRef (detached div from roundEnd unmount),
+      // so we must ensure zoom is always reset when initializeMap is called.
+      mapRef.current.setCenter({ lat: center.lat, lng: center.lng });
+      mapRef.current.setZoom(getTurkeyZoom());
     }
 
     // KRITIK FIX: Listener'ı HER ZAMAN yeniden bağla

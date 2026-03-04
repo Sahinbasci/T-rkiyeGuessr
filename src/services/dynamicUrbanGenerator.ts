@@ -19,7 +19,7 @@
  * Host-only in multiplayer: host mints and broadcasts via Firebase.
  */
 
-import { PanoPackage, PanoData, GameMode } from "@/types";
+import { PanoPackage, PanoData } from "@/types";
 import {
   getUrbanSeedMap,
   sampleFromSeed,

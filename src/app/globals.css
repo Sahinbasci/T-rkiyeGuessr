@@ -408,15 +408,15 @@ div[aria-label*="Street View"] {
   -webkit-transform: translateZ(0);
 }
 
-/* Mobile: Corner map — P3 FIX: Increased size to reduce accidental Google
-   attribution clicks. The larger map gives more room between the pin-placing
-   area and the Google logo at the bottom. */
+/* Mobile: Corner map — B2-FIX v2: Increased collapsed size (160×140) so the Google
+   attribution at the bottom is well-separated from the map center where users tap.
+   No overlays needed — the larger size itself prevents accidental attribution taps. */
 @media (max-width: 640px) {
   .mini-map-container {
-    right: 12px;
-    bottom: calc(var(--action-bar-height) + var(--sab) + 16px);
-    width: 140px;
-    height: 120px;
+    right: 10px;
+    bottom: calc(var(--action-bar-height) + var(--sab) + 14px);
+    width: 160px;
+    height: 140px;
   }
 
   .mini-map-container.expanded {
@@ -443,6 +443,42 @@ div[aria-label*="Street View"] {
   }
 }
 
+/* GAP #4: Province selector button — positioned next to expand button */
+.province-selector-btn {
+  position: absolute;
+  top: 6px;
+  left: 48px;
+  z-index: 99999;
+  pointer-events: auto;
+  isolation: isolate;
+  height: 36px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 12px;
+}
+.province-selector-btn:active {
+  transform: scale(0.95);
+  background: rgba(0, 0, 0, 0.95);
+}
+/* GAP #4: Province dropdown container */
+.province-dropdown {
+  position: absolute;
+  top: 46px;
+  left: 48px;
+  z-index: 99999;
+  pointer-events: auto;
+  min-width: 160px;
+  max-width: 200px;
+}
+
 /* Map expand button — BUG-003 FIX: z-index raised to stay above Google Maps overlays */
 .map-expand-btn {
   position: absolute;
@@ -467,6 +503,24 @@ div[aria-label*="Street View"] {
 .map-expand-btn:active {
   transform: scale(0.95);
   background: rgba(0, 0, 0, 0.95);
+}
+
+/* ============================================
+   B2-FIX v2: SAFE-LAYOUT ATTRIBUTION PROTECTION
+   Instead of overlaying/intercepting taps (ToS risk), we use layout:
+   1. Increase minimap height on mobile so attribution area is far from
+      the gameplay tap zone (center of map where users place pins).
+   2. Ensure Google attribution links remain fully clickable at all times.
+   3. No overlays, no tap interception, no pointerEvents manipulation.
+   This is compliant with Google Maps Platform ToS §10.1.3 (attribution).
+   ============================================ */
+
+/* Google attribution links always remain interactive and visible */
+.mini-map-container .gm-style a[href*="google"],
+.mini-map-container .gm-style a[href*="terms"],
+.mini-map-container .gm-style-cc {
+  pointer-events: auto !important;
+  opacity: 0.8 !important;
 }
 
 /* Desktop submit button inside map */

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { canShowAd, isAdPreview, ADSENSE_CLIENT, AD_SIZE_RESERVATION } from "@/config/ads";
+import { isPremiumUser } from "@/config/premium";
 import { isMarketingAllowed, CONSENT_CHANGED_EVENT } from "@/utils/consent";
 import { trackEvent } from "@/utils/telemetry";
 
@@ -43,6 +44,7 @@ export function AdSlot({
 }: Props) {
   const insRef = useRef<HTMLModElement>(null);
   const [adStatus, setAdStatus] = useState<AdStatus>("loading");
+  const premium = isPremiumUser();
 
   // Consent revoke listener — collapse if marketing denied after ad was displayed
   useEffect(() => {
@@ -57,6 +59,7 @@ export function AdSlot({
   }, []);
 
   useEffect(() => {
+    if (premium) return;
     if (isAdPreview()) return;
     if (!canShowAd(roomStatus, slot)) return;
 
@@ -99,6 +102,7 @@ export function AdSlot({
 
       if (status === "filled") {
         trackEvent("adRenderSuccess", { slot, format });
+        trackEvent("ad_impression", { slot, format });
       } else {
         trackEvent("adRenderFailed", { slot, format, reason: status });
       }
@@ -140,7 +144,10 @@ export function AdSlot({
       clearTimeout(fallbackTimer);
       observer.disconnect();
     };
-  }, [roomStatus, slot, format]);
+  }, [premium, roomStatus, slot, format]);
+
+  // Premium users see no ads at all
+  if (premium) return null;
 
   if (!canShowAd(roomStatus, slot)) return null;
 

@@ -4,42 +4,86 @@ export const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY |
 // Maps configuration
 export const MAPS_CONFIG = {
   darkMapStyles: [
-    { elementType: "geometry", stylers: [{ color: "#1a1a24" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a24" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#8a8a9a" }] },
+    // Base geometry — dark background
+    { elementType: "geometry", stylers: [{ color: "#1a1a2e" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#0f0f1a" }, { weight: 3 }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#a0a0b8" }] },
+    // Administrative boundaries — more visible
     {
       featureType: "administrative",
       elementType: "geometry.stroke",
-      stylers: [{ color: "#3a3a4a" }],
+      stylers: [{ color: "#4a4a5e" }],
     },
-    {
-      featureType: "administrative.locality",
-      elementType: "labels.text.fill",
-      stylers: [{ color: "#b5b5c5" }],
-    },
+    // Country border — red emphasis
     {
       featureType: "administrative.country",
       elementType: "geometry.stroke",
       stylers: [{ color: "#ef4444" }, { weight: 2 }],
     },
+    // Province labels — bright and prominent
+    {
+      featureType: "administrative.province",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#e0e0f0" }],
+    },
+    {
+      featureType: "administrative.province",
+      elementType: "labels.text.stroke",
+      stylers: [{ color: "#1a1a2e" }, { weight: 4 }],
+    },
+    // City/town labels — clearly visible
+    {
+      featureType: "administrative.locality",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#d0d0e0" }],
+    },
+    {
+      featureType: "administrative.locality",
+      elementType: "labels.text.stroke",
+      stylers: [{ color: "#1a1a2e" }, { weight: 3 }],
+    },
+    // Neighborhood labels — subtler but readable
+    {
+      featureType: "administrative.neighborhood",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#9090a8" }],
+    },
+    // POI — hidden (no distractions)
     {
       featureType: "poi",
       stylers: [{ visibility: "off" }],
     },
+    // Roads — subtle dark
     {
       featureType: "road",
       elementType: "geometry",
-      stylers: [{ color: "#2a2a38" }],
+      stylers: [{ color: "#252538" }],
+    },
+    {
+      featureType: "road",
+      elementType: "labels",
+      stylers: [{ visibility: "off" }],
     },
     {
       featureType: "road.highway",
       elementType: "geometry",
-      stylers: [{ color: "#3a3a4a" }],
+      stylers: [{ color: "#2d2d42" }],
     },
+    // Water — distinct dark blue
     {
       featureType: "water",
       elementType: "geometry",
-      stylers: [{ color: "#0e1a2a" }],
+      stylers: [{ color: "#0d1829" }],
+    },
+    {
+      featureType: "water",
+      elementType: "labels.text.fill",
+      stylers: [{ color: "#4a6d8c" }],
+    },
+    // Transit — hidden
+    {
+      featureType: "transit",
+      stylers: [{ visibility: "off" }],
     },
   ],
 

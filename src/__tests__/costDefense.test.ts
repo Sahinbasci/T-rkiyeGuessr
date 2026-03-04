@@ -68,24 +68,36 @@ describe('Server Move Enforcement (Structural)', () => {
 
 // ================================================================
 // 2. DUPLICATE PANO GUARD
+// v5 DECOMPOSITION: navigateToLink moved to useNavigationEngine.ts,
+// returnToStart remains in useStreetView.ts (uses panoLifecycle.panoramaRef.current)
 // ================================================================
 describe('Duplicate Pano Guard (Structural)', () => {
   const useStreetViewSource = fs.readFileSync(
     path.resolve(__dirname, '../hooks/useStreetView.ts'),
     'utf-8'
   );
+  const navEngineSource = fs.readFileSync(
+    path.resolve(__dirname, '../hooks/streetview/useNavigationEngine.ts'),
+    'utf-8'
+  );
 
   it('navigateToLink has duplicate pano check', () => {
     // Must check getPano() === link.pano before calling setPano
-    expect(useStreetViewSource).toContain('panoramaRef.current.getPano() === link.pano');
+    // v5: navigateToLink extracted to useNavigationEngine.ts
+    expect(navEngineSource).toContain('.getPano() === link.pano');
   });
 
   it('returnToStart has duplicate pano check', () => {
-    expect(useStreetViewSource).toContain('panoramaRef.current.getPano() === startPanoIdRef.current');
+    // v5: returnToStart uses panorama local var via panoLifecycle.panoramaRef.current
+    expect(useStreetViewSource).toContain('.getPano() === startPanoIdRef.current');
   });
 
   it('duplicate guard increments metric', () => {
-    expect(useStreetViewSource).toContain('duplicatePanoPrevented++');
+    // Check both orchestrator and sub-hook
+    const hasDuplicateGuard =
+      useStreetViewSource.includes('duplicatePanoPrevented++') ||
+      navEngineSource.includes('duplicatePanoPrevented++');
+    expect(hasDuplicateGuard).toBe(true);
   });
 
   it('panoLoadCount metric is tracked', () => {

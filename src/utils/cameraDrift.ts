@@ -399,6 +399,214 @@ export function markDragEnd(
 }
 
 /**
+ * Sanitize a POV from a potentially corrupted state.
+ * Returns a safe POV with pitch clamped and NaN/Infinity handled.
+ * Pure function — safe for use in lifecycle resume handlers.
+ */
+export function sanitizePov(pov: { heading: number; pitch: number }): { heading: number; pitch: number } {
+  let heading = pov.heading;
+  let pitch = pov.pitch;
+
+  // Handle NaN/Infinity
+  if (!Number.isFinite(heading)) heading = 0;
+  if (!Number.isFinite(pitch)) pitch = 0;
+
+  // Normalize heading to [0, 360)
+  heading = ((heading % 360) + 360) % 360;
+
+  // Clamp pitch
+  pitch = clampPitch(pitch);
+
+  return { heading, pitch };
+}
+
+/**
+ * Detect if a POV appears to be in a drifted/corrupted state.
+ * Returns true if the POV needs correction.
+ */
+export function isPovCorrupted(pov: { heading: number; pitch: number }): boolean {
+  if (!Number.isFinite(pov.heading) || !Number.isFinite(pov.pitch)) return true;
+  if (pov.pitch > PITCH_MAX || pov.pitch < PITCH_MIN) return true;
+  return false;
+}
+
+// ==================== LAST-KNOWN-GOOD POV TRACKING ====================
+
+/**
+ * State for tracking the last known valid/stable POV.
+ * Updated only when POV is stable (not during corruption or rapid changes).
+ */
+export interface LastKnownGoodPOV {
+  heading: number;
+  pitch: number;
+  timestamp: number;
+  /** Number of consecutive stable samples seen before accepting this POV */
+  stabilityCount: number;
+}
+
+/** Minimum consecutive stable samples before accepting a POV as "good" */
+const STABILITY_REQUIRED_SAMPLES = 3;
+
+/** Maximum pitch jump in a single frame that's considered stable (not corruption) */
+export const MAX_STABLE_PITCH_JUMP = 15;
+
+/** Maximum heading jump in a single frame that's considered stable */
+export const MAX_STABLE_HEADING_JUMP = 45;
+
+/**
+ * Create initial last-known-good POV.
+ */
+export function createLastKnownGoodPOV(heading: number = 0, pitch: number = 0): LastKnownGoodPOV {
+  return { heading, pitch, timestamp: Date.now(), stabilityCount: 0 };
+}
+
+/**
+ * Update last-known-good POV with a new sample.
+ * Only accepts the sample as "good" if it's been stable for STABILITY_REQUIRED_SAMPLES frames.
+ * Returns updated state (may or may not have changed the stored POV).
+ */
+export function updateLastKnownGoodPOV(
+  state: LastKnownGoodPOV,
+  currentHeading: number,
+  currentPitch: number,
+  now: number = Date.now(),
+): LastKnownGoodPOV {
+  // Reject if corrupt values
+  if (!Number.isFinite(currentHeading) || !Number.isFinite(currentPitch)) {
+    return { ...state, stabilityCount: 0 };
+  }
+  if (currentPitch > PITCH_MAX || currentPitch < PITCH_MIN) {
+    return { ...state, stabilityCount: 0 };
+  }
+
+  // Check for sudden large jumps (potential corruption)
+  const hJump = headingDelta(currentHeading, state.heading);
+  const pJump = pitchDelta(currentPitch, state.pitch);
+
+  if (pJump > MAX_STABLE_PITCH_JUMP || (hJump > MAX_STABLE_HEADING_JUMP && pJump > 1)) {
+    // Large unexpected jump — reset stability counter, don't update stored POV
+    return { ...state, stabilityCount: 0 };
+  }
+
+  // Stable sample — increment counter
+  const newCount = state.stabilityCount + 1;
+  if (newCount >= STABILITY_REQUIRED_SAMPLES) {
+    // Enough stable samples — accept as new "good" POV
+    return {
+      heading: currentHeading,
+      pitch: currentPitch,
+      timestamp: now,
+      stabilityCount: newCount,
+    };
+  }
+
+  return { ...state, stabilityCount: newCount };
+}
+
+// ==================== CORRUPTION DETECTION ====================
+
+/** Threshold: N consecutive corrupted events triggers reinit */
+export const CORRUPTION_REINIT_THRESHOLD = 5;
+
+/** Threshold: events per second that constitutes a "storm" */
+export const EVENT_STORM_THRESHOLD = 120;
+
+/** Window (ms) over which to measure event storm */
+export const EVENT_STORM_WINDOW_MS = 1000;
+
+/**
+ * State for advanced corruption detection.
+ * Tracks consecutive corruption events, event storms, and repeated drift.
+ */
+export interface CorruptionDetectorState {
+  /** Consecutive corrupted POV events (NaN, Infinity, out-of-range) */
+  consecutiveCorrupted: number;
+  /** Consecutive drift corrections applied */
+  consecutiveDriftCorrections: number;
+  /** pov_changed event timestamps for storm detection (ring buffer) */
+  eventTimestamps: number[];
+  /** Write index for event timestamps */
+  eventWriteIndex: number;
+  /** Whether a reinit has been requested (consumer should act on this) */
+  reinitRequested: boolean;
+}
+
+/**
+ * Create initial corruption detector state.
+ */
+export function createCorruptionDetector(): CorruptionDetectorState {
+  return {
+    consecutiveCorrupted: 0,
+    consecutiveDriftCorrections: 0,
+    eventTimestamps: [],
+    eventWriteIndex: 0,
+    reinitRequested: false,
+  };
+}
+
+/**
+ * Record a pov_changed event and check for corruption patterns.
+ *
+ * Returns: { newState, needsReinit, isEventStorm }
+ * - needsReinit: true if consecutive corruption or drift exceeds threshold
+ * - isEventStorm: true if event frequency exceeds storm threshold
+ */
+export function detectCorruption(
+  state: CorruptionDetectorState,
+  pov: { heading: number; pitch: number },
+  wasDriftCorrected: boolean,
+  now: number = Date.now(),
+): {
+  newState: CorruptionDetectorState;
+  needsReinit: boolean;
+  isEventStorm: boolean;
+} {
+  // Track event timestamp
+  const newTimestamps = [...state.eventTimestamps];
+  if (newTimestamps.length < EVENT_STORM_THRESHOLD * 2) {
+    newTimestamps.push(now);
+  } else {
+    newTimestamps[state.eventWriteIndex] = now;
+  }
+  const newWriteIndex = (state.eventWriteIndex + 1) % (EVENT_STORM_THRESHOLD * 2);
+
+  // Detect event storm
+  const cutoff = now - EVENT_STORM_WINDOW_MS;
+  const recentEvents = newTimestamps.filter(t => t > cutoff).length;
+  const isEventStorm = recentEvents > EVENT_STORM_THRESHOLD;
+
+  // Track corruption
+  const isCorrupted = isPovCorrupted(pov);
+  const newConsecutiveCorrupted = isCorrupted ? state.consecutiveCorrupted + 1 : 0;
+  const newConsecutiveDrift = wasDriftCorrected ? state.consecutiveDriftCorrections + 1 : 0;
+
+  // Determine if reinit needed
+  const needsReinit =
+    newConsecutiveCorrupted >= CORRUPTION_REINIT_THRESHOLD ||
+    newConsecutiveDrift >= CORRUPTION_REINIT_THRESHOLD * 2 ||
+    isEventStorm;
+
+  return {
+    newState: {
+      consecutiveCorrupted: newConsecutiveCorrupted,
+      consecutiveDriftCorrections: newConsecutiveDrift,
+      eventTimestamps: newTimestamps,
+      eventWriteIndex: newWriteIndex,
+      reinitRequested: needsReinit,
+    },
+    needsReinit,
+    isEventStorm,
+  };
+}
+
+/**
+ * Reset corruption detector (after reinit or new round).
+ */
+export function resetCorruptionDetector(): CorruptionDetectorState {
+  return createCorruptionDetector();
+}
+
+/**
  * Reset tracker (new round, new pano).
  */
 export function resetDriftTracker(

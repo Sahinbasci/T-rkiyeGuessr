@@ -485,7 +485,7 @@ describe("Combined Static + Dynamic 10K Simulation", () => {
     let consecutiveSameClusterId = 0;
 
     let repeatPanoIdCount = 0;
-    let repeatHashCount = 0;
+    const repeatHashCount = 0;
 
     // Easy in sliding window of 50
     const easyWindow: boolean[] = [];

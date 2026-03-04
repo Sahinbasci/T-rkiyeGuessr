@@ -12,7 +12,7 @@ import { trackError } from "@/utils/telemetry";
 import { incrementRoundsPlayed } from "@/utils/adsFrequency";
 import { logger } from "@/utils/logger";
 import { cleanupStaleSessions } from "@/utils";
-import { SITE_URL } from "@/config/site";
+
 
 const GameScreen = dynamic(
   () => import("@/components/screens/GameScreen").then((m) => ({ default: m.GameScreen })),
@@ -47,14 +47,14 @@ export default function HomeClient() {
     room, playerId, currentPlayer, isHost, players, error, isLoading,
     connectionState, notifications, dismissNotification,
     createRoom, joinRoom, setGameMode, startGame, startGameWithPanoPackage,
-    submitGuess, checkAllGuessed, handleTimeUp, nextRound, nextRoundWithPanoPackage,
+    submitGuess, handleTimeUp, nextRound, nextRoundWithPanoPackage,
     leaveRoom, restartGame, returnToLobby,
   } = useRoom();
 
   const {
     isLoading: streetViewLoading, streetViewRef, loadNewLocation,
     showStreetView, showPanoPackage, initializeGoogleMaps,
-    setMoves, resetMoves, syncMovesUsed, movesRemaining, movesUsed,
+    setMoves, resetMoves, syncMovesUsed, movesRemaining,
     isMovementLocked, showBudgetWarning, returnToStart,
     navigationError, panoLoadFailed,
   } = useStreetView(room?.id, playerId);
@@ -65,7 +65,7 @@ export default function HomeClient() {
   const guessLocationRef = useRef<Coordinates | null>(null);
   guessLocationRef.current = guessLocation;
 
-  const { timeRemaining, formattedTime, isRunning: timerRunning, percentRemaining } = useTimer({
+  const { timeRemaining, formattedTime } = useTimer({
     initialTime: room?.timeLimit || 90,
     onTimeUp: () => {
       // BUG-013 FIX: Auto-submit pending guess when timer expires (all players)
@@ -80,7 +80,7 @@ export default function HomeClient() {
   });
 
   // BUG-004: Async lock for all critical actions
-  const { isLocked, run: runLocked, isKeyLocked } = useAsyncLock();
+  const { run: runLocked, isKeyLocked } = useAsyncLock();
 
   // ==================== REFS ====================
   const prevRoundRef = useRef<number | null>(null);
@@ -352,8 +352,8 @@ export default function HomeClient() {
         error.stack?.includes("repoAbortTransactionsOnNode");
 
       if (isFirebaseInternalAbort) {
-        if ((window as any).__mpCounters) {
-          (window as any).__mpCounters.firebaseInternalAbortCount++;
+        if (window.__mpCounters) {
+          window.__mpCounters.firebaseInternalAbortCount++;
         }
         logger.warn("[FirebaseInternalAbort] SDK transaction abort (safe to ignore)", error.stack?.split("\n")[1]?.trim());
         event.preventDefault();
@@ -362,8 +362,8 @@ export default function HomeClient() {
 
       logger.error("[UnhandledRejection]", error);
       trackError(error instanceof Error ? error : String(error), "unhandledRejection");
-      if ((window as any).__mpCounters) {
-        (window as any).__mpCounters.unhandledRejectionCount++;
+      if (window.__mpCounters) {
+        window.__mpCounters.unhandledRejectionCount++;
       }
       showTrackedToast("Beklenmeyen bir hata oluştu");
     };
@@ -578,11 +578,11 @@ export default function HomeClient() {
     }
   };
 
-  const shareWhatsApp = () => {
-    if (room?.id) {
-      const text = `🎯 TürkiyeGuessr'da bana katıl!\n\nOda Kodu: ${room.id}\n\n${SITE_URL}?room=${room.id}`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-    }
+  // GAP #3 FIX: Share via extracted utility (Web Share API → WhatsApp fallback)
+  const shareWhatsApp = async () => {
+    if (!room?.id) return;
+    const { executeShare } = await import("@/utils/shareUtils");
+    await executeShare(room.id);
   };
 
   // BUG-U FIX: Wrap with runLocked to prevent race with concurrent operations
@@ -646,6 +646,7 @@ export default function HomeClient() {
             onSetGameMode={setGameMode}
             onStartGame={handleStartGame}
             onLeaveRoom={handleLeaveRoom}
+            isTransitioning={isKeyLocked(ROOM_TRANSITION_KEY)}
           />
         </GameErrorBoundary>
       </>

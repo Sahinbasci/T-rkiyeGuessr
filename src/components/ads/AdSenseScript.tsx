@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { ADSENSE_CLIENT, ADS_ENABLED } from "@/config/ads";
 import { isMarketingAllowed, CONSENT_CHANGED_EVENT } from "@/utils/consent";
+import { trackEvent, trackError } from "@/utils/telemetry";
 
 /**
  * Loads the AdSense pagead2 script **only** when:
@@ -42,12 +43,15 @@ export function AdSenseScript() {
       strategy="afterInteractive"
       onLoad={() => {
         scriptLoadedRef.current = true;
+        trackEvent("adSenseScriptLoaded");
       }}
       onError={(e) => {
-        // Ad blocker or network issue — log for debugging, don't crash
-        if (process.env.NODE_ENV === "development") {
-          console.warn("[AdSense] pagead2.js failed to load:", e);
-        }
+        // Ad blocker or network issue — track in telemetry, don't crash
+        trackError(
+          typeof e === "string" ? e : "AdSense pagead2.js failed to load",
+          "AdSenseScript.onError"
+        );
+        trackEvent("adSenseScriptFailed");
       }}
     />
   );

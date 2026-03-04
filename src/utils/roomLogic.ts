@@ -12,8 +12,6 @@ import {
   Room,
   Coordinates,
   RoundResult,
-  GameMode,
-  GAME_MODE_CONFIG,
 } from "@/types";
 import { calculateDistance, calculateScore, isLikelyInTurkey } from "@/utils";
 import { isValidPlayerName, isValidTurkeyCoordinate, ROOM_LIFECYCLE } from "@/config/production";

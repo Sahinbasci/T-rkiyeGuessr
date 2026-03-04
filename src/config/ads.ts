@@ -11,7 +11,6 @@
  */
 
 import { isMarketingAllowed } from "@/utils/consent";
-import { logger } from "@/utils/logger";
 
 /* ─── Environment ─── */
 
@@ -27,20 +26,11 @@ export const INTERSTITIAL_ADS_ENABLED =
 
 /* ─── Slot IDs ─── */
 
-const PLACEHOLDER_PREFIX = "000000000";
-
 export const AD_SLOTS = {
   banner: process.env.NEXT_PUBLIC_AD_SLOT_BANNER ?? "0000000000",
   inContent: process.env.NEXT_PUBLIC_AD_SLOT_IN_CONTENT ?? "0000000001",
   interstitial: process.env.NEXT_PUBLIC_AD_SLOT_INTERSTITIAL ?? "0000000002",
 } as const;
-
-export type AdSlotKey = keyof typeof AD_SLOTS;
-
-/** Returns true if the slot ID is a real one (not a placeholder). */
-export function isSlotConfigured(slotId: string): boolean {
-  return slotId.length > 0 && !slotId.startsWith(PLACEHOLDER_PREFIX);
-}
 
 /* ─── CLS Size Reservations ─── */
 
@@ -91,16 +81,4 @@ export function canShowInterstitial(slotId?: string): boolean {
  */
 export function isAdPreview(): boolean {
   return process.env.NODE_ENV === "development";
-}
-
-/** Log ad config status — call once on app init (dev only). */
-export function validateAdConfig(): void {
-  if (process.env.NODE_ENV !== "development") return;
-
-  logger.debug("[AdConfig] ADS_ENABLED:", ADS_ENABLED);
-  logger.debug("[AdConfig] ADSENSE_CLIENT:", ADSENSE_CLIENT || "(empty)");
-  for (const [key, id] of Object.entries(AD_SLOTS)) {
-    const status = isSlotConfigured(id) ? "configured" : "placeholder";
-    logger.debug(`[AdConfig] Slot ${key}: ${id} (${status})`);
-  }
 }

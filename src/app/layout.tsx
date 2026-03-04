@@ -3,6 +3,7 @@ import { Bebas_Neue, DM_Sans } from "next/font/google";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { CookieBanner } from "@/components/consent/CookieBanner";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
+import { GA4Script } from "@/components/analytics/GA4Script";
 import { ConsentModeInit } from "@/components/consent/ConsentModeInit";
 import "./globals.css";
 import { SITE_URL } from "@/config/site";
@@ -238,6 +239,7 @@ export default function RootLayout({
           <ErrorBoundary>{children}</ErrorBoundary>
           <CookieBanner />
           <AdSenseScript />
+          <GA4Script />
         </body>
     </html>
   );

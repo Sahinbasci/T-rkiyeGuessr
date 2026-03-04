@@ -1538,7 +1538,7 @@ describe("stress & concurrency scenarios", () => {
 
   test("rapid host election under cascading disconnections", () => {
     // 8 players, hosts keep disconnecting
-    let players = makePlayers(
+    const players = makePlayers(
       { id: "p0", joinedAt: 100, status: "online" },
       { id: "p1", joinedAt: 200, status: "online" },
       { id: "p2", joinedAt: 300, status: "online" },

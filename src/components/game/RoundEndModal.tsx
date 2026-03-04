@@ -1,6 +1,7 @@
 import { MapPin, ArrowRight } from "lucide-react";
 import { Room, RoundResult } from "@/types";
 import { formatDistance } from "@/utils";
+import { formatLocationName } from "@/utils/turkishFormat";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { AD_SLOTS } from "@/config/ads";
 
@@ -27,16 +28,14 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
           Tur {room.currentRound} Sonuçları
         </h2>
 
-        {room.currentLocationName && (
-          <div className="text-center mb-4">
-            <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-500/50 rounded-full px-4 py-2">
-              <MapPin size={16} className="text-green-400" />
-              <span className="text-green-300 font-medium text-sm sm:text-base">
-                {room.currentLocationName}
-              </span>
-            </div>
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-500/50 rounded-full px-4 py-2">
+            <MapPin size={16} className="text-green-400" />
+            <span className="text-green-300 font-medium text-sm sm:text-base">
+              {formatLocationName(room.currentLocationName).formatted}
+            </span>
           </div>
-        )}
+        </div>
 
         {/* BUG-012: Improved results layout for 375px */}
         <div className="space-y-2 sm:space-y-3 mb-5" aria-live="polite">

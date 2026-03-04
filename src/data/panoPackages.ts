@@ -2115,7 +2115,7 @@ export const GEO_PACKAGES: PanoPackage[] = [
 export const ALL_PANO_PACKAGES: PanoPackage[] = [...URBAN_PACKAGES, ...GEO_PACKAGES];
 
 // Mod'a göre paket getir
-export function getPanoPackagesByMode(mode: "urban" | "geo"): PanoPackage[] {
+function getPanoPackagesByMode(mode: "urban" | "geo"): PanoPackage[] {
   return mode === "urban" ? URBAN_PACKAGES : GEO_PACKAGES;
 }
 

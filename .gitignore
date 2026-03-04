@@ -2,3 +2,7 @@
 node_modules
 .env*
 .DS_Store
+
+# Stryker mutation testing
+.stryker-tmp
+reports/mutation

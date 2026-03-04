@@ -31,22 +31,6 @@ import { TURKEY_CITIES, CityData } from "@/data/turkeyCities";
 // ==================== TÜRKİYE BÖLGE VERİLERİ ====================
 // Her bölge için koordinat sınırları ve ağırlıklar
 
-interface RegionData {
-  name: string;
-  bounds: {
-    minLat: number;
-    maxLat: number;
-    minLng: number;
-    maxLng: number;
-  };
-  weight: number; // Seçilme olasılığı (nüfus yoğunluğuna göre)
-  urbanWeight: number; // Urban mod için ağırlık
-  geoWeight: number; // Geo mod için ağırlık
-}
-
-// Re-export for backward compat — tüm importlar artık @/data/turkeyCities'ten gelir
-export { TURKEY_CITIES, type CityData } from "@/data/turkeyCities";
-
 // ==================== YARDIMCI FONKSİYONLAR ====================
 
 /**
@@ -85,7 +69,7 @@ function getRandomCoordinateNearCity(city: CityData, mode: GameMode): { lat: num
 // Each round pops next province. Ensures uniform geographic distribution.
 
 let provinceBag: CityData[] = [];
-let usedProvincesInSession: Set<string> = new Set();
+const usedProvincesInSession: Set<string> = new Set();
 
 /**
  * Fisher-Yates shuffle (in-place, unbiased)
@@ -140,7 +124,7 @@ function popNextProvince(mode: GameMode): CityData {
 /**
  * Province bag ve session tracker'ı sıfırla
  */
-export function resetProvinceBag(): void {
+function resetProvinceBag(): void {
   provinceBag = [];
   usedProvincesInSession.clear();
 }
@@ -157,7 +141,7 @@ function selectWeightedCity(mode: GameMode): CityData {
   }
 
   // Geo mod: Kırsal bölgelere ve doğa alanlarına ağırlık (mevcut davranış korunuyor)
-  let weightedCities: { city: CityData; weight: number }[] = TURKEY_CITIES.map(city => ({
+  const weightedCities: { city: CityData; weight: number }[] = TURKEY_CITIES.map(city => ({
     city,
     weight: city.isUrban ? city.population * 0.1 : city.population * 2
   }));
@@ -255,14 +239,14 @@ function calculateHeading(fromLat: number, fromLng: number, toLat: number, toLng
   const y = Math.sin(dLng) * Math.cos(lat2);
   const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
 
-  let heading = Math.atan2(y, x) * 180 / Math.PI;
+  const heading = Math.atan2(y, x) * 180 / Math.PI;
   return (heading + 360) % 360;
 }
 
 // ==================== ANA SERVİS ====================
 
 // Oturumdaki kullanılmış lokasyonları takip et
-let usedLocationHashes: Set<string> = new Set();
+const usedLocationHashes: Set<string> = new Set();
 let streetViewService: google.maps.StreetViewService | null = null;
 
 // Session API call ceiling — prevents runaway costs
@@ -384,7 +368,7 @@ async function findBranchPanos(
 /**
  * Dinamik olarak yeni bir pano paketi oluştur
  */
-export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPackage | null> {
+async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPackage | null> {
   // Session ceiling check — switch to static-only if exceeded
   if (sessionApiCallCount >= MAX_SESSION_API_CALLS) {
     logger.debug(`[DynamicPano] Session API ceiling reached (${sessionApiCallCount}/${MAX_SESSION_API_CALLS}) — static-only mode`);
@@ -482,16 +466,9 @@ export async function generateDynamicPanoPackage(mode: GameMode): Promise<PanoPa
 /**
  * Oturum için kullanılmış lokasyonları sıfırla
  */
-export function resetUsedLocations(): void {
+function resetUsedLocations(): void {
   usedLocationHashes.clear();
   logger.debug("Kullanılmış lokasyonlar sıfırlandı");
-}
-
-/**
- * Kaç benzersiz lokasyon kullanıldığını döndür
- */
-export function getUsedLocationCount(): number {
-  return usedLocationHashes.size;
 }
 
 // ==================== FALLBACK: STATİK PANO HAVUZU ====================
@@ -499,10 +476,8 @@ export function getUsedLocationCount(): number {
 
 import { URBAN_PACKAGES, GEO_PACKAGES } from "@/data/panoPackages";
 
-let staticUsedIds: Set<string> = new Set();
-
 // BUG-001 FIX: Track pano IDs used in current session to prevent last-resort repeats
-let sessionUsedPanoIds: Set<string> = new Set();
+const sessionUsedPanoIds: Set<string> = new Set();
 
 /**
  * BUG-001 FIX: Last resort fallback with round-robin dedup.
@@ -530,15 +505,8 @@ function pickLastResortFallback(packages: PanoPackage[]): PanoPackage {
  * Statik havuzdan benzersiz pano seç (fallback)
  * Delegated to LocationEngine for difficulty-aware, anti-repeat selection.
  */
-export function getStaticPanoPackage(mode: GameMode, preferredProvince?: string): PanoPackage | null {
+function getStaticPanoPackage(mode: GameMode, preferredProvince?: string): PanoPackage | null {
   return selectStaticPackage(mode, preferredProvince);
-}
-
-/**
- * Statik havuz kullanımını sıfırla
- */
-export function resetStaticUsage(): void {
-  staticUsedIds.clear();
 }
 
 // ==================== ENTEGRE SERVİS ====================
@@ -642,7 +610,6 @@ export async function getNextPanoPackage(mode: GameMode, roomId?: string): Promi
  */
 export async function onNewGameStart(roomId?: string): Promise<void> {
   resetUsedLocations();
-  resetStaticUsage();
   resetProvinceBag();
   resetLocationEngine();
   sessionApiCallCount = 0;

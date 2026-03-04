@@ -1,6 +1,6 @@
 import { RefObject } from "react";
 import { RefreshCw, AlertTriangle, WifiOff, LogOut } from "lucide-react";
-import { Room, Player, Coordinates, RoundResult } from "@/types";
+import { Room, Player, Coordinates } from "@/types";
 import { GameNotification } from "@/hooks";
 import { GameHeader } from "@/components/game/GameHeader";
 import { PlayersSidebar } from "@/components/game/PlayersSidebar";

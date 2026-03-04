@@ -7,16 +7,27 @@ import { ConsentModal } from "./ConsentModal";
 
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // BUG-CONSENT FIX: Two-phase mount to guarantee banner appears on all platforms.
+  // Phase 1: After hydration, check consent and set visible.
+  // Phase 2: On next frame, set mounted=true to trigger CSS transition (opacity 0→1).
+  // This avoids relying on CSS animation fill-mode: both which can leave the banner
+  // at opacity: 0 on desktop browsers if the animation fails to trigger.
   useEffect(() => {
-    // Small delay so SSR hydration finishes
-    const t = setTimeout(() => {
-      // Hydrate Google Consent Mode from stored consent (if any)
-      import("@/utils/consentMode").then((m) => m.initConsentMode()).catch(() => {});
-      if (!hasConsented()) setVisible(true);
-    }, 800);
-    return () => clearTimeout(t);
+    // Hydrate Google Consent Mode from stored consent (if any)
+    import("@/utils/consentMode").then((m) => m.initConsentMode()).catch(() => {});
+
+    if (!hasConsented()) {
+      setVisible(true);
+      // Trigger transition on next frame so the browser paints the opacity:0 state first
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setMounted(true);
+        });
+      });
+    }
   }, []);
 
   // Listen for footer "Çerez Tercihleri" button
@@ -63,7 +74,12 @@ export function CookieBanner() {
         <div
           role="dialog"
           aria-label="Çerez bildirimi"
-          className="fixed bottom-0 left-0 right-0 z-[99999] animate-slideUp"
+          className="fixed bottom-0 left-0 right-0 z-[99999]"
+          style={{
+            opacity: mounted ? 1 : 0,
+            transform: mounted ? "translateY(0)" : "translateY(20px)",
+            transition: "opacity 0.3s ease-out, transform 0.3s ease-out",
+          }}
         >
           <div className="bg-gray-900/95 backdrop-blur-md border-t border-gray-700 px-4 py-4 sm:px-6">
             <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-4">

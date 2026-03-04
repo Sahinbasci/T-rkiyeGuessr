@@ -314,7 +314,7 @@ describe("drift simulation — realistic mobile scenario", () => {
 
 describe("resetDriftTracker", () => {
   test("resets all state", () => {
-    let state = createDriftTracker(30);
+    const state = createDriftTracker(30);
     state.correctionCount = 5;
     state.accumulatedDrift = 10;
     state.isDragging = true;

@@ -14,7 +14,7 @@ interface GameOverModalProps {
   isTransitioning?: boolean;
 }
 
-export function GameOverModal({ players, playerId, isHost, onRestart, onReturnToLobby, onLeave, isTransitioning }: GameOverModalProps) {
+export function GameOverModal({ players, playerId, isHost, onRestart: _onRestart, onReturnToLobby, onLeave, isTransitioning }: GameOverModalProps) {
   const finalRankings = [...players].sort((a, b) => b.totalScore - a.totalScore);
 
   return (
