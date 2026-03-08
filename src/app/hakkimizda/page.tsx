@@ -13,6 +13,29 @@ export const metadata: Metadata = {
     "turkiyeguessr nedir",
   ],
   alternates: { canonical: "/hakkimizda" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/hakkimizda",
+    siteName: "TürkiyeGuessr",
+    title: "Hakkımızda — TürkiyeGuessr Konum Tahmin Oyunu",
+    description:
+      "TürkiyeGuessr, Türkiye'ye odaklanan ücretsiz multiplayer konum tahmin oyunudur. Misyonumuz, Türk coğrafyasını eğlenceli ve eğitici bir şekilde keşfettirmek.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Hakkımızda — TürkiyeGuessr Konum Tahmin Oyunu - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Hakkımızda — TürkiyeGuessr Konum Tahmin Oyunu",
+    description:
+      "TürkiyeGuessr, Türkiye'ye odaklanan ücretsiz multiplayer konum tahmin oyunudur. Misyonumuz, Türk coğrafyasını eğlenceli ve eğitici bir şekilde keşfettirmek.",
+  },
 };
 
 export default function HakkimizdaPage() {

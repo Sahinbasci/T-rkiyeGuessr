@@ -21,6 +21,29 @@ export const metadata: Metadata = {
     "türkiye haritası oyunu",
   ],
   alternates: { canonical: "/turkiye-harita-oyunu" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/turkiye-harita-oyunu",
+    siteName: "TürkiyeGuessr",
+    title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+    description:
+      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Türkiye Harita Oyunu — Ücretsiz Online Oyna - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+    description:
+      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+  },
 };
 
 export default function TurkiyeHaritaOyunuPage() {

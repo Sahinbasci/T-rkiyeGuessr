@@ -14,6 +14,29 @@ export const metadata: Metadata = {
     "ücretsiz geoguessr",
   ],
   alternates: { canonical: "/blog/geoguessr-vs-turkiyeguessr" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/geoguessr-vs-turkiyeguessr",
+    siteName: "TürkiyeGuessr",
+    title: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
+    description:
+      "GeoGuessr ve TürkiyeGuessr karşılaştırması. Fiyat, içerik, Türkiye odağı, multiplayer ve daha fazlası.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
+    description:
+      "GeoGuessr ve TürkiyeGuessr karşılaştırması. Fiyat, içerik, Türkiye odağı, multiplayer ve daha fazlası.",
+  },
 };
 
 export default function GeoguessrVsTurkiyeguessrPost() {
@@ -23,7 +46,18 @@ export default function GeoguessrVsTurkiyeguessrPost() {
     headline: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
     datePublished: "2026-02-25",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "GeoGuessr ve TürkiyeGuessr karşılaştırması. Fiyat, içerik, Türkiye odağı, multiplayer ve daha fazlası.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/geoguessr-vs-turkiyeguessr",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -196,6 +230,129 @@ export default function GeoguessrVsTurkiyeguessrPost() {
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">TürkiyeGuessr&apos;da Keşfedebileceğin Lokasyonlar</h2>
+          <p className="text-gray-400 leading-relaxed">
+            TürkiyeGuessr, Türkiye&apos;nin en etkileyici lokasyonlarını sokak görünümünde keşfetmeni sağlar.
+            İşte oynayarak gezebileceğin bazı öne çıkan noktalar:
+          </p>
+          <div className="space-y-3">
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">İstanbul&apos;un Tarihi Yarımadası</h3>
+              <p className="text-gray-400 text-sm mb-2">
+                Binlerce yıllık tarihi sokak aralarında keşfet. Osmanlı ve Bizans mirasının iç içe geçtiği
+                bu bölgelerde her köşede farklı bir ipucu seni bekliyor.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/sehirler/fatih-istanbul" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Sultanahmet →
+                </Link>
+                <Link href="/sehirler/beyoglu-istanbul" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Beyoğlu →
+                </Link>
+                <Link href="/sehirler/kadikoy-istanbul" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Kadıköy →
+                </Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Kapadokya&apos;nın Peri Bacaları</h3>
+              <p className="text-gray-400 text-sm mb-2">
+                Dünyada eşi benzeri olmayan peribacaları ve kaya otelleri arasında yolunu bulmaya çalış.
+                Kapadokya&apos;nın büyülü coğrafyasını sokak görünümünde deneyimle.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/sehirler/goreme-nevsehir" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Ürgüp →
+                </Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Akdeniz Sahilleri</h3>
+              <p className="text-gray-400 text-sm mb-2">
+                Turkuaz suları ve tarihi limanlarıyla Akdeniz kıyılarını keşfet. Antik kentlerden modern
+                tatil beldelerine uzanan geniş bir coğrafyada tahmin becerilerini test et.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/sehirler/kaleici-antalya" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Kaleiçi →
+                </Link>
+                <Link href="/sehirler/oludeniz-mugla" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Ölüdeniz →
+                </Link>
+                <Link href="/sehirler/marmaris-mugla" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Marmaris →
+                </Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Karadeniz Yaylaları</h3>
+              <p className="text-gray-400 text-sm mb-2">
+                Yemyeşil yaylalar, ahşap evler ve sisli dağ yolları... Karadeniz&apos;in eşsiz atmosferini
+                sokak görünümünde hisset ve bu benzersiz coğrafyayı tanı.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/sehirler/uzungol-trabzon" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Uzungöl →
+                </Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-gray-300 mb-2">Güneydoğu&apos;nun Tarihi</h3>
+              <p className="text-gray-400 text-sm mb-2">
+                Mezopotamya&apos;nın kapısında binlerce yıllık tarihi yaşa. Batık şehirlerden taş evlere,
+                Güneydoğu Anadolu&apos;nun zengin kültürel mirasını keşfet.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/sehirler/halfeti-sanliurfa" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Halfeti →
+                </Link>
+                <Link href="/sehirler/hasankeyf-batman" className="text-sm text-red-400 hover:text-red-300 transition-colors">
+                  Hasankeyf →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Bölge Bazlı Karşılaştırma</h2>
+          <p className="text-gray-400 leading-relaxed">
+            GeoGuessr&apos;da Türkiye lokasyonları rastgele ve oldukça sınırlıdır. Genellikle büyük
+            şehirlerin ana yollarına düşersiniz ve bölgesel çeşitlilik neredeyse yoktur.
+            TürkiyeGuessr ise Türkiye&apos;nin 7 coğrafi bölgesinin tamamını kapsayarak her bölgeden
+            özenle seçilmiş lokasyonlar sunar. Bölge filtresi sayesinde istediğin bölgeye odaklanabilir
+            ve o bölgenin kendine özgü coğrafi ipuçlarını öğrenebilirsin.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <Link href="/bolgeler/marmara" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
+              Marmara
+            </Link>
+            <Link href="/bolgeler/ege" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
+              Ege
+            </Link>
+            <Link href="/bolgeler/akdeniz" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
+              Akdeniz
+            </Link>
+            <Link href="/bolgeler/karadeniz" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
+              Karadeniz
+            </Link>
+            <Link href="/bolgeler/ic-anadolu" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
+              İç Anadolu
+            </Link>
+            <Link href="/bolgeler/dogu-anadolu" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
+              Doğu Anadolu
+            </Link>
+            <Link href="/bolgeler/guneydogu-anadolu" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors col-span-2 sm:col-span-1">
+              Güneydoğu Anadolu
+            </Link>
+          </div>
+          <p className="text-gray-400 leading-relaxed">
+            Bu bölge bazlı yapı, TürkiyeGuessr&apos;ı sadece bir oyun değil, aynı zamanda Türkiye
+            coğrafyasını sistematik olarak öğrenebileceğin bir eğitim aracı haline getirir.
+          </p>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Sonuç</h2>
           <p className="text-gray-400 leading-relaxed">
             GeoGuessr ve TürkiyeGuessr farklı ihtiyaçlara hitap eden iki harika platformdur.
@@ -250,6 +407,21 @@ export default function GeoguessrVsTurkiyeguessrPost() {
             </Link>
             <Link href="/blog/geotastic-vs-turkiyeguessr" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Geotastic vs TürkiyeGuessr
+            </Link>
+            <Link href="/blog/turkiye-bolgeleri-rehberi" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Türkiye Bölgeleri Rehberi
+            </Link>
+            <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Plaka Kodlarından İl Tahmini
+            </Link>
+            <Link href="/blog/online-harita-tahmin-oyunlari" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Online Harita Tahmin Oyunları
+            </Link>
+            <Link href="/sehirler" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Tüm Şehirler
+            </Link>
+            <Link href="/bolgeler" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Tüm Bölgeler
             </Link>
           </div>
         </section>

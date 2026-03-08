@@ -5,6 +5,7 @@ import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllRegions, getRegionBySlug } from "@/data/seoData";
 import { getRegionDescription } from "@/data/regionDescriptions";
 import { SITE_URL } from "@/config/site";
+import { translateTag } from "@/utils/tagTranslations";
 
 interface Props {
   params: { slug: string };
@@ -19,15 +20,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!region) return {};
 
   const desc = getRegionDescription(params.slug);
-  const uniqueProvinces = new Set(region.cities.map((c) => c.province)).size;
+
+  const title = `${region.name} Konum Tahmin Oyunu`;
+  const description = desc?.shortDesc
+    ? `${desc.shortDesc} TürkiyeGuessr ile ${region.name} lokasyonlarında konum tahmin et. ${region.packageCount} lokasyon, ücretsiz.`
+    : `${region.name} sokak görünümlerinde konum tahmin et. ${region.packageCount} lokasyon, ücretsiz.`;
+  const pageUrl = `${SITE_URL}/bolgeler/${params.slug}`;
 
   return {
-    title: `${region.name} Konum Tahmin Oyunu — ${uniqueProvinces} İl, ${region.packageCount} Lokasyon`,
-    description:
-      desc?.shortDesc
-        ? `${desc.shortDesc} TürkiyeGuessr ile ${region.name} lokasyonlarında konum tahmin et. ${region.packageCount} lokasyon, ücretsiz.`
-        : `${region.name} sokak görünümlerinde konum tahmin et. ${region.packageCount} lokasyon, ücretsiz.`,
+    title,
+    description,
     alternates: { canonical: `/bolgeler/${params.slug}` },
+    openGraph: {
+      type: "website",
+      locale: "tr_TR",
+      url: pageUrl,
+      siteName: "TürkiyeGuessr",
+      title,
+      description,
+      images: [{ url: `${SITE_URL}/og-image.png` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 
@@ -137,12 +154,12 @@ export default function BolgeDetailPage({ params }: Props) {
                       key={tag}
                       className="text-[10px] bg-gray-700/40 rounded px-1.5 py-0.5 text-gray-500"
                     >
-                      {tag}
+                      {translateTag(tag)}
                     </span>
                   ))}
                 </div>
                 <div className="text-xs text-gray-600 mt-2">
-                  {city.modes.join(" + ")} | {city.packageCount} paket
+                  {city.modes.map((m) => m === "urban" ? "Şehir" : m === "geo" ? "Coğrafi" : m).join(" + ")} | {city.packageCount} paket
                 </div>
               </Link>
             ))}

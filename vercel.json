@@ -1,0 +1,20 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.turkiyeguessr.xyz" }],
+      "destination": "https://turkiyeguessr.xyz/$1",
+      "statusCode": 301
+    },
+    {
+      "source": "/bolgeler/ic_anadolu",
+      "destination": "/bolgeler/ic-anadolu",
+      "statusCode": 301
+    },
+    {
+      "source": "/bolgeler/dogu_anadolu",
+      "destination": "/bolgeler/dogu-anadolu",
+      "statusCode": 301
+    }
+  ]
+}

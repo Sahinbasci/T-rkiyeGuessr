@@ -41,6 +41,16 @@ const REGION_DISPLAY_NAMES: Record<string, string> = {
   guneydogu: "Güneydoğu Anadolu Bölgesi",
 };
 
+/** Data slug (ic_anadolu) → URL slug (ic-anadolu) */
+export function regionToUrlSlug(dataSlug: string): string {
+  return dataSlug.replace(/_/g, "-");
+}
+
+/** URL slug (ic-anadolu) → Data slug (ic_anadolu) */
+export function urlToRegionSlug(urlSlug: string): string {
+  return urlSlug.replace(/-/g, "_");
+}
+
 const TURKISH_CHAR_MAP: Record<string, string> = {
   ç: "c", Ç: "c",
   ğ: "g", Ğ: "g",
@@ -189,7 +199,7 @@ export function getAllRegions(): RegionData[] {
     .map((slug) => {
       const regionCities = regionMap.get(slug)!;
       return {
-        slug,
+        slug: regionToUrlSlug(slug),
         name: REGION_DISPLAY_NAMES[slug] || slug,
         cities: regionCities,
         packageCount: regionCities.reduce((sum, c) => sum + c.packageCount, 0),
@@ -204,7 +214,9 @@ export function getCityBySlug(slug: string): CityData | undefined {
 }
 
 export function getRegionBySlug(slug: string): RegionData | undefined {
-  return getAllRegions().find((r) => r.slug === slug);
+  // Support both URL slug (ic-anadolu) and data slug (ic_anadolu)
+  const urlSlug = regionToUrlSlug(slug);
+  return getAllRegions().find((r) => r.slug === urlSlug);
 }
 
 // Unique provinces count

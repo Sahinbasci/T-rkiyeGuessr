@@ -9,6 +9,29 @@ export const metadata: Metadata = {
   description:
     "TürkiyeGuessr ile iletişime geçin. Soru, öneri, hata bildirimi ve iş birliği teklifleri için bize ulaşın.",
   alternates: { canonical: "/iletisim" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/iletisim",
+    siteName: "TürkiyeGuessr",
+    title: "İletişim — Bize Ulaşın",
+    description:
+      "TürkiyeGuessr ile iletişime geçin. Soru, öneri, hata bildirimi ve iş birliği teklifleri için bize ulaşın.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "İletişim — Bize Ulaşın - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "İletişim — Bize Ulaşın",
+    description:
+      "TürkiyeGuessr ile iletişime geçin. Soru, öneri, hata bildirimi ve iş birliği teklifleri için bize ulaşın.",
+  },
 };
 
 export default function IletisimPage() {

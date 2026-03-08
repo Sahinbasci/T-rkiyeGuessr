@@ -72,12 +72,14 @@ export function MenuScreen({
           >
             <MapPin size={40} className="text-white" aria-hidden="true" />
           </div>
-          <h1
-            className="text-4xl sm:text-5xl font-bold tracking-wider"
+          <span
+            className="text-4xl sm:text-5xl font-bold tracking-wider block"
             style={{ fontFamily: "var(--font-display)" }}
+            role="heading"
+            aria-level={2}
           >
             TürkiyeGuessr
-          </h1>
+          </span>
           <h2 className="text-gray-400 mt-2 text-base sm:text-lg font-normal">
             Arkadaşlarınla Türkiye&apos;yi Keşfet!
           </h2>

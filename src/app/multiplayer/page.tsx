@@ -13,6 +13,29 @@ export const metadata: Metadata = {
     "çok oyunculu konum tahmin",
   ],
   alternates: { canonical: "/multiplayer" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/multiplayer",
+    siteName: "TürkiyeGuessr",
+    title: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna",
+    description:
+      "TürkiyeGuessr ile arkadaşlarınla online multiplayer konum tahmin oyunu oyna. 2-8 kişi, ücretsiz, kayıt gerektirmez. Oda kur, kodu paylaş, yarış!",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna",
+    description:
+      "TürkiyeGuessr ile arkadaşlarınla online multiplayer konum tahmin oyunu oyna. 2-8 kişi, ücretsiz, kayıt gerektirmez. Oda kur, kodu paylaş, yarış!",
+  },
 };
 
 const MULTIPLAYER_FAQ = [

@@ -71,5 +71,6 @@ export const REGION_DESCRIPTIONS: Record<string, RegionDescription> = {
 };
 
 export function getRegionDescription(slug: string): RegionDescription | undefined {
-  return REGION_DESCRIPTIONS[slug];
+  // Support both URL slug (ic-anadolu) and data slug (ic_anadolu)
+  return REGION_DESCRIPTIONS[slug] || REGION_DESCRIPTIONS[slug.replace(/-/g, "_")];
 }

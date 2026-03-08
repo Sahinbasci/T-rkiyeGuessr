@@ -14,6 +14,29 @@ export const metadata: Metadata = {
     "türkiye illeri harita",
   ],
   alternates: { canonical: "/sehirler" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/sehirler",
+    siteName: "TürkiyeGuessr",
+    title: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu",
+    description:
+      "TürkiyeGuessr'daki tüm şehir ve lokasyonları keşfet. 7 bölge, 48+ il, 142+ küratörlü konum. Ücretsiz konum tahmin oyunu.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu",
+    description:
+      "TürkiyeGuessr'daki tüm şehir ve lokasyonları keşfet. 7 bölge, 48+ il, 142+ küratörlü konum. Ücretsiz konum tahmin oyunu.",
+  },
 };
 
 export default function SehirlerPage() {

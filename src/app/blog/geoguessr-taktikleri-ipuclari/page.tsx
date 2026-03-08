@@ -8,6 +8,29 @@ export const metadata: Metadata = {
     "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
   keywords: ["geoguessr taktikleri", "konum tahmin ipuçları", "türkiye geoguessr ipuçları", "plaka kodları ipuçları"],
   alternates: { canonical: "/blog/geoguessr-taktikleri-ipuclari" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/geoguessr-taktikleri-ipuclari",
+    siteName: "TürkiyeGuessr",
+    title: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
+    description:
+      "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
+    description:
+      "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
+  },
 };
 
 export default function GeoguessrTaktikleriPost() {
@@ -17,7 +40,18 @@ export default function GeoguessrTaktikleriPost() {
     headline: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/geoguessr-taktikleri-ipuclari",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -118,6 +152,48 @@ export default function GeoguessrTaktikleriPost() {
           </p>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">7. Araç Markalarını ve Türlerini Gözlemle</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye&apos;de araç türleri bölgeden bölgeye farklılık gösterir ve bu farklar konumunu daraltmana
+            yardımcı olabilir. Büyük şehirlerde — özellikle{" "}
+            <Link href="/sehirler/fatih-istanbul" className="text-red-400 hover:text-red-300 transition-colors">İstanbul</Link>
+            {" "}ve{" "}
+            <Link href="/sehirler/konak-izmir" className="text-red-400 hover:text-red-300 transition-colors">İzmir</Link>
+            &apos;de — sarı ticari taksiler, minibüsler ve dolmuşlar yoğun olarak görülür. Kırsal bölgelerde
+            ise traktörler, tarım araçları ve kamyonetler sokak manzarasına hakimdir. İç Anadolu&apos;nun
+            buğday tarlalarında biçerdöverler,{" "}
+            <Link href="/bolgeler/karadeniz" className="text-red-400 hover:text-red-300 transition-colors">Karadeniz</Link>
+            &apos;in çay bahçelerinde küçük kamyonetler sıkça görülür.{" "}
+            <Link href="/bolgeler/akdeniz" className="text-red-400 hover:text-red-300 transition-colors">Akdeniz</Link>
+            {" "}sahillerinde turist transferi için midibüsler, doğu illerinde ise kışa dayanıklı
+            SUV&apos;lar ve pikap araçlar yaygındır. Ayrıca TIR plakaları uzun yol güzergahlarını işaret
+            eder; sık TIR trafiği genellikle E-5 veya otoyol kenarında olduğunu gösterir.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">8. Semt Tabelalarına Dikkat Et</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Belediye sınır tabelaları konumunu kesinleştirmenin en doğrudan yollarından biridir. Şehir ve
+            ilçe girişlerinde bulunan mavi zemin üzerine beyaz yazılı tabelalar doğrudan il ve ilçe adını
+            gösterir. Örneğin,{" "}
+            <Link href="/sehirler/kaleici-antalya" className="text-red-400 hover:text-red-300 transition-colors">Kaleiçi</Link>
+            &apos;ne girerken &quot;Muratpaşa&quot; ilçe tabelasını görebilirsin. Mahalle isimleri de
+            bölgesel ipuçları taşır: &quot;Çarşı&quot; veya &quot;Pazar&quot; mahalleleri genellikle eski
+            ticaret merkezlerini, &quot;Yeni&quot; ile başlayan isimler ise modern yerleşimleri gösterir.{" "}
+            <Link href="/sehirler/ulus-ankara" className="text-red-400 hover:text-red-300 transition-colors">Ankara Ulus</Link>
+            {" "}bölgesinde tarihi tabela yoğunluğu fazlayken,{" "}
+            <Link href="/sehirler/uzungol-trabzon" className="text-red-400 hover:text-red-300 transition-colors">Uzungöl</Link>
+            {" "}gibi turistik alanlarda çok dilli yönlendirme tabelaları bulunur.{" "}
+            <Link href="/sehirler/artuklu-mardin" className="text-red-400 hover:text-red-300 transition-colors">Mardin Artuklu</Link>
+            &apos;da Arapça ve Süryanice ek tabelalar,{" "}
+            <Link href="/sehirler/agri-dagi-agri" className="text-red-400 hover:text-red-300 transition-colors">Ağrı</Link>
+            {" "}civarında ise Kürtçe yer adları da görebilirsin. Bu çok dilli tabelalar bölgeyi
+            daraltmada güçlü birer işarettir.
+          </p>
+        </section>
+
         <section className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-6 space-y-3">
           <h2 className="text-xl font-semibold text-gray-200">Hızlı Referans: Bölge Tespit Listesi</h2>
           <ul className="text-gray-400 text-sm space-y-2 list-disc list-inside">
@@ -171,6 +247,21 @@ export default function GeoguessrTaktikleriPost() {
             </Link>
             <Link href="/blog/turkiye-bolgeleri-rehberi" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Türkiye Bölgeleri Rehberi
+            </Link>
+            <Link href="/blog/turkiyenin-en-zor-10-lokasyonu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Türkiye&apos;nin En Zor 10 Lokasyonu
+            </Link>
+            <Link href="/sehirler/fatih-istanbul" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Fatih, İstanbul Lokasyonları
+            </Link>
+            <Link href="/sehirler/kaleici-antalya" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Kaleiçi, Antalya Lokasyonları
+            </Link>
+            <Link href="/bolgeler/karadeniz" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Karadeniz Bölgesi
+            </Link>
+            <Link href="/bolgeler/guneydogu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Güneydoğu Anadolu Bölgesi
             </Link>
           </div>
         </section>

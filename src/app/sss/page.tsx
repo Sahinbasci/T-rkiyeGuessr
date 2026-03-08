@@ -12,6 +12,29 @@ export const metadata: Metadata = {
     "türkiye guessr ücretsiz mi",
   ],
   alternates: { canonical: "/sss" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/sss",
+    siteName: "TürkiyeGuessr",
+    title: "Sıkça Sorulan Sorular (SSS)",
+    description:
+      "TürkiyeGuessr hakkında sıkça sorulan sorular. Nasıl oynanır, ücretli mi, kaç kişi oynayabilir, hangi cihazlarda çalışır?",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Sıkça Sorulan Sorular (SSS) - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Sıkça Sorulan Sorular (SSS)",
+    description:
+      "TürkiyeGuessr hakkında sıkça sorulan sorular. Nasıl oynanır, ücretli mi, kaç kişi oynayabilir, hangi cihazlarda çalışır?",
+  },
 };
 
 const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [

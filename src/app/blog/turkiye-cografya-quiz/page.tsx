@@ -8,6 +8,29 @@ export const metadata: Metadata = {
     "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
   keywords: ["türkiye coğrafya quiz", "coğrafya bilgi yarışması", "türkiye coğrafya testi"],
   alternates: { canonical: "/blog/turkiye-cografya-quiz" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/turkiye-cografya-quiz",
+    siteName: "TürkiyeGuessr",
+    title: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
+    description:
+      "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
+    description:
+      "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
+  },
 };
 
 export default function TurkiyeCografyaQuizPost() {
@@ -17,7 +40,18 @@ export default function TurkiyeCografyaQuizPost() {
     headline: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiye-cografya-quiz",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -104,6 +138,110 @@ export default function TurkiyeCografyaQuizPost() {
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Bölge Bölge Coğrafya İpuçları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye&apos;nin 7 coğrafi bölgesinin her birinin kendine özgü coğrafi özellikleri vardır. İşte her bölge için kısa ipuçları:
+          </p>
+          <div className="space-y-3">
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">Marmara Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Türkiye&apos;nin en kalabalık bölgesi olan Marmara, İstanbul Boğazı ve Trakya yarımadası ile tanınır. Sanayi, ticaret ve tarım bir arada bulunur.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/marmara" className="text-xs text-red-400 hover:text-red-300 transition-colors">Marmara Bölgesi →</Link>
+                <Link href="/sehirler/fatih-istanbul" className="text-xs text-red-400 hover:text-red-300 transition-colors">Sultanahmet →</Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">Ege Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Antik kentler, zeytinlikler ve berrak deniz kıyıları Ege&apos;nin karakteristik özelliklerindendir. Efes antik kenti ve Çeşme gibi turistik merkezlere ev sahipliği yapar.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/ege" className="text-xs text-red-400 hover:text-red-300 transition-colors">Ege Bölgesi →</Link>
+                <Link href="/sehirler/efes-izmir" className="text-xs text-red-400 hover:text-red-300 transition-colors">Efes →</Link>
+                <Link href="/sehirler/cesme-izmir" className="text-xs text-red-400 hover:text-red-300 transition-colors">Çeşme →</Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">Akdeniz Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Toros Dağları&apos;nın kıyıya paralel uzandığı Akdeniz, Türkiye&apos;nin turizm başkentidir. Antalya, Alanya ve Ölüdeniz gibi dünyaca ünlü tatil merkezlerini barındırır.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/akdeniz" className="text-xs text-red-400 hover:text-red-300 transition-colors">Akdeniz Bölgesi →</Link>
+                <Link href="/sehirler/kaleici-antalya" className="text-xs text-red-400 hover:text-red-300 transition-colors">Kaleiçi →</Link>
+                <Link href="/sehirler/oludeniz-mugla" className="text-xs text-red-400 hover:text-red-300 transition-colors">Ölüdeniz →</Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">Karadeniz Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Yağışlı iklimi, yemyeşil yaylaları ve çay-fındık tarlaları ile tanınan Karadeniz, Türkiye&apos;nin en yeşil bölgesidir. Uzungöl ve Ayder gibi doğal güzellikleri barındırır.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/karadeniz" className="text-xs text-red-400 hover:text-red-300 transition-colors">Karadeniz Bölgesi →</Link>
+                <Link href="/sehirler/uzungol-trabzon" className="text-xs text-red-400 hover:text-red-300 transition-colors">Uzungöl →</Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">İç Anadolu Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Step ikliminin hakim olduğu İç Anadolu, başkent Ankara&apos;ya ve Kapadokya&apos;nın peri bacalarına ev sahipliği yapar. Tuz Gölü ve Kızılırmak bölgenin önemli doğal unsurlarıdır.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/ic-anadolu" className="text-xs text-red-400 hover:text-red-300 transition-colors">İç Anadolu Bölgesi →</Link>
+                <Link href="/sehirler/goreme-nevsehir" className="text-xs text-red-400 hover:text-red-300 transition-colors">Ürgüp →</Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">Doğu Anadolu Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Türkiye&apos;nin en yüksek dağı Ağrı Dağı ve en büyük gölü Van Gölü bu bölgededir. Sert kara iklimi ve yüksek rakım bölgenin belirleyici özelliklerindendir.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/dogu-anadolu" className="text-xs text-red-400 hover:text-red-300 transition-colors">Doğu Anadolu Bölgesi →</Link>
+                <Link href="/sehirler/akdamar-adasi-van" className="text-xs text-red-400 hover:text-red-300 transition-colors">Akdamar Adası →</Link>
+              </div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-white mb-1">Güneydoğu Anadolu Bölgesi</h3>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Dünyanın en eski tapınağı Göbeklitepe ve batık şehir Halfeti&apos;ye ev sahipliği yapan bu bölge, tarihi ve kültürel zenginlikleriyle dikkat çeker. GAP projesi bölgenin tarımsal potansiyelini artırmıştır.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Link href="/bolgeler/guneydogu-anadolu" className="text-xs text-red-400 hover:text-red-300 transition-colors">Güneydoğu Anadolu Bölgesi →</Link>
+                <Link href="/sehirler/halfeti-sanliurfa" className="text-xs text-red-400 hover:text-red-300 transition-colors">Halfeti →</Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">TürkiyeGuessr ile Pratik Yap</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Coğrafya bilgisi sadece sorularla değil, görsel deneyimle pekişir. TürkiyeGuessr&apos;da gerçek Google Street View panoramalarında Türkiye&apos;nin dört bir köşesine düşersin. Sokak tabelaları, bitki örtüsü, mimari tarz ve arazi yapısı gibi ipuçlarını kullanarak konumunu tahmin edersin. Bu sayede bölgeleri ezberlemek yerine gerçekten tanırsın.
+          </p>
+          <div className="bg-gray-800/40 border border-gray-700/50 rounded-xl p-4 space-y-2">
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Oyuna başlamadan önce{" "}
+              <Link href="/nasil-oynanir" className="text-red-400 hover:text-red-300 transition-colors">nasıl oynanır</Link>{" "}
+              sayfamıza göz atabilirsin. Daha fazla taktik için{" "}
+              <Link href="/blog/geoguessr-taktikleri-ipuclari" className="text-red-400 hover:text-red-300 transition-colors">GeoGuessr taktikleri ve ipuçları</Link>{" "}
+              ve{" "}
+              <Link href="/blog/sokaktan-sehir-nasil-taninir" className="text-red-400 hover:text-red-300 transition-colors">sokaktan şehir nasıl tanınır</Link>{" "}
+              yazılarımızı oku.
+            </p>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Keşfedebileceğin tüm şehirleri görmek için{" "}
+              <Link href="/sehirler" className="text-red-400 hover:text-red-300 transition-colors">şehirler sayfamızı</Link>{" "}
+              ziyaret et.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Bilgini Pratiğe Dök</h2>
           <p className="text-gray-400 leading-relaxed">
             Soru cevap iyi bir başlangıç ama gerçek coğrafya bilgisi sahada test edilir. TürkiyeGuessr&apos;da sokak görünümünde gerçek Türkiye lokasyonlarına düşerek bilgini pratikte uygularsın. Teorik bilgiyi görsel hafızayla birleştirdiğinde coğrafya ustası olmak işten bile değil.
@@ -143,6 +281,15 @@ export default function TurkiyeCografyaQuizPost() {
             </Link>
             <Link href="/blog/turkiye-illeri-harita-oyunu" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Türkiye İlleri Harita Oyunu
+            </Link>
+            <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Plaka Kodlarından İl Tahmini
+            </Link>
+            <Link href="/blog/sokaktan-sehir-nasil-taninir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Sokaktan Şehir Nasıl Tanınır?
+            </Link>
+            <Link href="/blog/geoguessr-taktikleri-ipuclari" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → GeoGuessr Taktikleri ve İpuçları
             </Link>
           </div>
         </section>

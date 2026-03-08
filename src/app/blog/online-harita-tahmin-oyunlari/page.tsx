@@ -8,6 +8,29 @@ export const metadata: Metadata = {
     "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
   keywords: ["online harita tahmin oyunları", "geoguessr alternatifleri", "ücretsiz konum tahmin oyunu", "harita oyunları", "worldguessr türkiye", "openguessr türkiye"],
   alternates: { canonical: "/blog/online-harita-tahmin-oyunlari" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/online-harita-tahmin-oyunlari",
+    siteName: "TürkiyeGuessr",
+    title: "En İyi Online Harita Tahmin Oyunları (2026)",
+    description:
+      "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "En İyi Online Harita Tahmin Oyunları (2026)",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "En İyi Online Harita Tahmin Oyunları (2026)",
+    description:
+      "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
+  },
 };
 
 export default function OnlineHaritaTahminOyunlariPost() {
@@ -17,7 +40,18 @@ export default function OnlineHaritaTahminOyunlariPost() {
     headline: "En İyi Online Harita Tahmin Oyunları (2026)",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/online-harita-tahmin-oyunlari",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -121,6 +155,68 @@ export default function OnlineHaritaTahminOyunlariPost() {
           </p>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Türkiye Odaklı Oynamanın Avantajları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye, harita tahmin oyunları için eşsiz bir coğrafya sunar.{" "}
+            <Link href="/bolgeler" className="text-red-400 hover:text-red-300 underline">7 farklı bölgesi</Link> ve{" "}
+            <Link href="/sehirler" className="text-red-400 hover:text-red-300 underline">81 ili</Link> ile her köşesinde farklı bir manzara, iklim ve kültür seni bekliyor.
+          </p>
+          <ul className="space-y-3 text-gray-400 leading-relaxed">
+            <li>
+              <strong className="text-gray-200">81 İl, 7 Bölge ile Zengin Coğrafi Çeşitlilik:</strong>{" "}
+              Ege&apos;nin zeytinliklerinden Karadeniz&apos;in yemyeşil yaylalarına, Kapadokya&apos;nın peri bacalarından{" "}
+              <Link href="/sehirler/uzungol-trabzon" className="text-red-400 hover:text-red-300 underline">Uzungöl&apos;ün</Link>{" "}
+              doğasına kadar çok geniş bir coğrafi yelpazeyi keşfedebilirsin.
+            </li>
+            <li>
+              <strong className="text-gray-200">Plaka Kodlarından İl Tanıma Becerisi:</strong>{" "}
+              Sokak görünümlerindeki araç plakalarından hangi ilde olduğunu tahmin etmek, Türkiye&apos;ye özgü bir strateji.{" "}
+              <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-red-400 hover:text-red-300 underline">Plaka kodları rehberimiz</Link> ile bu becerini geliştirebilirsin.
+            </li>
+            <li>
+              <strong className="text-gray-200">Bölgesel Bitki Örtüsü ve İklim Farklılıkları:</strong>{" "}
+              Akdeniz&apos;in makileri, İç Anadolu&apos;nun bozkırı, Karadeniz&apos;in ormanları... Her bölgenin kendine has bitki örtüsü, konumu tahmin etmende büyük ipucu sağlar.
+            </li>
+            <li>
+              <strong className="text-gray-200">Tarihi ve Kültürel Çeşitlilik:</strong>{" "}
+              <Link href="/sehirler/fatih-istanbul" className="text-red-400 hover:text-red-300 underline">Sultanahmet&apos;in</Link> Osmanlı mirası,{" "}
+              <Link href="/sehirler/kaleici-antalya" className="text-red-400 hover:text-red-300 underline">Kaleiçi&apos;nin</Link> Roma dönemi surları,{" "}
+              <Link href="/sehirler/goreme-nevsehir" className="text-red-400 hover:text-red-300 underline">Ürgüp&apos;ün</Link> kaya kiliseleri ve{" "}
+              <Link href="/sehirler/halfeti-sanliurfa" className="text-red-400 hover:text-red-300 underline">Halfeti&apos;nin</Link> batık şehri gibi eşsiz noktalar seni bekliyor.
+            </li>
+          </ul>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">TürkiyeGuessr&apos;da Keşfedebileceğin Bölgeler</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye&apos;nin{" "}
+            <Link href="/bolgeler" className="text-red-400 hover:text-red-300 underline">7 coğrafi bölgesi</Link>,
+            her biri kendine özgü manzaralar ve ipuçları sunar:
+          </p>
+          <div className="space-y-2">
+            {[
+              { name: "Marmara Bölgesi", desc: "İstanbul ve tarihi yarımada", href: "/bolgeler/marmara" },
+              { name: "Ege Bölgesi", desc: "Antik kentler ve zeytinlikler", href: "/bolgeler/ege" },
+              { name: "Akdeniz Bölgesi", desc: "Turkuaz kıyılar ve Toros Dağları", href: "/bolgeler/akdeniz" },
+              { name: "Karadeniz Bölgesi", desc: "Yemyeşil dağlar ve yaylalar", href: "/bolgeler/karadeniz" },
+              { name: "İç Anadolu Bölgesi", desc: "Kapadokya ve bozkır", href: "/bolgeler/ic-anadolu" },
+              { name: "Doğu Anadolu Bölgesi", desc: "Ağrı Dağı ve Van Gölü", href: "/bolgeler/dogu-anadolu" },
+              { name: "Güneydoğu Anadolu Bölgesi", desc: "Tarihi Mezopotamya", href: "/bolgeler/guneydogu-anadolu" },
+            ].map((region) => (
+              <Link
+                key={region.href}
+                href={region.href}
+                className="flex items-center gap-3 bg-gray-800/40 border border-gray-700/50 rounded-lg p-3 hover:border-red-500/50 transition-colors group"
+              >
+                <span className="text-red-400 font-semibold group-hover:text-red-300">{region.name}</span>
+                <span className="text-gray-500 text-sm">— {region.desc}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <section className="text-center py-6 space-y-3">
           <Link
             href="/"
@@ -151,6 +247,18 @@ export default function OnlineHaritaTahminOyunlariPost() {
             </Link>
             <Link href="/blog/geoguessr-vs-turkiyeguessr" className="text-gray-400 hover:text-white text-sm transition-colors">
               → GeoGuessr vs TürkiyeGuessr
+            </Link>
+            <Link href="/blog/turkiye-bolgeleri-rehberi" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Türkiye Bölgeleri Rehberi
+            </Link>
+            <Link href="/blog/sokaktan-sehir-nasil-taninir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Sokaktan Şehir Nasıl Tanınır?
+            </Link>
+            <Link href="/sehirler" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Tüm Şehirler
+            </Link>
+            <Link href="/bolgeler" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Tüm Bölgeler
             </Link>
           </div>
         </section>

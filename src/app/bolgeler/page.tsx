@@ -15,6 +15,29 @@ export const metadata: Metadata = {
     "bölge harita oyunu",
   ],
   alternates: { canonical: "/bolgeler" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/bolgeler",
+    siteName: "TürkiyeGuessr",
+    title: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu",
+    description:
+      "TürkiyeGuessr ile Türkiye'nin 7 coğrafi bölgesini keşfet. Marmara, Ege, Akdeniz, Karadeniz, İç Anadolu, Doğu Anadolu ve Güneydoğu bölgelerinde konum tahmin et.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu",
+    description:
+      "TürkiyeGuessr ile Türkiye'nin 7 coğrafi bölgesini keşfet. Marmara, Ege, Akdeniz, Karadeniz, İç Anadolu, Doğu Anadolu ve Güneydoğu bölgelerinde konum tahmin et.",
+  },
 };
 
 export default function BolgelerPage() {

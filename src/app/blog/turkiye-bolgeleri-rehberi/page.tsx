@@ -14,6 +14,29 @@ export const metadata: Metadata = {
     "türkiye iklim bölgeleri",
   ],
   alternates: { canonical: "/blog/turkiye-bolgeleri-rehberi" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/turkiye-bolgeleri-rehberi",
+    siteName: "TürkiyeGuessr",
+    title: "Türkiye Bölgeleri Rehberi: 7 Bölgenin Farkları",
+    description:
+      "Türkiye'nin 7 coğrafi bölgesinin özellikleri, iklimi, bitki örtüsü ve mimari farklılıkları.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Türkiye Bölgeleri Rehberi: 7 Bölgenin Farkları",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Türkiye Bölgeleri Rehberi: 7 Bölgenin Farkları",
+    description:
+      "Türkiye'nin 7 coğrafi bölgesinin özellikleri, iklimi, bitki örtüsü ve mimari farklılıkları.",
+  },
 };
 
 export default function TurkiyeBolgeleriRehberiPost() {
@@ -23,7 +46,18 @@ export default function TurkiyeBolgeleriRehberiPost() {
     headline: "Türkiye Bölgeleri Rehberi: 7 Bölgenin Farkları",
     datePublished: "2026-02-25",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "Türkiye'nin 7 coğrafi bölgesinin özellikleri, iklimi, bitki örtüsü ve mimari farklılıkları.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiye-bolgeleri-rehberi",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -75,6 +109,17 @@ export default function TurkiyeBolgeleriRehberiPost() {
             merkezleri, fabrikalar ve yoğun kentsel doku Marmara&apos;nın belirgin işaretleridir.
             Boğaz manzarası ve feribot iskelesi görüyorsan büyük ihtimalle İstanbul&apos;dasın.
           </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/fatih-istanbul" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Fatih, İstanbul →
+            </Link>
+            <Link href="/sehirler/osmangazi-bursa" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Osmangazi, Bursa →
+            </Link>
+            <Link href="/sehirler/izmit-kocaeli" className="text-sm text-gray-400 hover:text-white transition-colors">
+              İzmit, Kocaeli →
+            </Link>
+          </div>
           <Link href="/bolgeler/marmara" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             Marmara Bölgesi lokasyonlarını keşfet →
           </Link>
@@ -93,6 +138,17 @@ export default function TurkiyeBolgeleriRehberiPost() {
             karşılaşırsan bu bölgedesin demektir. İç kesimlerde ise daha kurak arazi ve geleneksel
             kasaba yapısı hakim olur.
           </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/konak-izmir" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Konak, İzmir →
+            </Link>
+            <Link href="/sehirler/bodrum-mugla" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Bodrum, Muğla →
+            </Link>
+            <Link href="/sehirler/fethiye-mugla" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Fethiye, Muğla →
+            </Link>
+          </div>
           <Link href="/bolgeler/ege" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             Ege Bölgesi lokasyonlarını keşfet →
           </Link>
@@ -111,6 +167,17 @@ export default function TurkiyeBolgeleriRehberiPost() {
             palmiye sıraları, sera örtüleri, Toros&apos;ların dik silueti ve turkuaz deniz
             manzarası bu bölgenin ayırt edici işaretleridir.
           </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/kaleici-antalya" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Kaleiçi, Antalya →
+            </Link>
+            <Link href="/sehirler/alanya-antalya" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Alanya, Antalya →
+            </Link>
+            <Link href="/sehirler/tarsus-mersin" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Tarsus, Mersin →
+            </Link>
+          </div>
           <Link href="/bolgeler/akdeniz" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             Akdeniz Bölgesi lokasyonlarını keşfet →
           </Link>
@@ -129,6 +196,17 @@ export default function TurkiyeBolgeleriRehberiPost() {
             görüş mesafesini kısıtlayabilir. Çay toplama işçileri, fındık kurutma alanları ve
             ahşap yaylacı evler Karadeniz&apos;in en belirgin işaretleridir.
           </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/uzungol-trabzon" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Uzungöl, Trabzon →
+            </Link>
+            <Link href="/sehirler/camlihemsin-rize" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Çamlıhemşin, Rize →
+            </Link>
+            <Link href="/sehirler/ayder-rize" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Ayder, Rize →
+            </Link>
+          </div>
           <Link href="/bolgeler/karadeniz" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             Karadeniz Bölgesi lokasyonlarını keşfet →
           </Link>
@@ -148,7 +226,18 @@ export default function TurkiyeBolgeleriRehberiPost() {
             peri bacaları anında tanınır. Bölgede modern şehirleşme ile geleneksel kırsal yapı
             yan yana bulunur.
           </p>
-          <Link href="/bolgeler/ic_anadolu" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/ulus-ankara" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Ulus, Ankara →
+            </Link>
+            <Link href="/sehirler/selcuklu-konya" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Selçuklu, Konya →
+            </Link>
+            <Link href="/sehirler/goreme-nevsehir" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Göreme, Nevşehir →
+            </Link>
+          </div>
+          <Link href="/bolgeler/ic-anadolu" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             İç Anadolu Bölgesi lokasyonlarını keşfet →
           </Link>
         </section>
@@ -167,7 +256,18 @@ export default function TurkiyeBolgeleriRehberiPost() {
             çevrede çok az ağaç bulunur. Doğu Anadolu&apos;nun engin ve ıssız manzarası
             Türkiye&apos;nin en zorlayıcı ama en etkileyici coğrafyalarından biridir.
           </p>
-          <Link href="/bolgeler/dogu_anadolu" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/agri-dagi-agri" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Ağrı Dağı, Ağrı →
+            </Link>
+            <Link href="/sehirler/ipekyolu-van" className="text-sm text-gray-400 hover:text-white transition-colors">
+              İpekyolu, Van →
+            </Link>
+            <Link href="/sehirler/yakutiye-erzurum" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Yakutiye, Erzurum →
+            </Link>
+          </div>
+          <Link href="/bolgeler/dogu-anadolu" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             Doğu Anadolu Bölgesi lokasyonlarını keşfet →
           </Link>
         </section>
@@ -187,6 +287,17 @@ export default function TurkiyeBolgeleriRehberiPost() {
             belirgin işaretleridir. GAP (Güneydoğu Anadolu Projesi) baraj gölleri de bölgesel
             ipucu olarak kullanılabilir.
           </p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <Link href="/sehirler/artuklu-mardin" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Artuklu, Mardin →
+            </Link>
+            <Link href="/sehirler/sahinbey-gaziantep" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Şahinbey, Gaziantep →
+            </Link>
+            <Link href="/sehirler/haliliye-sanliurfa" className="text-sm text-gray-400 hover:text-white transition-colors">
+              Haliliye, Şanlıurfa →
+            </Link>
+          </div>
           <Link href="/bolgeler/guneydogu" className="inline-block text-sm text-red-400 hover:text-red-300 transition-colors">
             Güneydoğu Anadolu Bölgesi lokasyonlarını keşfet →
           </Link>
@@ -229,6 +340,56 @@ export default function TurkiyeBolgeleriRehberiPost() {
           </p>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Bölgeler Arası Geçiş Kuşakları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye&apos;nin coğrafi bölgeleri arasında keskin sınırlar değil, yumuşak geçiş kuşakları
+            bulunur ve bu geçiş alanları oyunda en çok yanıltan lokasyonlardır.{" "}
+            <Link href="/bolgeler/marmara" className="text-red-400 hover:text-red-300 transition-colors">Marmara</Link>
+            -
+            <Link href="/bolgeler/ege" className="text-red-400 hover:text-red-300 transition-colors">Ege</Link>
+            {" "}geçişinde (Balıkesir-Çanakkale hattı) hem Ege tipi zeytinlikler hem Marmara tipi
+            sanayi alanları bir arada görülebilir. Akdeniz-İç Anadolu geçişinde Toros Dağları&apos;nın
+            kuzey yamacı kurak step araziye dönerken güney yamacı tropikal bitki örtüsünü korur.{" "}
+            <Link href="/sehirler/pamukkale-denizli" className="text-red-400 hover:text-red-300 transition-colors">Pamukkale</Link>
+            {" "}bölgesi Ege-İç Anadolu geçişinin mükemmel bir örneğidir. Karadeniz-İç Anadolu
+            geçişi ise Samsun-Amasya hattında dramatik şekilde hissedilir: bir dağ geçidinde
+            yemyeşil orman birden kurak bozkıra dönüşür. Bu geçiş kuşaklarında iki bölgenin mimari
+            stillerinin karıştığını, iklim özelliklerinin iç içe geçtiğini ve çift bölge
+            karakteri taşıyan yapılar gördüğünü fark edeceksin.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">İstatistiklerle Bölgeler</h2>
+          <p className="text-gray-400 leading-relaxed mb-3">
+            TürkiyeGuessr&apos;da her bölge farklı sayıda lokasyon ve zorluk seviyesi sunar. Bölgelerin
+            oyundaki dağılımını bilmek, pratik stratejini şekillendirmene yardımcı olur.
+          </p>
+          <div className="space-y-2">
+            {[
+              { bolge: "Marmara", zorluk: "Kolay-Orta", neden: "Yoğun kentsel doku, çok sayıda tabela ve plaka ipucu" },
+              { bolge: "Ege", zorluk: "Kolay", neden: "Belirgin kıyı manzaraları, zeytinlikler ve turizm altyapısı" },
+              { bolge: "Akdeniz", zorluk: "Kolay-Orta", neden: "Palmiyeler ve seralar ayırt edici, ancak dağ köyleri zorlu" },
+              { bolge: "Karadeniz", zorluk: "Orta", neden: "Yeşil manzara belirgin ama sis görüşü kısıtlayabiliyor" },
+              { bolge: "İç Anadolu", zorluk: "Orta-Zor", neden: "Tekdüze step arazisi, benzer görünen kasabalar" },
+              { bolge: "Doğu Anadolu", zorluk: "Zor", neden: "Seyrek yerleşim, az tabela, benzer dağ manzaraları" },
+              { bolge: "Güneydoğu", zorluk: "Orta-Zor", neden: "Kendine özgü mimari tanınabilir, ancak düz ovalar karışabilir" },
+            ].map((item) => (
+              <div key={item.bolge} className="flex flex-col sm:flex-row gap-2 sm:gap-4 bg-gray-800/40 border border-gray-700/30 rounded-lg p-3">
+                <span className="text-red-400 font-medium text-sm whitespace-nowrap min-w-[120px]">{item.bolge}</span>
+                <span className="text-yellow-400 text-sm whitespace-nowrap min-w-[80px]">{item.zorluk}</span>
+                <span className="text-gray-400 text-sm">{item.neden}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-gray-400 leading-relaxed">
+            Genel olarak kıyı bölgeleri daha kolaydır çünkü deniz, liman ve turizm altyapısı güçlü ipuçları
+            sunar. İç ve doğu bölgeleri ise daha az ayırt edici özellik taşıdığından zorluyor. En iyi strateji:
+            önce kolay bölgelerde pratik yap, ardından zorluk seviyesini kademeli olarak artır.
+          </p>
+        </section>
+
         <section className="text-center py-6 space-y-3">
           <h2 className="text-2xl font-bold text-white">7 Bölgeyi Keşfetmeye Hazır Mısın?</h2>
           <Link
@@ -266,6 +427,21 @@ export default function TurkiyeBolgeleriRehberiPost() {
             </Link>
             <Link href="/bolgeler" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Tüm Bölgeler
+            </Link>
+            <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Plaka Kodlarından İl Tahmini
+            </Link>
+            <Link href="/sehirler/fatih-istanbul" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Fatih, İstanbul Lokasyonları
+            </Link>
+            <Link href="/sehirler/artuklu-mardin" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Artuklu, Mardin Lokasyonları
+            </Link>
+            <Link href="/sehirler/uzungol-trabzon" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Uzungöl, Trabzon Lokasyonları
+            </Link>
+            <Link href="/sehirler/goreme-nevsehir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Göreme, Nevşehir Lokasyonları
             </Link>
           </div>
         </section>

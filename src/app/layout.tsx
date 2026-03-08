@@ -22,9 +22,9 @@ const dmSans = DM_Sans({
   display: "swap",
 });
 const SITE_NAME = "TürkiyeGuessr";
-const TITLE = "TürkiyeGuessr — Türkiye Konum Tahmin Oyunu | Ücretsiz GeoGuessr Alternatifi";
+const TITLE = "TürkiyeGuessr — Türkiye Konum Tahmin Oyunu";
 const DESCRIPTION =
-  "TürkiyeGuessr ile Türkiye'nin sokak görünümlerinde konumunu tahmin et! Arkadaşlarınla multiplayer oyna, 81 ili keşfet. Ücretsiz, Türkçe, kayıt gerektirmeyen coğrafya oyunu.";
+  "TürkiyeGuessr ile Türkiye'nin sokak görünümünde konum tahmin et! Arkadaşlarınla multiplayer oyna, 81 ili keşfet. Ücretsiz coğrafya oyunu.";
 
 export const metadata: Metadata = {
   title: {
@@ -34,34 +34,12 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   keywords: [
     "turkiyeguessr",
-    "türkiyeguessr",
-    "türkiye guessr",
-    "turkiye guessr",
-    "TürkiyeGuessr",
     "türkiye konum tahmin",
-    "türkiye konum tahmin oyunu",
-    "türkiye coğrafya oyunu",
-    "geoguessr türkiye",
-    "geoguessr turkey",
     "geoguessr alternatifi",
     "ücretsiz geoguessr",
     "türkiye harita oyunu",
     "konum tahmin oyunu",
-    "multiplayer harita oyunu",
-    "türkiye sokak görünümü oyunu",
-    "türkiye şehir tahmin",
-    "coğrafya bilgi yarışması",
-    "türkiye quiz",
-    "online türkiye oyunu",
-    "arkadaşlarla coğrafya oyunu",
-    "geotastic alternatifi",
-    "google maps tahmin oyunu",
-    "harita bilmece",
-    "online harita oyunu türkiye",
-    "yer tahmin etme oyunu",
-    "neredeyim ben alternatifi",
-    "türkiye coğrafya quiz",
-    "ücretsiz coğrafya oyunu",
+    "türkiye coğrafya oyunu",
   ],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -71,6 +49,7 @@ export const metadata: Metadata = {
     canonical: "/",
     languages: {
       "tr-TR": "/",
+      "x-default": "/",
     },
   },
   openGraph: {
@@ -223,9 +202,11 @@ export default function RootLayout({
   return (
     <html lang="tr" className={`${bebasNeue.variable} ${dmSans.variable}`}>
       <head>
-        <link rel="preconnect" href="https://maps.googleapis.com" />
-        <link rel="preconnect" href="https://maps.gstatic.com" crossOrigin="anonymous" />
-        {/* Font preconnects removed — next/font self-hosts, no external request */}
+        {/* Google Maps preconnect moved to game-only pages */}
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
         <JsonLd />
         <ConsentModeInit />
       </head>

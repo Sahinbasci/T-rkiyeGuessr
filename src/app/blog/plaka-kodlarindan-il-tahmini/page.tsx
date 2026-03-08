@@ -16,6 +16,29 @@ export const metadata: Metadata = {
     "plaka oyunu",
   ],
   alternates: { canonical: "/blog/plaka-kodlarindan-il-tahmini" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/plaka-kodlarindan-il-tahmini",
+    siteName: "TürkiyeGuessr",
+    title: "Plaka Kodlarından İl Nasıl Anlaşılır?",
+    description:
+      "Türkiye plaka kodları rehberi. 01'den 81'e kadar plaka kodlarını ezberle, sokak görünümünde avantaj kazan.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Plaka Kodlarından İl Nasıl Anlaşılır?",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Plaka Kodlarından İl Nasıl Anlaşılır?",
+    description:
+      "Türkiye plaka kodları rehberi. 01'den 81'e kadar plaka kodlarını ezberle, sokak görünümünde avantaj kazan.",
+  },
 };
 
 export default function PlakaKodlariPost() {
@@ -25,7 +48,18 @@ export default function PlakaKodlariPost() {
     headline: "Plaka Kodlarından İl Nasıl Anlaşılır?",
     datePublished: "2026-02-25",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "Türkiye plaka kodları rehberi. 01'den 81'e kadar plaka kodlarını ezberle, sokak görünümünde avantaj kazan.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/plaka-kodlarindan-il-tahmini",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   const bolgeler = [
@@ -199,6 +233,74 @@ export default function PlakaKodlariPost() {
           </ul>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Plaka Kodları İle Bölge Tahmini</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Plaka kodlarını ezberlemeye başladığında belirli aralıkların belirli bölgelere denk geldiğini
+            fark edeceksin. 01&ndash;33 arası kodlar genel olarak alfabetik sıranın ilk yarısına düşer ve
+            Akdeniz, Ege, Doğu Anadolu ile İç Anadolu illerinin önemli bir kısmını kapsar. 34&ndash;67
+            arası kodlarda{" "}
+            <Link href="/sehirler/fatih-istanbul" className="text-red-400 hover:text-red-300 transition-colors">
+              İstanbul (34)
+            </Link>,{" "}
+            <Link href="/sehirler/konak-izmir" className="text-red-400 hover:text-red-300 transition-colors">
+              İzmir (35)
+            </Link>{" "}
+            ve{" "}
+            <Link href="/sehirler/osmangazi-bursa" className="text-red-400 hover:text-red-300 transition-colors">
+              Bursa (16)
+            </Link>{" "}
+            gibi büyük metropoller yer alır. 68&ndash;81 arası plakalar ise 1989 sonrasında il olan yeni
+            illere aittir ve genellikle daha küçük nüfuslu{" "}
+            <Link href="/bolgeler/karadeniz" className="text-red-400 hover:text-red-300 transition-colors">
+              Karadeniz
+            </Link>{" "}
+            ve{" "}
+            <Link href="/bolgeler/guneydogu" className="text-red-400 hover:text-red-300 transition-colors">
+              Güneydoğu Anadolu
+            </Link>{" "}
+            illerini içerir. Bu bölgesel kalıpları öğrenmek, plaka numarasının sadece ilk rakamına bakarak
+            bile hangi bölgede olduğun hakkında güçlü bir fikir edinmeni sağlar.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">En Çok Karşılaşılan Plaka Kodları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            TürkiyeGuessr&apos;da en sık karşılaşacağın plaka kodları nüfusu ve araç sayısı yüksek olan
+            büyükşehirlere aittir. Listenin başında açık ara{" "}
+            <Link href="/sehirler/fatih-istanbul" className="text-red-400 hover:text-red-300 transition-colors">
+              34 - İstanbul
+            </Link>{" "}
+            gelir; Türkiye&apos;deki her beş araçtan biri İstanbul plakalıdır.{" "}
+            <Link href="/sehirler/cankaya-ankara" className="text-red-400 hover:text-red-300 transition-colors">
+              06 - Ankara
+            </Link>{" "}
+            ikinci sırada yer alırken{" "}
+            <Link href="/sehirler/konak-izmir" className="text-red-400 hover:text-red-300 transition-colors">
+              35 - İzmir
+            </Link>,{" "}
+            <Link href="/sehirler/kaleici-antalya" className="text-red-400 hover:text-red-300 transition-colors">
+              07 - Antalya
+            </Link>{" "}
+            ve{" "}
+            <Link href="/sehirler/osmangazi-bursa" className="text-red-400 hover:text-red-300 transition-colors">
+              16 - Bursa
+            </Link>{" "}
+            da üst sıralardadır. Bu beş ilin plaka kodlarını bilmek, sokak görünümünde gördüğün araçların
+            büyük çoğunluğunu anında tanımanı sağlar. Ayrıca{" "}
+            <Link href="/sehirler/kadikoy-istanbul" className="text-red-400 hover:text-red-300 transition-colors">
+              Kadıköy
+            </Link>{" "}
+            ve{" "}
+            <Link href="/sehirler/ulus-ankara" className="text-red-400 hover:text-red-300 transition-colors">
+              Ulus
+            </Link>{" "}
+            gibi merkezi semtlerde çevre illerden gelen araçlara da sıkça rastlarsın; bu nedenle tek bir
+            plakaya güvenmek yerine birden fazla aracı kontrol etmek her zaman daha güvenilir bir stratejidir.
+          </p>
+        </section>
+
         <section className="text-center py-6 space-y-3">
           <h2 className="text-2xl font-bold text-white">Plaka Bilgini Test Et!</h2>
           <Link
@@ -236,6 +338,24 @@ export default function PlakaKodlariPost() {
             </Link>
             <Link href="/turkiye-harita-oyunu" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Türkiye Harita Oyunu
+            </Link>
+            <Link href="/blog/turkiye-illeri-harita-oyunu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Türkiye İlleri Harita Oyunu
+            </Link>
+            <Link href="/blog/turkiyenin-en-zor-10-lokasyonu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → En Zor 10 Lokasyon
+            </Link>
+            <Link href="/bolgeler/marmara" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Marmara Bölgesi Rehberi
+            </Link>
+            <Link href="/bolgeler/ic-anadolu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → İç Anadolu Bölgesi Rehberi
+            </Link>
+            <Link href="/sehirler/fatih-istanbul" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → İstanbul Lokasyonları
+            </Link>
+            <Link href="/sehirler/cankaya-ankara" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Ankara Lokasyonları
             </Link>
           </div>
         </section>

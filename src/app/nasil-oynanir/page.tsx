@@ -13,6 +13,29 @@ export const metadata: Metadata = {
     "geoguessr nasıl oynanır türkçe",
   ],
   alternates: { canonical: "/nasil-oynanir" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/nasil-oynanir",
+    siteName: "TürkiyeGuessr",
+    title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
+    description:
+      "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
+    description:
+      "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
+  },
 };
 
 function HowToJsonLd() {

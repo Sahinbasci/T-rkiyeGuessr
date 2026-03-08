@@ -1,17 +1,20 @@
 /**
  * Per-city unique descriptions and strategy tips for SEO content pages.
  *
- * Addresses AdSense "low-value / replicated content" denial risk by ensuring
- * each city page has unique, substantive text beyond the shared template.
+ * Addresses AdSense "low-value / replicated content" denial and Google
+ * "discovered but not indexed" issue by ensuring each city page has
+ * unique, substantive text (400-600+ words) beyond the shared template.
  *
  * Approach:
- *  - POPULAR_DESCRIPTIONS: Hand-written for top cities (high traffic)
- *  - generateCityDescription(): Combinatorial template for remaining cities
- *    that varies by region, difficulty, hint tags, and mode — producing
- *    meaningfully different paragraphs for each location.
+ *  - POPULAR_DESCRIPTIONS: Hand-written for top 30 cities (high traffic)
+ *  - generateCityDescription(): Enhanced template using provinceData for
+ *    remaining cities — produces 400-500 words of unique content.
+ *  - Province-level data (geography, climate, plate code) adds ~100-150
+ *    unique words per page automatically.
  */
 
 import type { CityData } from "./seoData";
+import { getProvinceInfo } from "./provinceData";
 
 // ==================== HAND-WRITTEN POPULAR CITY DESCRIPTIONS ====================
 
@@ -147,6 +150,121 @@ const POPULAR_DESCRIPTIONS: Record<
     funFact:
       "Side Antik Tiyatrosu, 17.000 kişi kapasitesiyle Anadolu'nun en büyük tiyatrosudur. MS 2. yüzyılda inşa edilmiş olan tiyatro, Roma döneminde gladyatör dövüşlerine de ev sahipliği yapmıştır.",
   },
+
+  // ==================== 14 YENİ POPÜLER ŞEHİR ====================
+
+  "kadikoy-istanbul": {
+    about:
+      "Kadıköy, İstanbul'un Anadolu yakasının kültürel ve sosyal merkezi olan canlı bir ilçedir. Tarihi Kadıköy Çarşısı, Moda Sahili, Bahariye Caddesi ve nostaljik tramvay hattıyla İstanbul'un en kozmopolit semtlerinden biridir. Kadıköy iskelesi her gün binlerce yolcunun Avrupa-Asya geçişi yaptığı önemli bir ulaşım noktasıdır. Sokak sanatı, bağımsız kitapçılar ve butik kafeler semtin karakterini oluşturur.",
+    strategy:
+      "Kadıköy'de tarihi çarşının dar sokaklarındaki balıkçı ve manav tezgâhlarını, Moda sahilindeki deniz manzarasını ve renkli sokak sanatını (graffiti) arayın. Vapur iskelesi ve 'Boğa' heykeli ikonik göstergelerdir. 34 plaka kodu İstanbul'u, Anadolu yakasındaki düz arazi yapısı Kadıköy'ü işaret eder.",
+    funFact:
+      "Kadıköy'ün antik adı Khalkedon'dur ve MÖ 685'te kurulmuştur — Byzantion'dan (bugünkü Fatih) 17 yıl öncedir. Rivayete göre şehri kuranlar, karşıdaki altın boynuzun (Haliç) değerini fark edemedikleri için 'körler ülkesi' olarak anılmışlardır.",
+  },
+  "beyoglu-istanbul": {
+    about:
+      "Beyoğlu, İstanbul'un modern yüzü ve kültürel başkentidir. İstiklal Caddesi, Galata Kulesi, Taksim Meydanı ve Pera Palas Oteli bu ilçeyi Türkiye'nin en ünlü turizm akslarından biri yapar. 19. yüzyıl Avrupa mimarisi, konsolosluk binaları, sanat galerileri ve gece hayatı Beyoğlu'na kozmopolit bir karakter kazandırır.",
+    strategy:
+      "Beyoğlu'nda İstiklal Caddesi'ndeki nostaljik kırmızı tramvayı, Galata Kulesi'nin konik çatısını ve Art Nouveau bina cephelerini arayın. Yoğun yaya trafiği ve konsolosluk bayrakları belirgin ipuçlarıdır. Taksim Meydanı'ndaki Cumhuriyet Anıtı ve 34 plaka kodu konumu kesinleştirir.",
+    funFact:
+      "Galata Kulesi 1348'de Ceneviz kolonisi tarafından inşa edilmiş olup 67 metre yüksekliğindedir. Efsaneye göre Hezarfen Ahmed Çelebi 1638'de kuleden takma kanatlarla uçarak Üsküdar'a ulaşmıştır — 3.5 km'lik bu uçuş dünyanın ilk kayıtlı yapay uçuşlarından biridir.",
+  },
+  "cankaya-ankara": {
+    about:
+      "Çankaya, Ankara'nın en büyük ve en prestijli ilçesidir. Cumhurbaşkanlığı Külliyesi, Anıtkabir, ODTÜ kampüsü ve Tunalı Hilmi Caddesi bu ilçede yer alır. Devlet kurumlarının yoğunlaştığı diplomatik bölge, modern konut alanları ve üniversite kampüsleri Çankaya'yı Ankara'nın yönetim merkezi yapar.",
+    strategy:
+      "Çankaya'da geniş devlet bulvarlarını, protokol güvenlik noktalarını ve modern mimariyi arayın. Tunalı Hilmi Caddesi'ndeki kafeler ve Kuğulu Park karakteristik detaylardır. 06 plaka kodu ve düz step arazi üzerindeki modern şehir yapılanması Ankara'yı işaret eder.",
+    funFact:
+      "Çankaya Köşkü, 1921'den bu yana cumhurbaşkanlığı konutu olarak kullanılmaktadır. Atatürk, burada kalmaya başladığında köşk küçük bir bağ eviydi. Günümüzde 1.150 dönümlük arazisiyle dünyanın en büyük cumhurbaşkanlığı komplekslerinden biridir.",
+  },
+  "selcuklu-konya": {
+    about:
+      "Selçuklu, Konya'nın merkez ilçesi ve Selçuklu İmparatorluğu'nun başkentliğini yapmış tarihi bir bölgedir. Mevlâna Müzesi, Alaeddin Tepesi, İnce Minare Medresesi ve Selçuklu dönemi eserleri bu ilçeyi Türkiye'nin en önemli kültürel merkezlerinden biri yapar. Mevlâna'nın türbesi her yıl milyonlarca ziyaretçi çeker ve yeşil türbe kubbesi şehrin simgesidir.",
+    strategy:
+      "Selçuklu'da Mevlâna Müzesi'nin yeşil konik kubbesini, Selçuklu dönemi taş işçiliği detaylarını ve geniş step ovasını arayın. Konya'nın düz ve uçsuz bucaksız arazi yapısı belirleyicidir. 42 plaka kodu ve Selçuklu yıldız motifli süslemeler konumu daraltır.",
+    funFact:
+      "Mevlâna Celâleddîn-i Rûmî'nin türbesinin üzerindeki yeşil kubbe, 13. yüzyıldan bu yana Konya'nın silüetini tanımlar. Sema töreni (dönen dervişler) UNESCO Somut Olmayan Kültürel Miras listesindedir ve her yıl Aralık'ta düzenlenen Şeb-i Arus töreni dünya çapında ilgi görür.",
+  },
+  "manavgat-antalya": {
+    about:
+      "Manavgat, Antalya'nın doğusunda Manavgat Nehri kıyısında kurulmuş ve doğal güzellikleriyle ünlü bir ilçedir. Manavgat Şelalesi şehrin en bilinen simgesidir. Oymapınar Barajı (Green Canyon), Köprülü Kanyon ve Side antik kenti yakın çevresindedir. Tarım alanları, sera tarımı ve turizm ekonomiyi şekillendirir.",
+    strategy:
+      "Manavgat'ta geniş nehir yatağını, sera ve narenciye bahçelerini ve Toros Dağları'nın arka plan silüetini arayın. Side antik kenti yönlendirme tabelaları ve turizm tesisleri çevrede yoğundur. 07 plaka kodu ve Akdeniz bitki örtüsü Antalya'yı gösterir.",
+    funFact:
+      "Manavgat Şelalesi 2 metre yüksekliğinde ama 40 metre genişliğindedir — yüksek olmaktan çok geniş bir şelaledir. Eski 5 TL banknotunun arka yüzünde yer almıştır. Şelalenin etrafındaki piknik alanları yılda 1 milyonun üzerinde ziyaretçi ağırlar.",
+  },
+  "kusadasi-aydin": {
+    about:
+      "Kuşadası, Ege kıyısında kruvaziyer turizmiyle ünlü bir tatil beldesidir. Efes antik kentine en yakın liman şehri olması nedeniyle dünya çapından cruise gemileri burada mola verir. Güvercinada Kalesi, Ladies Beach ve Dilek Yarımadası Milli Parkı başlıca cazibe noktalarıdır. Deri ürünleri ve hediyelik eşya mağazaları yoğun turist alışverişine ev sahipliği yapar.",
+    strategy:
+      "Kuşadası'nda kruvaziyer limanını, sahil boyunca uzanan otel ve restoran şeridini ve Güvercinada Kalesi'nin silüetini arayın. İngilizce, Almanca ve Rusça turist tabelaları belirgindir. 09 plaka kodu (Aydın) ve Ege'ye has zeytin ağaçları bölgeyi işaret eder.",
+    funFact:
+      "Kuşadası ismi, limanın yanındaki küçük adaya (Güvercinada) konan kuşlardan gelir. Antik dönemde Neopolis (Yeni Şehir) olarak bilinen kasaba, Osmanlı döneminde önemli bir ticaret limanıydı. Bugün yılda 800.000'den fazla kruvaziyer yolcusu ağırlar.",
+  },
+  "cesme-izmir": {
+    about:
+      "Çeşme, İzmir'in batı ucunda rüzgâr sörfü, termal kaynakları ve turkuaz plajlarıyla ünlü bir yarımada ilçesidir. Alaçatı mahallesi taş evleri, yel değirmenleri ve butik otelleriyle Türkiye'nin en şık tatil destinasyonlarından biri haline gelmiştir. Ilıca Plajı sığ ve ılık sularıyla aileler için idealdir.",
+    strategy:
+      "Çeşme'de Alaçatı'nın taş sokaklarındaki begonvil çiçeklerini, yel değirmenlerini ve windsurf yelkenlerini arayın. Marina manzarası ve lüks tatil tesisleri belirgindir. 35 plaka kodu İzmir'i, yarımada coğrafyası ve rüzgârlı kıyılar Çeşme'yi işaret eder.",
+    funFact:
+      "Alaçatı, dünyanın en iyi rüzgâr sörfü noktalarından biri olarak kabul edilir. Yaz aylarında sürekli esen 'Imbat' rüzgârı ve sığ koy yapısı mükemmel sörf koşulları yaratır. 2000'li yılların başında küçük bir balıkçı köyüyken bugün Türkiye'nin en pahalı gayrimenkul bölgelerinden biri haline gelmiştir.",
+  },
+  "sirince-izmir": {
+    about:
+      "Şirince, İzmir'in Selçuk ilçesine bağlı eski bir Rum köyüdür. Taş evleri, dar sokakları, meyve şarapları ve zeytin bahçeleriyle Ege'nin en otantik yerleşimlerinden biridir. 2012'de 'dünyanın sonu' kehaneti nedeniyle dünya medyasına konu olmuş ve o günden beri turist akınına uğramaktadır. Efes antik kentine sadece 8 km uzaklıktadır.",
+    strategy:
+      "Şirince'de yamaçtaki taş evleri, dar yokuş sokaklardaki hediyelik eşya dükkanlarını ve meyve şarabı satış noktalarını arayın. Köy yapısı, zeytin ve incir ağaçları Ege'ye has detaylardır. 35 plaka kodu ve küçük ölçekli turist kalabalığı konumu daraltır.",
+    funFact:
+      "Şirince'nin eski adı 'Çirkince' idi; köylüler dışarıdan göç almasın diye kasıtlı olarak çirkin anlamına gelen bu ismi kullanmışlardır. 1926'da Türkiye Cumhuriyeti vali yardımcısı köyü ziyaret edip güzelliğine hayran kalınca adını 'Şirince' (şirin) olarak değiştirmiştir.",
+  },
+  "halfeti-sanliurfa": {
+    about:
+      "Halfeti, Şanlıurfa'nın Fırat Nehri kıyısındaki batık şehridir. Birecik Barajı'nın suları altında kalan eski Halfeti yerleşiminin minareleri ve evleri nehrin yüzeyinden görünür — gerçeküstü bir manzara oluşturur. Siyah gül yalnızca burada yetişir ve Halfeti'nin simgesi haline gelmiştir. Rumkale, Fırat'ın kıyısındaki dev kaya kalesinde antik bir yerleşimdir.",
+    strategy:
+      "Halfeti'de Fırat Nehri'nin turkuaz sularını, yarı batık yapıları ve kayalık kıyıları arayın. Siyah gül satış noktaları ve Rumkale silüeti bölgeye özgü ipuçlarıdır. 63 plaka kodu ve Güneydoğu Anadolu'nun kuru, kayalık arazi yapısı konumu belirler.",
+    funFact:
+      "Halfeti'nin siyah gülleri dünyada başka hiçbir yerde doğal olarak yetişmez. Gülün siyah rengi, bölgenin toprak pH değeri ve Fırat Nehri'nin yeraltı suyu etkileşiminden kaynaklanır. Gerçekte koyu bordo olan gül, güneş ışığında neredeyse simsiyah görünür.",
+  },
+  "hasankeyf-batman": {
+    about:
+      "Hasankeyf, Batman ilinde Dicle Nehri kıyısında 12.000 yıllık kesintisiz yerleşim tarihiyle dünyanın en eski yaşam alanlarından biridir. Ilısu Barajı projesi nedeniyle kısmen sular altında kalan bu antik şehrin kaya mezarları, mağara evleri, ortaçağ köprüsü kalıntıları ve kale kalıntıları hâlâ etkileyici manzaralar sunar. Bazı tarihi yapılar taşınarak kurtarılmıştır.",
+    strategy:
+      "Hasankeyf'te kayalara oyulmuş mağara evleri, Dicle Nehri kıyısındaki uçurum manzarası ve ortaçağ köprü ayaklarını arayın. Baraj gölünün su seviyesi mevsime göre değişir. 72 plaka kodu ve Güneydoğu'nun kuru, kayalık arazisi Batman'ı işaret eder.",
+    funFact:
+      "Hasankeyf'teki kaya mezarları ve mağara evleri Neolitik dönemden (MÖ 10.000) kalmadır. Şehir tarih boyunca Roma, Bizans, Emevi, Abbasi, Artuklu ve Osmanlı egemenliğinde kalmıştır. UNESCO adaylık sürecindeyken Ilısu Barajı projesi uluslararası tartışmalara yol açmıştır.",
+  },
+  "oludeniz-mugla": {
+    about:
+      "Ölüdeniz, Muğla'nın Fethiye ilçesinde bulunan ve turkuaz lagünüyle dünyaca ünlü bir sahil beldesidir. Mavi Lagün olarak bilinen korunaklı koy, sığ ve berrak sularıyla dünyanın en güzel plajları listelerinde sürekli yer alır. Babadağ'dan yapılan yamaç paraşütü uçuşları bu eşsiz manzarayı havadan görme fırsatı sunar.",
+    strategy:
+      "Ölüdeniz'de turkuaz lagün manzarasını, gökyüzündeki paraglider silüetlerini ve çam ormanlarıyla çevrili plajı arayın. Turist yoğunluğu çok belirgindir. 48 plaka kodu (Muğla) ve Likya kıyı coğrafyası konumu işaret eder.",
+    funFact:
+      "Ölüdeniz adını lagünün dalga almayan, 'ölü' gibi sakin sularından alır. Babadağ (1.960 m) dünyanın en popüler yamaç paraşütü noktalarından biridir — deniz seviyesinden zirveye kadar olan irtifa farkı mükemmel uçuş koşulları yaratır.",
+  },
+  "marmaris-mugla": {
+    about:
+      "Marmaris, Akdeniz ve Ege'nin buluştuğu noktada çam ormanlarıyla çevrili doğal bir liman şehridir. Marmaris Kalesi, uzun sahil şeridi, marinası ve gece hayatıyla uluslararası turizm destinasyonudur. İçmeler plajı, Cleopatra Adası ve Dalyan'a günübirlik tekne turları bölgenin başlıca aktiviteleridir.",
+    strategy:
+      "Marmaris'te körfezi çevreleyen dağlık silueti, liman marinasındaki yat ve tekneleri ve sahil boyunca uzanan otel-restoran şeridini arayın. İngilizce turist tabelaları yoğundur. 48 plaka kodu ve çam ormanlarıyla çevrili koy coğrafyası Muğla'yı işaret eder.",
+    funFact:
+      "Marmaris'in doğal limanı, 1522'de Kanuni Sultan Süleyman'ın Rodos seferinde Osmanlı donanmasının toplanma noktası olmuştur. Efsaneye göre Sultan, kalenin küçüklüğünü görünce 'Mimar, as!' demiş ve bu söz zamanla Marmaris'e dönüşmüştür.",
+  },
+  "sumela-trabzon": {
+    about:
+      "Sümela Manastırı, Trabzon'un Maçka ilçesinde 1.200 metre yükseklikte dik bir kayalığa yapışmış Bizans dönemi manastırıdır. MS 386'da kurulan manastır, Pontus döneminin en önemli dini merkezlerinden biriydi. Altındere Vadisi Milli Parkı içinde yer alan yapı, yoğun ormanlar ve şelale manzarasıyla çevrilidir.",
+    strategy:
+      "Sümela'da dik kayalığa tutunmuş manastır yapısını, yoğun yeşil ormanları ve vadi manzarasını arayın. Milli park tabelaları ve turist otobüsleri belirgindir. 61 plaka kodu ve Karadeniz'e özgü yoğun orman örtüsü Trabzon'u işaret eder.",
+    funFact:
+      "Sümela Manastırı'nın ana kilisesindeki Bizans freskleri, yüzyıllar boyunca is ve vandalizme rağmen kısmen korunmuştur. Manastırın adı, Yunanca 'Melas' (siyah/karanlık) kelimesinden gelir ve kayalığın karanlık rengine atıfta bulunur. 2010'dan bu yana kapsamlı restorasyon çalışmaları sürmektedir.",
+  },
+  "akdamar-adasi-van": {
+    about:
+      "Akdamar Adası, Van Gölü üzerinde küçük bir ada olup 10. yüzyılda inşa edilen Akdamar Kilisesi ile ünlüdür. Surp Haç (Kutsal Haç) Kilisesi, dış cephesindeki İncil'den sahnelerin kabartma olarak işlendiği eşsiz taş işçiliğiyle sanat tarihinin en önemli eserlerinden biridir. Sodalı Van Gölü'nün turkuaz suları ve karlı dağ manzarası kilisenin çevresini tamamlar.",
+    strategy:
+      "Akdamar'da turkuaz göl suyunu, adanın üzerindeki konik çatılı kilise silüetini ve arka plandaki karlı dağları arayın. Feribot iskelesi ve turist bilgilendirme panoları belirgindir. 65 plaka kodu ve yüksek rakımlı göl manzarası Van'ı işaret eder.",
+    funFact:
+      "Akdamar efsanesine göre bir keşiş ile bir kız arasındaki aşk hikâyesi adaya adını vermiştir. Kız her gece fener yakarak keşişin yüzerek adaya gelmesine rehberlik edermiş. Bir fırtınalı gecede fener sönmüş, keşiş 'Ah Tamar!' diye haykırarak boğulmuş ve adanın adı Akdamar olarak kalmıştır.",
+  },
 };
 
 // ==================== REGION-SPECIFIC TEMPLATES ====================
@@ -163,9 +281,26 @@ const REGION_INTROS: Record<string, string> = {
   ic_anadolu:
     "İç Anadolu Bölgesi, geniş stepleri, volkanik oluşumları ve Anadolu medeniyetlerinin izleriyle Türkiye'nin kalbinde yer alır.",
   dogu_anadolu:
-    "Doğu Anadolu Bölgesi, yüksek platoları, karlı dağları ve tarihi yapılarıyla Türkiye'nin en zorlu ve etkleyici coğrafyasıdır.",
+    "Doğu Anadolu Bölgesi, yüksek platoları, karlı dağları ve tarihi yapılarıyla Türkiye'nin en zorlu ve etkileyici coğrafyasıdır.",
   guneydogu:
     "Güneydoğu Anadolu Bölgesi, Mezopotamya mirası, taş mimari ve binlerce yıllık medeniyetlerin izleriyle Türkiye'nin en eski yerleşim alanlarından biridir.",
+};
+
+const REGION_GEO_CLUES: Record<string, string> = {
+  marmara:
+    "Marmara bölgesinde modern şehir altyapısı, yoğun trafik ve sanayi bölgeleri yaygındır. Deniz manzarası (Marmara veya Karadeniz kıyısı), geniş otoyollar ve fabrika bacaları bu bölgeyi diğerlerinden ayırır. Düz veya hafif tepelik arazi yapısı baskındır.",
+  ege:
+    "Ege bölgesinde zeytin bahçeleri, antik kalıntılar ve taş evler bölgesel ipuçlarıdır. Kıyı kesimlerinde turkuaz deniz ve beyaz kumlu plajlar görülür. İç kesimlerde pamuk ve tütün tarlaları uzanır. Mimari genellikle beyaz badanalı ve taş yapılıdır.",
+  akdeniz:
+    "Akdeniz bölgesinde palmiye ağaçları, narenciye bahçeleri ve sera tarımı yaygındır. Toros Dağları'nın dramatik silüeti arka planda yükselir. Turkuaz deniz suyu ve uzun sahil şeritleri bölgenin en belirgin coğrafi özelliğidir.",
+  karadeniz:
+    "Karadeniz bölgesinde yoğun yeşil ormanlar, dik dağ yamaçları ve sis/bulut örtüsü baskın coğrafi öğelerdir. Çay bahçeleri Doğu Karadeniz'in, fındık bahçeleri Orta Karadeniz'in göstergesidir. Ahşap evler ve yaylalar bölgeye özgü yapılardır.",
+  ic_anadolu:
+    "İç Anadolu'da düz step arazi, tahıl tarlaları ve kurak iklim baskındır. Kapadokya'nın peri bacaları bu bölgenin en tanınan coğrafi oluşumlarıdır. Geniş ovalar, bozkır manzarası ve az ağaç örtüsü kıyı bölgelerinden belirgin şekilde ayrılır.",
+  dogu_anadolu:
+    "Doğu Anadolu'da yüksek dağlar, kar örtüsü ve geniş platolar baskın coğrafi öğelerdir. Otlaklar, taş duvarlar ve kırsal yerleşimler yaygındır. Sert iklim koşulları (uzun kışlar, kısa yazlar) peyzajı doğrudan etkiler.",
+  guneydogu:
+    "Güneydoğu Anadolu'da düz ovalar, kireçtaşı yapılar ve sıcak iklim baskındır. Arapça tabelalar, düz çatılı taş evler ve Mezopotamya düzlüğü bölgenin karakteristik özelliklerindendir. Fırat ve Dicle nehir vadileri önemli coğrafi göstergelerdir.",
 };
 
 const DIFFICULTY_TIPS: Record<string, string> = {
@@ -233,22 +368,69 @@ export interface CityDescription {
   about: string;
   strategy: string;
   funFact: string | null;
+  geoClues: string;
+  plateInfo: string;
+  provinceAbout: string;
 }
 
 /**
  * Returns a unique description for the given city.
  * Hand-written for popular cities, generated for others.
+ * Province data is always included for additional unique content.
  */
 export function getCityDescription(city: CityData): CityDescription {
+  const province = getProvinceInfo(city.province);
+  const geoClues = buildGeoClues(city);
+  const plateInfo = buildPlateInfo(city, province);
+  const provinceAbout = province
+    ? `${province.description} ${province.geography}`
+    : `${city.province}, ${city.regionDisplayName}'nde yer alan bir ildir. Bölgenin coğrafi özellikleri ve kültürel yapısı bu lokasyondaki ipuçlarını doğrudan etkiler.`;
+
   // 1. Check hand-written descriptions first
   const handWritten = POPULAR_DESCRIPTIONS[city.slug];
-  if (handWritten) return handWritten;
+  if (handWritten) {
+    return {
+      ...handWritten,
+      geoClues,
+      plateInfo,
+      provinceAbout,
+    };
+  }
 
-  // 2. Generate unique description from city attributes
-  return generateCityDescription(city);
+  // 2. Generate unique description from city attributes + province data
+  return generateCityDescription(city, province, geoClues, plateInfo, provinceAbout);
 }
 
-function generateCityDescription(city: CityData): CityDescription {
+// ==================== CONTENT GENERATORS ====================
+
+function buildGeoClues(city: CityData): string {
+  const regionClue = REGION_GEO_CLUES[city.region] || "";
+  const hintClues = city.hintTags
+    .filter((t) => HINT_STRATEGIES[t])
+    .slice(0, 4)
+    .map((t) => HINT_STRATEGIES[t]);
+
+  const parts = [regionClue];
+  if (hintClues.length > 0) {
+    parts.push(`Bu lokasyonda özellikle dikkat edilmesi gereken detaylar: ${hintClues.join(" ")}`);
+  }
+  return parts.filter(Boolean).join(" ");
+}
+
+function buildPlateInfo(city: CityData, province: ReturnType<typeof getProvinceInfo>): string {
+  if (!province) {
+    return `Sokak görünümündeki araç plakalarına dikkat ederek hangi ilde olduğunuzu anlayabilirsiniz. Yeşil yol tabelalarındaki şehir isimleri ve mesafe bilgileri konumu daraltmanın en etkili yollarından biridir.`;
+  }
+  return `${city.province} ili plaka kodu ${province.plateCode}'dir. Sokak görünümünde park halindeki araçların plakalarında ${province.plateCode} kodunu görmek ${city.province}'da olduğunuzu kesin olarak kanıtlar. Yeşil yol tabelalarındaki şehir isimleri ve mesafe bilgileri konumu daha da daraltmanıza yardımcı olur.`;
+}
+
+function generateCityDescription(
+  city: CityData,
+  province: ReturnType<typeof getProvinceInfo>,
+  geoClues: string,
+  plateInfo: string,
+  provinceAbout: string,
+): CityDescription {
   const regionIntro = REGION_INTROS[city.region] || "";
   const difficultyKey =
     city.qualityScore >= 4 ? "easy" : city.qualityScore >= 3 ? "medium" : "hard";
@@ -256,28 +438,58 @@ function generateCityDescription(city: CityData): CityDescription {
   const modeKey = city.modes.join(", ");
   const modeDesc = MODE_DESCRIPTIONS[modeKey] || MODE_DESCRIPTIONS["urban"] || "";
 
-  // Build unique about paragraph
-  const about = [
+  // Build enriched about paragraph with province context
+  const aboutParts = [
     `${city.district}, ${city.province} ili sınırları içinde ${city.regionDisplayName}'nde yer alır.`,
     regionIntro,
+  ];
+  if (province) {
+    aboutParts.push(
+      `${city.province}, ${province.famousFor.slice(0, 3).join(", ")} ile tanınan bir ildir.`,
+    );
+    if (province.climate) {
+      aboutParts.push(`Bölgede ${province.climate.toLowerCase()}`);
+    }
+  }
+  aboutParts.push(
     `Bu lokasyonda ${city.packageCount} farklı Street View noktası bulunur ve ${difficultyKey === "easy" ? "kolay" : difficultyKey === "medium" ? "orta" : "zor"} zorluk seviyesindedir.`,
-    city.hintTags.length > 0
-      ? `Bölgenin öne çıkan özellikleri arasında ${city.hintTags.slice(0, 4).map(t => HINT_STRATEGIES[t] ? t : t).join(", ")} yer alır.`
-      : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  );
+  if (city.hintTags.length > 0) {
+    const translatedTags = city.hintTags
+      .slice(0, 5)
+      .filter((t) => HINT_STRATEGIES[t])
+      .map((t) => {
+        const sentence = HINT_STRATEGIES[t];
+        return sentence.split(".")[0].toLowerCase();
+      });
+    if (translatedTags.length > 0) {
+      aboutParts.push(
+        `Bölgenin öne çıkan özellikleri arasında ${translatedTags.join("; ")} gibi detaylar yer alır.`,
+      );
+    }
+  }
+  const about = aboutParts.filter(Boolean).join(" ");
 
-  // Build unique strategy paragraph
+  // Build enriched strategy paragraph
   const strategyParts = [difficultyTip, modeDesc];
-  // Add 2-3 hint-specific strategy sentences
   const relevantHints = city.hintTags
     .filter((t) => HINT_STRATEGIES[t])
-    .slice(0, 3);
+    .slice(0, 4);
   for (const hint of relevantHints) {
     strategyParts.push(HINT_STRATEGIES[hint]);
   }
+  if (province) {
+    strategyParts.push(
+      `${province.plateCode} plaka kodunu araçlarda görmek ${city.province}'da olduğunuzun kesin göstergesidir.`,
+    );
+  }
   const strategy = strategyParts.filter(Boolean).join(" ");
 
-  return { about, strategy, funFact: null };
+  // Generate contextual fun fact from province data
+  let funFact: string | null = null;
+  if (province && province.famousFor.length >= 3) {
+    funFact = `${city.province}, ${province.famousFor.join(", ")} ile bilinir. ${province.climate}`;
+  }
+
+  return { about, strategy, funFact, geoClues, plateInfo, provinceAbout };
 }

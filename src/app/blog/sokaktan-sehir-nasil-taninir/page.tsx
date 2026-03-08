@@ -14,6 +14,29 @@ export const metadata: Metadata = {
     "bölge tanıma rehberi",
   ],
   alternates: { canonical: "/blog/sokaktan-sehir-nasil-taninir" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/sokaktan-sehir-nasil-taninir",
+    siteName: "TürkiyeGuessr",
+    title: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
+    description:
+      "Sokak görünümünde Türkiye şehirlerini tanımanın ipuçları. Tabelalar, mimari, bitki örtüsü ve coğrafi işaretler.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
+    description:
+      "Sokak görünümünde Türkiye şehirlerini tanımanın ipuçları. Tabelalar, mimari, bitki örtüsü ve coğrafi işaretler.",
+  },
 };
 
 export default function SoraktanSehirTaninirPost() {
@@ -23,7 +46,18 @@ export default function SoraktanSehirTaninirPost() {
     headline: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
     datePublished: "2026-02-25",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "Sokak görünümünde Türkiye şehirlerini tanımanın ipuçları. Tabelalar, mimari, bitki örtüsü ve coğrafi işaretler.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/sokaktan-sehir-nasil-taninir",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -155,6 +189,47 @@ export default function SoraktanSehirTaninirPost() {
           </p>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Deniz Kenarı Şehirler vs İç Anadolu</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Kıyı şehirleri ile iç kesim şehirleri arasındaki farklar Street View&apos;da hemen göze çarpar.{" "}
+            <Link href="/sehirler/bodrum-mugla" className="text-red-400 hover:text-red-300 transition-colors">Bodrum</Link>
+            {" "}ve{" "}
+            <Link href="/sehirler/fethiye-mugla" className="text-red-400 hover:text-red-300 transition-colors">Fethiye</Link>
+            {" "}gibi{" "}
+            <Link href="/bolgeler/ege" className="text-red-400 hover:text-red-300 transition-colors">Ege</Link>
+            {" "}kıyı kasabalarında beyaz badanalı evler, dar sokaklar, marina ve tekne manzaraları,
+            begonvil sarmaşıkları ve turizm tabelaları baskın unsurlardır. Sahil yollarında palmiye
+            dizileri, balık restoranları ve su sporları tabelaları görürsün. Buna karşın{" "}
+            <Link href="/sehirler/selcuklu-konya" className="text-red-400 hover:text-red-300 transition-colors">Konya Selçuklu</Link>
+            {" "}gibi{" "}
+            <Link href="/bolgeler/ic-anadolu" className="text-red-400 hover:text-red-300 transition-colors">İç Anadolu</Link>
+            {" "}şehirlerinde geniş bulvarlar, düz arazi, kurak toprak ve modern konut siteleri hakimdir.
+            Kıyı şehirlerinde hava daha nemli ve puslu olabilirken, step şehirlerinde gökyüzü masmavi
+            ve berrak olur.{" "}
+            <Link href="/sehirler/pamukkale-denizli" className="text-red-400 hover:text-red-300 transition-colors">Pamukkale</Link>
+            {" "}gibi geçiş noktaları ise her iki karakteri de taşıyabilir. Bu kıyı-iç ayrımını
+            tanımak, tahminin hata payını ciddi ölçüde azaltır.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Gece ve Gündüz Farkları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Street View görüntüleri farklı saatlerde çekilebilir ve bu durum ipuçlarını etkiler.
+            Gündüz çekimlerinde tabelalar, plakalar ve mimari detaylar net olarak okunabilirken,
+            alacakaranlık veya gece çekimlerinde sokak aydınlatması ve ışıklı tabelalar ön plana çıkar.{" "}
+            <Link href="/sehirler/goreme-nevsehir" className="text-red-400 hover:text-red-300 transition-colors">Göreme</Link>
+            {" "}gibi turistik bölgelerde gece aydınlatması dekoratif ve belirgin olabilirken, kırsal
+            alanlarda karanlık yollar ve tek tük sokak lambaları görürsün. Gece görüntülerinde
+            dükkan vitrinlerinin ışığı, neon tabelalar ve cami aydınlatmaları önemli ipuçları sunar.
+            Gölge analizini yalnızca gündüz çekimlerinde kullanabilirsin; güneşin açısı kabaca kuzey-güney
+            yönünü verir. Ayrıca gündüz çekimlerinde araç yoğunluğu ve yaya trafiği, bulunduğun yerin
+            merkez mi yoksa kenar mahalle mi olduğunu anlamana yardımcı olur. Düşük ışıkta detaylar
+            kaybolsa da, ışıklı tabela ve reklam panolarını yakalayarak konumunu belirleyebilirsin.
+          </p>
+        </section>
+
         <section className="text-center py-6 space-y-3">
           <h2 className="text-2xl font-bold text-white">İpuçlarını Pratikte Dene!</h2>
           <Link
@@ -192,6 +267,21 @@ export default function SoraktanSehirTaninirPost() {
             </Link>
             <Link href="/sehir-tahmin-oyunu" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Şehir Tahmin Oyunu
+            </Link>
+            <Link href="/blog/turkiyenin-en-zor-10-lokasyonu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Türkiye&apos;nin En Zor 10 Lokasyonu
+            </Link>
+            <Link href="/sehirler/bodrum-mugla" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Bodrum, Muğla Lokasyonları
+            </Link>
+            <Link href="/sehirler/goreme-nevsehir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Göreme, Nevşehir Lokasyonları
+            </Link>
+            <Link href="/bolgeler/ege" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Ege Bölgesi
+            </Link>
+            <Link href="/bolgeler/ic-anadolu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → İç Anadolu Bölgesi
             </Link>
           </div>
         </section>

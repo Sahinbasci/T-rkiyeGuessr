@@ -6,6 +6,29 @@ export const metadata: Metadata = {
   description:
     "TürkiyeGuessr çerez politikası. Kullanılan çerez türleri, üçüncü taraf çerezleri ve çerez yönetimi hakkında bilgi.",
   alternates: { canonical: "/cerez-politikasi" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/cerez-politikasi",
+    siteName: "TürkiyeGuessr",
+    title: "Çerez Politikası",
+    description:
+      "TürkiyeGuessr çerez politikası. Kullanılan çerez türleri, üçüncü taraf çerezleri ve çerez yönetimi hakkında bilgi.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Çerez Politikası - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Çerez Politikası",
+    description:
+      "TürkiyeGuessr çerez politikası. Kullanılan çerez türleri, üçüncü taraf çerezleri ve çerez yönetimi hakkında bilgi.",
+  },
 };
 
 export default function CerezPolitikasiPage() {

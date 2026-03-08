@@ -14,6 +14,29 @@ export const metadata: Metadata = {
     "türkiye bölgeleri rehberi",
   ],
   alternates: { canonical: "/blog" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog",
+    siteName: "TürkiyeGuessr",
+    title: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları",
+    description:
+      "TürkiyeGuessr blog: Türkiye coğrafyası, konum tahmin taktikleri, bölge rehberleri ve oyun ipuçları. Türkçe içeriklerle coğrafya bilgini geliştir.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları",
+    description:
+      "TürkiyeGuessr blog: Türkiye coğrafyası, konum tahmin taktikleri, bölge rehberleri ve oyun ipuçları. Türkçe içeriklerle coğrafya bilgini geliştir.",
+  },
 };
 
 export default function BlogIndexPage() {

@@ -17,6 +17,29 @@ export const metadata: Metadata = {
     "coğrafya testi türkiye",
   ],
   alternates: { canonical: "/ucretsiz-cografya-oyunu" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/ucretsiz-cografya-oyunu",
+    siteName: "TürkiyeGuessr",
+    title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
+    description:
+      "Kayıt olmadan ücretsiz coğrafya oyunu oyna. Sokak görünümünde Türkiye'nin 7 bölgesini keşfet.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
+    description:
+      "Kayıt olmadan ücretsiz coğrafya oyunu oyna. Sokak görünümünde Türkiye'nin 7 bölgesini keşfet.",
+  },
 };
 
 const jsonLd = {

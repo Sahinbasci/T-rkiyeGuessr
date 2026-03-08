@@ -6,6 +6,29 @@ export const metadata: Metadata = {
   description:
     "TürkiyeGuessr gizlilik politikası. Kişisel verilerin korunması, çerez kullanımı ve KVKK hakları hakkında bilgi.",
   alternates: { canonical: "/gizlilik-politikasi" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/gizlilik-politikasi",
+    siteName: "TürkiyeGuessr",
+    title: "Gizlilik Politikası",
+    description:
+      "TürkiyeGuessr gizlilik politikası. Kişisel verilerin korunması, çerez kullanımı ve KVKK hakları hakkında bilgi.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Gizlilik Politikası - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Gizlilik Politikası",
+    description:
+      "TürkiyeGuessr gizlilik politikası. Kişisel verilerin korunması, çerez kullanımı ve KVKK hakları hakkında bilgi.",
+  },
 };
 
 export default function GizlilikPolitikasiPage() {

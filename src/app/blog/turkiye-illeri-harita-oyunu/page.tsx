@@ -9,6 +9,29 @@ export const metadata: Metadata = {
     "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
   keywords: ["türkiye illeri harita oyunu", "81 il oyunu", "türkiye harita bilmece", "il plaka kodları oyunu"],
   alternates: { canonical: "/blog/turkiye-illeri-harita-oyunu" },
+  openGraph: {
+    type: "article",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/blog/turkiye-illeri-harita-oyunu",
+    siteName: "TürkiyeGuessr",
+    title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+    description:
+      "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+    description:
+      "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
+  },
 };
 
 export default function TurkiyeIlleriHaritaOyunuPost() {
@@ -21,7 +44,18 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
     headline: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
     datePublished: "2026-02-10",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
-    publisher: { "@type": "Organization", name: "TürkiyeGuessr" },
+    publisher: {
+      "@type": "Organization",
+      name: "TürkiyeGuessr",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://turkiyeguessr.xyz/icon-512.png",
+      },
+    },
+    description:
+      "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
+    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiye-illeri-harita-oyunu",
+    image: "https://turkiyeguessr.xyz/og-image.png",
   };
 
   return (
@@ -103,6 +137,71 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
           </p>
         </section>
 
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">İlleri Tanımanın Pratik Yolları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            81 ili birden ezberlemeye çalışmak bunaltıcı olabilir; bunun yerine sistematik bir yaklaşım
+            benimse. Öncelikle her bölgedeki komşu illeri grup halinde öğren:{" "}
+            <Link href="/bolgeler/marmara" className="text-red-400 hover:text-red-300 transition-colors">
+              Marmara
+            </Link>{" "}
+            bölgesinde İstanbul, Kocaeli, Bursa ve Tekirdağ bir küme oluşturur. İl merkezlerini tanımak da
+            kritik önem taşır; çünkü sokak görünümü lokasyonlarının büyük çoğunluğu il merkezlerinden veya
+            ilçe merkezlerinden gelir.{" "}
+            <Link href="/sehirler/beyoglu-istanbul" className="text-red-400 hover:text-red-300 transition-colors">
+              Beyoğlu
+            </Link>,{" "}
+            <Link href="/sehirler/selcuklu-konya" className="text-red-400 hover:text-red-300 transition-colors">
+              Selçuklu (Konya)
+            </Link>{" "}
+            ve{" "}
+            <Link href="/sehirler/cesme-izmir" className="text-red-400 hover:text-red-300 transition-colors">
+              Çeşme (İzmir)
+            </Link>{" "}
+            gibi popüler ilçelerin görsel özelliklerini bir kez öğrendiğinde, benzer lokasyonları anında
+            tanımaya başlarsın. Ayrıca il sınırlarını harita üzerinde takip ederek hangi illerin birbirine
+            komşu olduğunu öğrenmek, tahminlerini daraltmanda büyük avantaj sağlar.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Büyükşehirler ve Küçük İller Arasındaki Farklar</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Street View&apos;da büyükşehirler ile küçük iller arasında belirgin görsel farklar vardır
+            ve bu farkları tanımak il tahmininde güçlü bir araçtır.{" "}
+            <Link href="/sehirler/beyoglu-istanbul" className="text-red-400 hover:text-red-300 transition-colors">
+              İstanbul
+            </Link>,{" "}
+            <Link href="/sehirler/cesme-izmir" className="text-red-400 hover:text-red-300 transition-colors">
+              İzmir
+            </Link>{" "}
+            gibi metropollerde geniş bulvarlar, modern AVM&apos;ler, zincir mağaza tabelaları ve yoğun
+            trafik görürsün. Buna karşın{" "}
+            <Link href="/sehirler/safranbolu-karabuk" className="text-red-400 hover:text-red-300 transition-colors">
+              Safranbolu (Karabük)
+            </Link>,{" "}
+            <Link href="/sehirler/akdamar-adasi-van" className="text-red-400 hover:text-red-300 transition-colors">
+              Van
+            </Link>{" "}
+            veya{" "}
+            <Link href="/sehirler/artuklu-mardin" className="text-red-400 hover:text-red-300 transition-colors">
+              Mardin
+            </Link>{" "}
+            gibi küçük illerde dar sokaklar, geleneksel mimari ve yerel esnaf tabelaları baskındır.
+            Kentsel dönüşüm projeleri de önemli bir ipucudur: TOKİ bloklarının yoğun olduğu bölgeler
+            genellikle{" "}
+            <Link href="/bolgeler/dogu-anadolu" className="text-red-400 hover:text-red-300 transition-colors">
+              Doğu
+            </Link>{" "}
+            ve{" "}
+            <Link href="/bolgeler/ic-anadolu" className="text-red-400 hover:text-red-300 transition-colors">
+              İç Anadolu
+            </Link>{" "}
+            illerinin çeperlerinde bulunur. Bu kentsel doku farklılıklarını tanımak, henüz plaka veya
+            tabela görmeden bile hangi ölçekte bir şehirde olduğunu anlamana yardımcı olur.
+          </p>
+        </section>
+
         <section className="text-center py-6 space-y-3">
           <Link
             href="/"
@@ -136,6 +235,24 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
             </Link>
             <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-gray-400 hover:text-white text-sm transition-colors">
               → Plaka Kodlarından İl Tahmini
+            </Link>
+            <Link href="/blog/turkiyenin-en-zor-10-lokasyonu" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → En Zor 10 Lokasyon
+            </Link>
+            <Link href="/blog/sokaktan-sehir-nasil-taninir" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Sokaktan Şehir Nasıl Tanınır?
+            </Link>
+            <Link href="/sehirler/beyoglu-istanbul" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → İstanbul - Beyoğlu Lokasyonu
+            </Link>
+            <Link href="/sehirler/selcuklu-konya" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Konya - Selçuklu Lokasyonu
+            </Link>
+            <Link href="/sehirler/safranbolu-karabuk" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Safranbolu Lokasyonu
+            </Link>
+            <Link href="/bolgeler/akdeniz" className="text-gray-400 hover:text-white text-sm transition-colors">
+              → Akdeniz Bölgesi Rehberi
             </Link>
           </div>
         </section>

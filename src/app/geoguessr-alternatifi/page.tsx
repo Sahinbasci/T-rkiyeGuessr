@@ -22,6 +22,29 @@ export const metadata: Metadata = {
     "neredeyim ben alternatifi",
   ],
   alternates: { canonical: "/geoguessr-alternatifi" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/geoguessr-alternatifi",
+    siteName: "TürkiyeGuessr",
+    title: "Ücretsiz GeoGuessr Alternatifi — Türkiye Konum Tahmin Oyunu",
+    description:
+      "GeoGuessr'a ücretsiz Türkçe alternatif arıyorsan TürkiyeGuessr tam sana göre. Kayıt yok, ödeme yok. 142+ Türkiye lokasyonu, multiplayer, anında oyna.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Ücretsiz GeoGuessr Alternatifi — Türkiye Konum Tahmin Oyunu - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Ücretsiz GeoGuessr Alternatifi — Türkiye Konum Tahmin Oyunu",
+    description:
+      "GeoGuessr'a ücretsiz Türkçe alternatif arıyorsan TürkiyeGuessr tam sana göre. Kayıt yok, ödeme yok. 142+ Türkiye lokasyonu, multiplayer, anında oyna.",
+  },
 };
 
 export default function GeoguessrAlternatifiPage() {

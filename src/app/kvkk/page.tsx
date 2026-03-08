@@ -6,6 +6,29 @@ export const metadata: Metadata = {
   description:
     "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
   alternates: { canonical: "/kvkk" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/kvkk",
+    siteName: "TürkiyeGuessr",
+    title: "KVKK Aydınlatma Metni",
+    description:
+      "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "KVKK Aydınlatma Metni - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "KVKK Aydınlatma Metni",
+    description:
+      "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
+  },
 };
 
 export default function KVKKPage() {

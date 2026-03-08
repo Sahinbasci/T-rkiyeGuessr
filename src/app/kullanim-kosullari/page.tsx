@@ -6,6 +6,29 @@ export const metadata: Metadata = {
   description:
     "TürkiyeGuessr kullanım koşulları. Hizmet şartları, fikri mülkiyet, sorumluluk sınırı ve kullanıcı yükümlülükleri.",
   alternates: { canonical: "/kullanim-kosullari" },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://turkiyeguessr.xyz/kullanim-kosullari",
+    siteName: "TürkiyeGuessr",
+    title: "Kullanım Koşulları",
+    description:
+      "TürkiyeGuessr kullanım koşulları. Hizmet şartları, fikri mülkiyet, sorumluluk sınırı ve kullanıcı yükümlülükleri.",
+    images: [
+      {
+        url: "https://turkiyeguessr.xyz/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Kullanım Koşulları - TürkiyeGuessr",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Kullanım Koşulları",
+    description:
+      "TürkiyeGuessr kullanım koşulları. Hizmet şartları, fikri mülkiyet, sorumluluk sınırı ve kullanıcı yükümlülükleri.",
+  },
 };
 
 export default function KullanimKosullariPage() {
