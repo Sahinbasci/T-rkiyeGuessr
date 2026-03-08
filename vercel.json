@@ -16,5 +16,11 @@
       "destination": "/bolgeler/dogu-anadolu",
       "statusCode": 301
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap-index"
+    }
   ]
 }
