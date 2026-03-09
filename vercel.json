@@ -2,8 +2,20 @@
   "redirects": [
     {
       "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.turkiyeguessr.com" }],
+      "destination": "https://turkiyeguessr.com/$1",
+      "statusCode": 301
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "turkiyeguessr.xyz" }],
+      "destination": "https://turkiyeguessr.com/$1",
+      "statusCode": 301
+    },
+    {
+      "source": "/(.*)",
       "has": [{ "type": "host", "value": "www.turkiyeguessr.xyz" }],
-      "destination": "https://turkiyeguessr.xyz/$1",
+      "destination": "https://turkiyeguessr.com/$1",
       "statusCode": 301
     },
     {

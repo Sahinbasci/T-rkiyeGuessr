@@ -8,4 +8,4 @@
  * NEXT_PUBLIC_ prefix'i sayesinde hem Server hem Client Component'lerde çalışır.
  */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "https://turkiyeguessr.xyz";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://turkiyeguessr.com";
