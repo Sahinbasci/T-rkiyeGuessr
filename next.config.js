@@ -55,7 +55,7 @@ const nextConfig = {
       },
       {
         // All SEO content + legal pages — edge-cached 7d, browser-cached 1d
-        source: "/(nasil-oynanir|multiplayer|sss|hakkimizda|iletisim|geoguessr-alternatifi|turkiye-harita-oyunu|sehir-tahmin-oyunu|ucretsiz-cografya-oyunu|bolgeler|sehirler|blog|gizlilik-politikasi|cerez-politikasi|kullanim-kosullari|kvkk)",
+        source: "/(nasil-oynanir|multiplayer|sss|hakkimizda|iletisim|geoguessr-alternatifi|turkiye-harita-oyunu|sehir-tahmin-oyunu|ucretsiz-cografya-oyunu|konum-tahmin-oyunu|bolgeler|sehirler|blog|gizlilik-politikasi|cerez-politikasi|kullanim-kosullari|kvkk)",
         headers: [
           { key: "Cache-Control", value: "public, max-age=86400, s-maxage=604800" },
         ],

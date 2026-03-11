@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
@@ -17,14 +18,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/geoguessr-vs-turkiyeguessr",
+    url: `${SITE_URL}/blog/geoguessr-vs-turkiyeguessr`,
     siteName: "TürkiyeGuessr",
     title: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
     description:
       "GeoGuessr ve TürkiyeGuessr karşılaştırması. Fiyat, içerik, Türkiye odağı, multiplayer ve daha fazlası.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
@@ -51,13 +52,13 @@ export default function GeoguessrVsTurkiyeguessrPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "GeoGuessr ve TürkiyeGuessr karşılaştırması. Fiyat, içerik, Türkiye odağı, multiplayer ve daha fazlası.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/geoguessr-vs-turkiyeguessr",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/geoguessr-vs-turkiyeguessr`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

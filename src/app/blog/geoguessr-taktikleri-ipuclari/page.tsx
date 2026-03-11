@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
@@ -11,14 +12,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/geoguessr-taktikleri-ipuclari",
+    url: `${SITE_URL}/blog/geoguessr-taktikleri-ipuclari`,
     siteName: "TürkiyeGuessr",
     title: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
     description:
       "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
@@ -45,13 +46,13 @@ export default function GeoguessrTaktikleriPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/geoguessr-taktikleri-ipuclari",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/geoguessr-taktikleri-ipuclari`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

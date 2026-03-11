@@ -9,8 +9,10 @@
  * GAP #3 FIX: Extracted from HomeClient.tsx inline handler for testability.
  */
 
-/** The canonical site URL used in share messages */
-export const SITE_URL = "https://turkiyeguessr.xyz";
+import { SITE_URL } from "@/config/site";
+
+// Re-export for backward compatibility (tests + any consumer importing from here)
+export { SITE_URL };
 
 /**
  * Build a share message with room code and join URL.

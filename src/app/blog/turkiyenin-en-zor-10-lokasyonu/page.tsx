@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Türkiye'nin En Zor Tahmin Edilen 10 Lokasyonu",
@@ -17,14 +18,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/turkiyenin-en-zor-10-lokasyonu",
+    url: `${SITE_URL}/blog/turkiyenin-en-zor-10-lokasyonu`,
     siteName: "TürkiyeGuessr",
     title: "Türkiye'nin En Zor Tahmin Edilen 10 Lokasyonu",
     description:
       "TürkiyeGuessr'da en çok yanılınan 10 lokasyon ve bu lokasyonları tanımanın ipuçları.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Türkiye'nin En Zor Tahmin Edilen 10 Lokasyonu",
@@ -51,13 +52,13 @@ export default function EnZor10LokasyonPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "TürkiyeGuessr'da en çok yanılınan 10 lokasyon ve bu lokasyonları tanımanın ipuçları.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiyenin-en-zor-10-lokasyonu",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/turkiyenin-en-zor-10-lokasyonu`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   const locations = [

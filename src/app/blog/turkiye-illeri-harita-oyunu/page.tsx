@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllRegions, getUniqueProvinceCount } from "@/data/seoData";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
@@ -12,14 +13,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/turkiye-illeri-harita-oyunu",
+    url: `${SITE_URL}/blog/turkiye-illeri-harita-oyunu`,
     siteName: "TürkiyeGuessr",
     title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
     description:
       "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
@@ -49,13 +50,13 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiye-illeri-harita-oyunu",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/turkiye-illeri-harita-oyunu`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

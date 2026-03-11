@@ -262,8 +262,8 @@ describe("GAP #2: B1 — listener generation guard", () => {
 
 describe("GAP #3: A4 Share — message builder & URL", () => {
 
-  test("SITE_URL is turkiyeguessr.xyz", () => {
-    expect(SITE_URL).toBe("https://turkiyeguessr.xyz");
+  test("SITE_URL is turkiyeguessr.com", () => {
+    expect(SITE_URL).toBe("https://turkiyeguessr.com");
   });
 
   test("buildShareMessage contains room code and URL", () => {
@@ -271,7 +271,7 @@ describe("GAP #3: A4 Share — message builder & URL", () => {
     expect(result.text).toContain("ABC123");
     expect(result.text).toContain("Oda Kodu");
     expect(result.text).toContain("TürkiyeGuessr");
-    expect(result.url).toBe("https://turkiyeguessr.xyz?room=ABC123");
+    expect(result.url).toBe("https://turkiyeguessr.com?room=ABC123");
     expect(result.fullMessage).toContain(result.text);
     expect(result.fullMessage).toContain(result.url);
   });
@@ -301,7 +301,7 @@ describe("GAP #3: A4 Share — message builder & URL", () => {
       expect.objectContaining({
         title: "TürkiyeGuessr",
         text: expect.stringContaining("ABC123"),
-        url: expect.stringContaining("turkiyeguessr.xyz"),
+        url: expect.stringContaining("turkiyeguessr.com"),
       })
     );
     // Should NOT fall through to WhatsApp

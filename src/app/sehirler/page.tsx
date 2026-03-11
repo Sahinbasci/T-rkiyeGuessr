@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllCities, getAllRegions, getUniqueProvinceCount } from "@/data/seoData";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu",
@@ -17,14 +18,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/sehirler",
+    url: `${SITE_URL}/sehirler`,
     siteName: "TürkiyeGuessr",
     title: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu",
     description:
       "TürkiyeGuessr'daki tüm şehir ve lokasyonları keşfet. 7 bölge, 48+ il, 142+ küratörlü konum. Ücretsiz konum tahmin oyunu.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Tüm Şehirler — 142+ Türkiye Lokasyonu Konum Tahmin Oyunu - TürkiyeGuessr",

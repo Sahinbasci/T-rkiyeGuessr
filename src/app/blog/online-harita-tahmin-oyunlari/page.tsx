@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "En İyi Online Harita Tahmin Oyunları (2026)",
@@ -11,14 +12,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/online-harita-tahmin-oyunlari",
+    url: `${SITE_URL}/blog/online-harita-tahmin-oyunlari`,
     siteName: "TürkiyeGuessr",
     title: "En İyi Online Harita Tahmin Oyunları (2026)",
     description:
       "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "En İyi Online Harita Tahmin Oyunları (2026)",
@@ -45,13 +46,13 @@ export default function OnlineHaritaTahminOyunlariPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/online-harita-tahmin-oyunlari",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/online-harita-tahmin-oyunlari`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

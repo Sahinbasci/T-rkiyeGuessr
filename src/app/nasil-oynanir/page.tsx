@@ -16,14 +16,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/nasil-oynanir",
+    url: `${SITE_URL}/nasil-oynanir`,
     siteName: "TürkiyeGuessr",
     title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
     description:
       "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber - TürkiyeGuessr",

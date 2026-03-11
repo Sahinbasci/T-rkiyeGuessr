@@ -133,6 +133,54 @@ export default function BolgeDetailPage({ params }: Props) {
           </section>
         )}
 
+        {/* Coğrafi Yapı */}
+        {desc?.geography && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">Coğrafi Yapı</h2>
+            <p className="text-gray-400 leading-relaxed">{desc.geography}</p>
+          </section>
+        )}
+
+        {/* İklim Özellikleri */}
+        {desc?.climate && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">İklim Özellikleri</h2>
+            <p className="text-gray-400 leading-relaxed">{desc.climate}</p>
+          </section>
+        )}
+
+        {/* Kültür ve Yaşam */}
+        {desc?.culture && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">Kültür ve Yaşam</h2>
+            <p className="text-gray-400 leading-relaxed">{desc.culture}</p>
+          </section>
+        )}
+
+        {/* Tarihi Önem */}
+        {desc?.history && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">Tarihi Önem</h2>
+            <p className="text-gray-400 leading-relaxed">{desc.history}</p>
+          </section>
+        )}
+
+        {/* Öne Çıkan Şehirler */}
+        {desc?.notableCities && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">Öne Çıkan Şehirler</h2>
+            <p className="text-gray-400 leading-relaxed">{desc.notableCities}</p>
+          </section>
+        )}
+
+        {/* TürkiyeGuessr İpuçları */}
+        {desc?.gameTips && (
+          <section className="space-y-4">
+            <h2 className="text-xl font-semibold text-red-400">TürkiyeGuessr İpuçları</h2>
+            <p className="text-gray-400 leading-relaxed">{desc.gameTips}</p>
+          </section>
+        )}
+
         {/* Şehir listesi */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">

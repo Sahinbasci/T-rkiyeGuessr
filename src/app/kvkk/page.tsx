@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "KVKK Aydınlatma Metni",
@@ -9,14 +10,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/kvkk",
+    url: `${SITE_URL}/kvkk`,
     siteName: "TürkiyeGuessr",
     title: "KVKK Aydınlatma Metni",
     description:
       "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "KVKK Aydınlatma Metni - TürkiyeGuessr",

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Sıkça Sorulan Sorular (SSS)",
@@ -15,14 +16,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/sss",
+    url: `${SITE_URL}/sss`,
     siteName: "TürkiyeGuessr",
     title: "Sıkça Sorulan Sorular (SSS)",
     description:
       "TürkiyeGuessr hakkında sıkça sorulan sorular. Nasıl oynanır, ücretli mi, kaç kişi oynayabilir, hangi cihazlarda çalışır?",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Sıkça Sorulan Sorular (SSS) - TürkiyeGuessr",

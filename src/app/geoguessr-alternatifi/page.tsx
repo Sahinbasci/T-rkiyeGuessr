@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Ücretsiz GeoGuessr Alternatifi — Türkiye Konum Tahmin Oyunu",
@@ -25,14 +26,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/geoguessr-alternatifi",
+    url: `${SITE_URL}/geoguessr-alternatifi`,
     siteName: "TürkiyeGuessr",
     title: "Ücretsiz GeoGuessr Alternatifi — Türkiye Konum Tahmin Oyunu",
     description:
       "GeoGuessr'a ücretsiz Türkçe alternatif arıyorsan TürkiyeGuessr tam sana göre. Kayıt yok, ödeme yok. 142+ Türkiye lokasyonu, multiplayer, anında oyna.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Ücretsiz GeoGuessr Alternatifi — Türkiye Konum Tahmin Oyunu - TürkiyeGuessr",

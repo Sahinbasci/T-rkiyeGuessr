@@ -21,6 +21,7 @@ export function SeoFooter() {
             <li><Link href="/turkiye-harita-oyunu" className="hover:text-white transition-colors">Türkiye Harita Oyunu</Link></li>
             <li><Link href="/sehir-tahmin-oyunu" className="hover:text-white transition-colors">Şehir Tahmin Oyunu</Link></li>
             <li><Link href="/ucretsiz-cografya-oyunu" className="hover:text-white transition-colors">Ücretsiz Coğrafya Oyunu</Link></li>
+            <li><Link href="/konum-tahmin-oyunu" className="hover:text-white transition-colors">Konum Tahmin Oyunu</Link></li>
             <li><Link href="/sehirler/fatih-istanbul" className="hover:text-white transition-colors">İstanbul</Link></li>
             <li><Link href="/sehirler/ulus-ankara" className="hover:text-white transition-colors">Ankara</Link></li>
             <li><Link href="/sehirler/konak-izmir" className="hover:text-white transition-colors">İzmir</Link></li>

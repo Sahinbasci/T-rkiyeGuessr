@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Çerez Politikası",
@@ -9,14 +10,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/cerez-politikasi",
+    url: `${SITE_URL}/cerez-politikasi`,
     siteName: "TürkiyeGuessr",
     title: "Çerez Politikası",
     description:
       "TürkiyeGuessr çerez politikası. Kullanılan çerez türleri, üçüncü taraf çerezleri ve çerez yönetimi hakkında bilgi.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Çerez Politikası - TürkiyeGuessr",

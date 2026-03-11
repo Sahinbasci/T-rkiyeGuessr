@@ -5,55 +5,57 @@ import { getCityBySlug, getAllRegions } from "@/data/seoData";
 import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+  title: "Konum Tahmin Oyunu — Türkiye Sokak Görünümü ile Oyna",
   description:
-    "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+    "Sokak görünümünde neredesin tahmin et! 142+ Türkiye lokasyonu, 7 bölge, multiplayer. Ücretsiz konum tahmin oyunu — kayıt gerektirmez.",
   keywords: [
-    "türkiye harita oyunu",
-    "harita oyunu online",
-    "türkiye harita tahmin",
-    "ücretsiz harita oyunu",
-    "türkiye coğrafya oyunu",
-    "google maps tahmin oyunu",
-    "harita bilmece",
+    "konum tahmin oyunu",
+    "konum tahmin etme oyunu",
+    "neredesin bil oyunu",
+    "konum bulma oyunu",
+    "türkiye konum tahmin",
+    "sokak görünümü tahmin oyunu",
     "harita tahmin oyunu",
-    "harita kapmaca",
-    "türkiye haritası oyunu",
+    "yer tahmin oyunu",
+    "konum bulmaca",
+    "google maps konum tahmin",
+    "konum tahmin",
+    "konum tahmin oyunu online",
   ],
-  alternates: { canonical: "/turkiye-harita-oyunu" },
+  alternates: { canonical: "/konum-tahmin-oyunu" },
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: `${SITE_URL}/turkiye-harita-oyunu`,
+    url: `${SITE_URL}/konum-tahmin-oyunu`,
     siteName: "TürkiyeGuessr",
-    title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+    title: "Konum Tahmin Oyunu — Türkiye Sokak Görünümü ile Oyna",
     description:
-      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+      "Sokak görünümünde neredesin tahmin et! 142+ Türkiye lokasyonu, 7 bölge, multiplayer. Ücretsiz konum tahmin oyunu.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
-        alt: "Türkiye Harita Oyunu — Ücretsiz Online Oyna - TürkiyeGuessr",
+        alt: "Konum Tahmin Oyunu — TürkiyeGuessr ile Türkiye Sokak Görünümünde Oyna",
       },
     ],
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+    title: "Konum Tahmin Oyunu — Türkiye Sokak Görünümü ile Oyna",
     description:
-      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+      "Sokak görünümünde neredesin tahmin et! 142+ Türkiye lokasyonu, 7 bölge, multiplayer. Ücretsiz konum tahmin oyunu.",
   },
 };
 
-export default function TurkiyeHaritaOyunuPage() {
+export default function KonumTahminOyunuPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebApplication",
-        name: "TürkiyeGuessr - Türkiye Harita Oyunu",
-        url: `${SITE_URL}/turkiye-harita-oyunu`,
+        name: "TürkiyeGuessr - Konum Tahmin Oyunu",
+        url: `${SITE_URL}/konum-tahmin-oyunu`,
         applicationCategory: "GameApplication",
         operatingSystem: "Web",
         offers: {
@@ -63,7 +65,7 @@ export default function TurkiyeHaritaOyunuPage() {
         },
         inLanguage: "tr",
         description:
-          "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+          "Sokak görünümünde konum tahmin et! 142+ Türkiye lokasyonu, 7 bölge, multiplayer. Ücretsiz konum tahmin oyunu.",
       },
       {
         "@type": "BreadcrumbList",
@@ -77,8 +79,8 @@ export default function TurkiyeHaritaOyunuPage() {
           {
             "@type": "ListItem",
             position: 2,
-            name: "Türkiye Harita Oyunu",
-            item: `${SITE_URL}/turkiye-harita-oyunu`,
+            name: "Konum Tahmin Oyunu",
+            item: `${SITE_URL}/konum-tahmin-oyunu`,
           },
         ],
       },
@@ -89,7 +91,7 @@ export default function TurkiyeHaritaOyunuPage() {
 
   const LOCATION_SLUGS = [
     "fatih-istanbul", "kaleici-antalya", "goreme-nevsehir", "alsancak-izmir",
-    "uzungol-trabzon", "pamukkale-denizli", "safranbolu-karabuk", "artuklu-mardin",
+    "uzungol-trabzon", "pamukkale-denizli", "artuklu-mardin", "safranbolu-karabuk",
   ];
   const popularLocations = LOCATION_SLUGS
     .map((slug) => { const c = getCityBySlug(slug); return c ? { name: c.locationName, slug } : null; })
@@ -99,7 +101,7 @@ export default function TurkiyeHaritaOyunuPage() {
     <SeoLayout
       breadcrumbs={[
         { name: "Anasayfa", url: "/" },
-        { name: "Türkiye Harita Oyunu", url: "/turkiye-harita-oyunu" },
+        { name: "Konum Tahmin Oyunu", url: "/konum-tahmin-oyunu" },
       ]}
     >
       <script
@@ -114,48 +116,47 @@ export default function TurkiyeHaritaOyunuPage() {
             className="text-3xl sm:text-4xl font-bold tracking-wide"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Türkiye Harita Oyunu — Ücretsiz Online Oyna
+            Konum Tahmin Oyunu — Sokak Görünümünde Neredesin?
           </h1>
           <p className="text-gray-400 mt-3 text-lg leading-relaxed">
-            <strong className="text-gray-300">TürkiyeGuessr</strong>, Türkiye haritası üzerinde
-            gerçek sokak görünümü panoramalarından konum tahmin ettiğin ücretsiz bir harita oyunudur.
-            Google Street View teknolojisiyle Türkiye&apos;nin dört bir yanını keşfet; İstanbul&apos;un
-            tarihi sokaklarından Kapadokya&apos;nın büyüleyici vadilerine, Ege&apos;nin sahil
-            kasabalarından Karadeniz&apos;in yaylalarına kadar 142&apos;den fazla özenle seçilmiş
-            lokasyonu harita üzerinde bulmaya çalış. Kayıt gerektirmez, tamamen ücretsizdir ve
-            tarayıcından anında oynayabilirsin. Harita kapmaca tarzı oyunların modern
-            versiyonu olan TürkiyeGuessr, Google sokak görünümü üzerinden oynanan interaktif
-            bir harita yapboz deneyimi sunar.
+            <strong className="text-gray-300">TürkiyeGuessr</strong>, Google Street View
+            panoramalarından bulunduğun konumu tahmin ettiğin ücretsiz bir konum tahmin oyunudur.
+            Karşına çıkan 360 derece sokak görünümünü incele, tabelaları oku, mimariyi analiz et
+            ve Türkiye haritasında doğru yeri bul. 142&apos;den fazla özenle seçilmiş lokasyonla
+            İstanbul&apos;dan Kapadokya&apos;ya, Trabzon&apos;dan Mardin&apos;e kadar Türkiye&apos;nin
+            dört bir köşesini keşfet. Kayıt gerektirmez, tamamen ücretsizdir ve tarayıcından anında
+            oynayabilirsin. Konum tahmin etme oyunlarının en kapsamlı Türkçe versiyonu olan
+            TürkiyeGuessr, sokak görünümü ipuçlarıyla konum bulmaca deneyimi sunar.
           </p>
         </header>
 
         {/* Nasıl Oynanır */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-red-400">Nasıl Oynanır?</h2>
+          <h2 className="text-xl font-semibold text-red-400">Konum Tahmin Oyunu Nasıl Oynanır?</h2>
           <p className="text-gray-400 leading-relaxed">
-            Türkiye harita oyununu oynamak son derece basit. Dört adımda başla:
+            Konum tahmin etmek son derece basit — dört adımda başla:
           </p>
           <ol className="space-y-3">
             {[
               {
                 step: "1",
-                title: "Panoramayı İncele",
-                desc: "Karşına çıkan 360 derece sokak görünümünü dikkatle incele. Tabelalar, doğa, mimari ve yol yapısı gibi ipuçlarına bak.",
+                title: "Sokak Görünümünü İncele",
+                desc: "Karşına çıkan 360 derece panoramayı dikkatle incele. Yol tabelaları, dağ silüetleri, bitki örtüsü, mimari tarz ve araç plakaları en güçlü ipuçlarındır.",
               },
               {
                 step: "2",
-                title: "Haritada Tahmin Et",
-                desc: "İpuçlarını değerlendirdikten sonra Türkiye haritası üzerinde tahmini konumunu işaretle.",
+                title: "Haritada Konumu İşaretle",
+                desc: "İpuçlarını değerlendirdikten sonra Türkiye haritası üzerinde tahmini konumunu seç. Doğru bölgeyi bile bulman iyi bir başlangıçtır.",
               },
               {
                 step: "3",
-                title: "Puanını Gör",
-                desc: "Gerçek konum ile tahmininin arasındaki mesafe hesaplanır. Ne kadar yakınsan o kadar çok puan kazanırsın.",
+                title: "Mesafe ve Puanını Gör",
+                desc: "Gerçek konum ile tahmininin arasındaki mesafe hesaplanır. Ne kadar yakınsan o kadar çok puan kazanırsın — 150 km altı mükemmel bir tahmindir.",
               },
               {
                 step: "4",
                 title: "5 Tur, Toplam Skor",
-                desc: "Her oyun 5 turdan oluşur. Tüm turların puanları toplanarak final skorun belirlenir.",
+                desc: "Her oyun 5 turdan oluşur. Tüm turların puanları toplanarak final skorun belirlenir. Arkadaşlarınla yarış veya kişisel rekorunu kır.",
               },
             ].map((item) => (
               <li
@@ -174,26 +175,70 @@ export default function TurkiyeHaritaOyunuPage() {
           </ol>
         </section>
 
+        {/* Konum Tahmin İpuçları */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Konum Tahmin İpuçları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Konum tahmin oyununda başarılı olmak için dikkat etmen gereken 6 temel ipucu:
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              {
+                title: "Plaka Kodları",
+                desc: "Araç plakalarındaki il kodları en kesin ipucudur. 34 İstanbul, 06 Ankara, 35 İzmir — Türkiye'nin 81 ili benzersiz bir koda sahiptir.",
+              },
+              {
+                title: "Yol Tabelaları",
+                desc: "Yeşil otoban tabelaları, mavi şehir içi yönlendirmeler ve kahverengi turizm işaretleri konum hakkında doğrudan bilgi verir.",
+              },
+              {
+                title: "Bitki Örtüsü",
+                desc: "Çay bahçeleri Karadeniz, zeytinlikler Ege, narenciye bahçeleri Akdeniz, step bozkırı İç Anadolu'yu işaret eder.",
+              },
+              {
+                title: "Mimari Tarz",
+                desc: "Taş evler Güneydoğu, ahşap evler Karadeniz, beyaz badanalı evler Ege, modern binalar büyük şehirleri gösterir.",
+              },
+              {
+                title: "Arazi Yapısı",
+                desc: "Dik yamaçlar Karadeniz, düz ovalar İç Anadolu/Güneydoğu, dağ-deniz kontrastı Akdeniz bölgesinin imzasıdır.",
+              },
+              {
+                title: "İklim İpuçları",
+                desc: "Kar örtüsü Doğu Anadolu, palmiyeler Akdeniz, sis Karadeniz, kurak arazi Güneydoğu'yu işaret eder.",
+              },
+            ].map((tip) => (
+              <div
+                key={tip.title}
+                className="bg-gray-800/50 border border-gray-700/50 rounded-lg p-4"
+              >
+                <h3 className="text-gray-200 font-medium">{tip.title}</h3>
+                <p className="text-gray-500 text-sm mt-2">{tip.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Oyun Modları */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Oyun Modları</h2>
           <p className="text-gray-400 leading-relaxed">
             TürkiyeGuessr farklı oyun modlarıyla her seviyeden oyuncuya hitap eder.
-            Tek başına pratik yapabilir ya da arkadaşlarınla yarışabilirsin:
+            Tek başına pratik yap veya arkadaşlarınla yarış:
           </p>
           <div className="grid sm:grid-cols-3 gap-3">
             {[
               {
                 title: "Klasik Mod",
-                desc: "Tüm Türkiye havuzundan rastgele 5 lokasyon. Coğrafya bilgini sına.",
+                desc: "Tüm Türkiye havuzundan rastgele 5 lokasyon. Coğrafya bilgini sına ve kişisel rekorunu kır.",
               },
               {
                 title: "Multiplayer",
-                desc: "Arkadaşlarınla aynı anda aynı lokasyonları tahmin et. En yüksek skoru kim alacak?",
+                desc: "2-8 kişilik odalar oluştur, arkadaşlarınla aynı anda aynı lokasyonları tahmin et. En yüksek skoru kim alacak?",
               },
               {
                 title: "Bölge Modu",
-                desc: "Sadece belirli bir coğrafi bölgeden lokasyonlar. Uzmanlığını derinleştir.",
+                desc: "Sadece belirli bir coğrafi bölgeden lokasyonlar. Ege, Karadeniz veya İç Anadolu'da uzmanlaş.",
               },
             ].map((mode) => (
               <div
@@ -212,8 +257,8 @@ export default function TurkiyeHaritaOyunuPage() {
           <h2 className="text-xl font-semibold text-red-400">7 Coğrafi Bölge</h2>
           <p className="text-gray-400 leading-relaxed">
             Türkiye&apos;nin her coğrafi bölgesinden özenle seçilmiş lokasyonlar bulunur.
-            Bölge sayfalarını ziyaret ederek her bölgenin kendine özgü coğrafi özelliklerini,
-            lokasyon sayısını ve il dağılımını inceleyebilirsin:
+            Her bölgenin kendine özgü coğrafi özellikleri, iklimi ve kültürü vardır — bu da
+            konum tahmin oyununda bölge tanımayı hem öğretici hem eğlenceli kılar:
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {regions.map((region) => (
@@ -233,7 +278,7 @@ export default function TurkiyeHaritaOyunuPage() {
           <h2 className="text-xl font-semibold text-red-400">Popüler Lokasyonlar</h2>
           <p className="text-gray-400 leading-relaxed">
             Türkiye&apos;nin en bilinen ve en zorlu lokasyonlarından bazıları.
-            Her birinin detay sayfasında o konuma ait ipuçları ve coğrafi bilgiler bulabilirsin:
+            Her birinin detay sayfasında konum tahmin ipuçları ve coğrafi bilgiler bulabilirsin:
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {popularLocations.map((loc) => (
@@ -251,7 +296,7 @@ export default function TurkiyeHaritaOyunuPage() {
         {/* CTA */}
         <section className="text-center py-8 space-y-4">
           <h2 className="text-2xl font-bold text-white">
-            Türkiye&apos;yi Ne Kadar İyi Tanıyorsun?
+            Konumu Tahmin Edebilecek Misin?
           </h2>
           <Link
             href="/"
@@ -260,7 +305,7 @@ export default function TurkiyeHaritaOyunuPage() {
             Hemen Oyna — Ücretsiz
           </Link>
           <p className="text-gray-600 text-sm">
-            Kayıt yok. Ödeme yok. Tarayıcını aç ve başla.
+            Kayıt yok. Ödeme yok. Tarayıcını aç ve konum tahmin etmeye başla.
           </p>
         </section>
 
@@ -273,6 +318,8 @@ export default function TurkiyeHaritaOyunuPage() {
               { label: "Multiplayer Modu", href: "/multiplayer" },
               { label: "Tüm Bölgeler", href: "/bolgeler" },
               { label: "Tüm Şehirler", href: "/sehirler" },
+              { label: "Türkiye Harita Oyunu", href: "/turkiye-harita-oyunu" },
+              { label: "Şehir Tahmin Oyunu", href: "/sehir-tahmin-oyunu" },
               { label: "GeoGuessr Alternatifi", href: "/geoguessr-alternatifi" },
               { label: "Blog", href: "/blog" },
             ].map((link) => (

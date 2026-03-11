@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { Mail, Clock, MessageSquare } from "lucide-react";
 import { ContactForm } from "@/components/seo/ContactForm";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "İletişim — Bize Ulaşın",
@@ -12,14 +13,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/iletisim",
+    url: `${SITE_URL}/iletisim`,
     siteName: "TürkiyeGuessr",
     title: "İletişim — Bize Ulaşın",
     description:
       "TürkiyeGuessr ile iletişime geçin. Soru, öneri, hata bildirimi ve iş birliği teklifleri için bize ulaşın.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "İletişim — Bize Ulaşın - TürkiyeGuessr",

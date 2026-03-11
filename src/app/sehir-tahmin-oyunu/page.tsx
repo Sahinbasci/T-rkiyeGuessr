@@ -28,14 +28,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/sehir-tahmin-oyunu",
+    url: `${SITE_URL}/sehir-tahmin-oyunu`,
     siteName: "TürkiyeGuessr",
     title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
     description:
       "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu - TürkiyeGuessr",

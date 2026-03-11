@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Geotastic vs TürkiyeGuessr: Hangisi Türkiye İçin Daha İyi?",
@@ -19,14 +20,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/geotastic-vs-turkiyeguessr",
+    url: `${SITE_URL}/blog/geotastic-vs-turkiyeguessr`,
     siteName: "TürkiyeGuessr",
     title: "Geotastic vs TürkiyeGuessr: Hangisi Türkiye İçin Daha İyi?",
     description:
       "Geotastic ve TürkiyeGuessr karşılaştırması. Fiyat, Türkiye odağı, lokasyon sayısı, multiplayer ve dil desteği açısından detaylı analiz.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Geotastic vs TürkiyeGuessr: Hangisi Türkiye İçin Daha İyi?",
@@ -53,13 +54,13 @@ export default function GeotasticVsTurkiyeguessrPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "Geotastic ve TürkiyeGuessr karşılaştırması. Fiyat, Türkiye odağı, lokasyon sayısı, multiplayer ve dil desteği açısından detaylı analiz.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/geotastic-vs-turkiyeguessr",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/geotastic-vs-turkiyeguessr`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

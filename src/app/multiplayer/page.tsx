@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna",
@@ -16,14 +17,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/multiplayer",
+    url: `${SITE_URL}/multiplayer`,
     siteName: "TürkiyeGuessr",
     title: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna",
     description:
       "TürkiyeGuessr ile arkadaşlarınla online multiplayer konum tahmin oyunu oyna. 2-8 kişi, ücretsiz, kayıt gerektirmez. Oda kur, kodu paylaş, yarış!",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Multiplayer Konum Tahmin Oyunu — Arkadaşlarınla Oyna - TürkiyeGuessr",

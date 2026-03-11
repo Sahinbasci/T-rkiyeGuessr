@@ -339,7 +339,7 @@ describe("BUG #3: Cookie consent banner visibility", () => {
 // ==================== BUG #4: WhatsApp Share URL ====================
 
 describe("BUG #4: WhatsApp share URL format", () => {
-  const SITE_URL = "https://turkiyeguessr.xyz";
+  const SITE_URL = "https://turkiyeguessr.com";
 
   test("share URL uses api.whatsapp.com/send (not wa.me)", () => {
     const roomId = "ABC123";

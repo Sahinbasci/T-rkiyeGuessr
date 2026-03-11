@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { BLOG_POSTS } from "@/data/blogPosts";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları",
@@ -17,14 +18,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog",
+    url: `${SITE_URL}/blog`,
     siteName: "TürkiyeGuessr",
     title: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları",
     description:
       "TürkiyeGuessr blog: Türkiye coğrafyası, konum tahmin taktikleri, bölge rehberleri ve oyun ipuçları. Türkçe içeriklerle coğrafya bilgini geliştir.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları - TürkiyeGuessr",

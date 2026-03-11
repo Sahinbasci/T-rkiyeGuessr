@@ -20,14 +20,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/ucretsiz-cografya-oyunu",
+    url: `${SITE_URL}/ucretsiz-cografya-oyunu`,
     siteName: "TürkiyeGuessr",
     title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
     description:
       "Kayıt olmadan ücretsiz coğrafya oyunu oyna. Sokak görünümünde Türkiye'nin 7 bölgesini keşfet.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet - TürkiyeGuessr",

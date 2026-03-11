@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
@@ -11,14 +12,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/turkiye-cografya-quiz",
+    url: `${SITE_URL}/blog/turkiye-cografya-quiz`,
     siteName: "TürkiyeGuessr",
     title: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
     description:
       "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
@@ -45,13 +46,13 @@ export default function TurkiyeCografyaQuizPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiye-cografya-quiz",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/turkiye-cografya-quiz`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

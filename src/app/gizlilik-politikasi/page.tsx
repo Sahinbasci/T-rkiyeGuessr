@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Gizlilik Politikası",
@@ -9,14 +10,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/gizlilik-politikasi",
+    url: `${SITE_URL}/gizlilik-politikasi`,
     siteName: "TürkiyeGuessr",
     title: "Gizlilik Politikası",
     description:
       "TürkiyeGuessr gizlilik politikası. Kişisel verilerin korunması, çerez kullanımı ve KVKK hakları hakkında bilgi.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Gizlilik Politikası - TürkiyeGuessr",

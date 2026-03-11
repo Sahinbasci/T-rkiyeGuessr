@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
@@ -17,14 +18,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/sokaktan-sehir-nasil-taninir",
+    url: `${SITE_URL}/blog/sokaktan-sehir-nasil-taninir`,
     siteName: "TürkiyeGuessr",
     title: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
     description:
       "Sokak görünümünde Türkiye şehirlerini tanımanın ipuçları. Tabelalar, mimari, bitki örtüsü ve coğrafi işaretler.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
@@ -51,13 +52,13 @@ export default function SoraktanSehirTaninirPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "Sokak görünümünde Türkiye şehirlerini tanımanın ipuçları. Tabelalar, mimari, bitki örtüsü ve coğrafi işaretler.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/sokaktan-sehir-nasil-taninir",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/sokaktan-sehir-nasil-taninir`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (

@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Plaka Kodlarından İl Nasıl Anlaşılır?",
@@ -19,14 +20,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/plaka-kodlarindan-il-tahmini",
+    url: `${SITE_URL}/blog/plaka-kodlarindan-il-tahmini`,
     siteName: "TürkiyeGuessr",
     title: "Plaka Kodlarından İl Nasıl Anlaşılır?",
     description:
       "Türkiye plaka kodları rehberi. 01'den 81'e kadar plaka kodlarını ezberle, sokak görünümünde avantaj kazan.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Plaka Kodlarından İl Nasıl Anlaşılır?",
@@ -53,13 +54,13 @@ export default function PlakaKodlariPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "Türkiye plaka kodları rehberi. 01'den 81'e kadar plaka kodlarını ezberle, sokak görünümünde avantaj kazan.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/plaka-kodlarindan-il-tahmini",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/plaka-kodlarindan-il-tahmini`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   const bolgeler = [

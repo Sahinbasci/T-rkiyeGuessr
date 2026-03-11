@@ -31,6 +31,7 @@ export default function sitemap({ id }: { id: number }): MetadataRoute.Sitemap {
         { url: `${BASE}/turkiye-harita-oyunu`, lastModified: lastUpdate, changeFrequency: "weekly", priority: 0.9 },
         { url: `${BASE}/sehir-tahmin-oyunu`, lastModified: lastUpdate, changeFrequency: "weekly", priority: 0.9 },
         { url: `${BASE}/ucretsiz-cografya-oyunu`, lastModified: lastUpdate, changeFrequency: "weekly", priority: 0.9 },
+        { url: `${BASE}/konum-tahmin-oyunu`, lastModified: lastUpdate, changeFrequency: "weekly", priority: 0.9 },
         { url: `${BASE}/multiplayer`, lastModified: contentUpdate, changeFrequency: "monthly", priority: 0.8 },
         { url: `${BASE}/bolgeler`, lastModified: lastUpdate, changeFrequency: "monthly", priority: 0.8 },
         { url: `${BASE}/sehirler`, lastModified: lastUpdate, changeFrequency: "monthly", priority: 0.8 },

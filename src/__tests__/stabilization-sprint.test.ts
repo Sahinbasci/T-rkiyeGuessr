@@ -531,7 +531,7 @@ describe("A1-A4: Previous bug fixes re-verification", () => {
   });
 
   describe("A4: WhatsApp share URL", () => {
-    const SITE_URL = "https://turkiyeguessr.xyz";
+    const SITE_URL = "https://turkiyeguessr.com";
 
     test("uses api.whatsapp.com/send (not wa.me)", () => {
       const roomId = "ABC123";

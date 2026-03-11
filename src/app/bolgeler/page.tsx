@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllRegions } from "@/data/seoData";
 import { REGION_DESCRIPTIONS } from "@/data/regionDescriptions";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu",
@@ -18,14 +19,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/bolgeler",
+    url: `${SITE_URL}/bolgeler`,
     siteName: "TürkiyeGuessr",
     title: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu",
     description:
       "TürkiyeGuessr ile Türkiye'nin 7 coğrafi bölgesini keşfet. Marmara, Ege, Akdeniz, Karadeniz, İç Anadolu, Doğu Anadolu ve Güneydoğu bölgelerinde konum tahmin et.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "Türkiye Bölgeleri — 7 Coğrafi Bölge Konum Tahmin Oyunu - TürkiyeGuessr",

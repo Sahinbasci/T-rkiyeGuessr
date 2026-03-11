@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
+import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "TürkiyeGuessr Nasıl Oynanır? Detaylı Rehber",
@@ -11,14 +12,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "article",
     locale: "tr_TR",
-    url: "https://turkiyeguessr.xyz/blog/turkiye-guessr-nasil-oynanir",
+    url: `${SITE_URL}/blog/turkiye-guessr-nasil-oynanir`,
     siteName: "TürkiyeGuessr",
     title: "TürkiyeGuessr Nasıl Oynanır? Detaylı Rehber",
     description:
       "TürkiyeGuessr'da konum tahmin etmenin tüm detayları. Oda kurma, mod seçimi, ipuçları ve strateji rehberi. Adım adım anlatım.",
     images: [
       {
-        url: "https://turkiyeguessr.xyz/og-image.png",
+        url: `${SITE_URL}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "TürkiyeGuessr Nasıl Oynanır? Detaylı Rehber",
@@ -45,13 +46,13 @@ export default function TurkiyeGuessrNasilOynanirPost() {
       name: "TürkiyeGuessr",
       logo: {
         "@type": "ImageObject",
-        url: "https://turkiyeguessr.xyz/icon-512.png",
+        url: `${SITE_URL}/icon-512.png`,
       },
     },
     description:
       "TürkiyeGuessr'da konum tahmin etmenin tüm detayları. Oda kurma, mod seçimi, ipuçları ve strateji rehberi. Adım adım anlatım.",
-    mainEntityOfPage: "https://turkiyeguessr.xyz/blog/turkiye-guessr-nasil-oynanir",
-    image: "https://turkiyeguessr.xyz/og-image.png",
+    mainEntityOfPage: `${SITE_URL}/blog/turkiye-guessr-nasil-oynanir`,
+    image: `${SITE_URL}/og-image.png`,
   };
 
   return (
