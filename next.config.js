@@ -5,7 +5,7 @@ const nextConfig = {
     return [
       {
         // Apply security headers to all pages EXCEPT crawler files (sitemap, robots, ads.txt)
-        source: "/((?!sitemap\\.xml|robots\\.txt|ads\\.txt).*)",
+        source: "/((?!sitemap\\.xml|sitemap/.*|robots\\.txt|ads\\.txt).*)",
         headers: [
           {
             key: "Content-Security-Policy",

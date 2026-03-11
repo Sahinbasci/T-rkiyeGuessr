@@ -5,6 +5,26 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
+        userAgent: "Googlebot",
+        allow: "/",
+        disallow: [
+          "/_next/",
+          "/api/",
+          "/_vercel/",
+          "/data/pool/",
+        ],
+      },
+      {
+        userAgent: "Bingbot",
+        allow: "/",
+        disallow: [
+          "/_next/",
+          "/api/",
+          "/_vercel/",
+          "/data/pool/",
+        ],
+      },
+      {
         userAgent: "*",
         allow: "/",
         disallow: [

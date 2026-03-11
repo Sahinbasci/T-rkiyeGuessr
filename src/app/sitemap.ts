@@ -18,8 +18,8 @@ export async function generateSitemaps() {
 }
 
 export default function sitemap({ id }: { id: number }): MetadataRoute.Sitemap {
-  const lastUpdate = new Date("2026-03-09");
-  const contentUpdate = new Date("2026-03-09");
+  const lastUpdate = new Date("2026-03-11");
+  const contentUpdate = new Date("2026-03-11");
 
   switch (id) {
     // Segment 0: Static pages

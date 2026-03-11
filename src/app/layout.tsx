@@ -120,6 +120,7 @@ function JsonLd() {
     },
     sameAs: [
       "https://twitter.com/turkiyeguessr",
+      "https://turkiyeguessr.com",
     ],
   };
 
