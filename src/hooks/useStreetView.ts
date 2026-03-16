@@ -602,11 +602,12 @@ export function useStreetView(roomId?: string, playerId?: string) {
         pointerStartRef.current = null;
       };
 
-      // Attach listeners
-      container.addEventListener("pointerdown", handlePointerDown);
-      container.addEventListener("pointerup", handlePointerUp);
-      container.addEventListener("pointercancel", handlePointerCancel);
-      container.addEventListener("contextmenu", handleContextMenu);
+      // Attach listeners in capture phase so Google internal handlers cannot swallow
+      // pointer events before our custom move-budget/navigation logic sees them.
+      container.addEventListener("pointerdown", handlePointerDown, true);
+      container.addEventListener("pointerup", handlePointerUp, true);
+      container.addEventListener("pointercancel", handlePointerCancel, true);
+      container.addEventListener("contextmenu", handleContextMenu, true);
       navigationMetrics.listenerAttachCount++;
 
       // ============================================
@@ -637,10 +638,10 @@ export function useStreetView(roomId?: string, playerId?: string) {
 
       // FIX #1 continued: Store cleanup function
       cleanupFnRef.current = () => {
-        container.removeEventListener("pointerdown", handlePointerDown);
-        container.removeEventListener("pointerup", handlePointerUp);
-        container.removeEventListener("pointercancel", handlePointerCancel);
-        container.removeEventListener("contextmenu", handleContextMenu);
+        container.removeEventListener("pointerdown", handlePointerDown, true);
+        container.removeEventListener("pointerup", handlePointerUp, true);
+        container.removeEventListener("pointercancel", handlePointerCancel, true);
+        container.removeEventListener("contextmenu", handleContextMenu, true);
         pointerStartRef.current = null;
         observer.disconnect();
         removeDriftListener();
@@ -649,14 +650,22 @@ export function useStreetView(roomId?: string, playerId?: string) {
     [initializeGoogleMaps, cameraDrift, navEngine, panoLifecycle]
   );
 
-  // Cleanup on unmount
+  // Stable ref for panoLifecycle to avoid cleanup re-runs on every render.
+  // usePanoLifecycle() returns a new object reference each render, but its
+  // internal refs (panoramaRef, etc.) are stable. Without this ref, the
+  // cleanup effect below would fire on every re-render, removing all
+  // pointer event listeners and destroying the panorama.
+  const panoLifecycleRef = useRef(panoLifecycle);
+  panoLifecycleRef.current = panoLifecycle;
+
+  // Cleanup on unmount only (empty deps)
   useEffect(() => {
     return () => {
       if (cleanupFnRef.current) {
         cleanupFnRef.current();
         cleanupFnRef.current = null;
       }
-      panoLifecycle.destroyPanorama();
+      panoLifecycleRef.current.destroyPanorama();
       if (panoLoadTimeoutRef.current) {
         clearTimeout(panoLoadTimeoutRef.current);
         panoLoadTimeoutRef.current = null;
@@ -666,7 +675,8 @@ export function useStreetView(roomId?: string, playerId?: string) {
         navErrorTimerRef.current = null;
       }
     };
-  }, [panoLifecycle]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /**
    * Show a pano package in the Street View panorama.

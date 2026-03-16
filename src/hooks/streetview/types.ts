@@ -14,9 +14,9 @@ export const MAX_ATTEMPTS = 50;
 export const BUDGET_WARNING_THRESHOLD = 1;
 
 // Custom Navigation Constants
-export const DRAG_THRESHOLD_PX = 12;
-export const CLICK_COOLDOWN_MS = 400;
-export const HEADING_CONFIDENCE_THRESHOLD = 60;
+export const DRAG_THRESHOLD_PX = 20;
+export const CLICK_COOLDOWN_MS = 250;
+export const HEADING_CONFIDENCE_THRESHOLD = 90;
 
 // ==================== TYPES ====================
 
