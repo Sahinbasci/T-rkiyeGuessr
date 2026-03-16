@@ -25,7 +25,7 @@ export function ComputingResultsOverlay() {
   }, []);
 
   return (
-    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] pointer-events-none">
+    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000008] pointer-events-none">
       <div className={`glass rounded-xl px-6 py-3 flex items-center gap-3 ${
         escalated
           ? "bg-orange-900/80 border-orange-500/50"

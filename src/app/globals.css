@@ -18,6 +18,16 @@
   --header-height: 56px;
   --action-bar-height: 80px;
   --mini-map-height: 140px;
+  /* Z-index hierarchy (must be above Google Maps controls ~1,000,001)
+     game-header:          1000002
+     mini-map / action-bar: 1000003
+     timer-bar:            1000004
+     players-list:         1000005
+     computing-overlay:    1000008
+     modal-overlay:        1000010
+     toast:                1000020
+     error-screen:         1000030
+  */
 }
 
 /* ============================================

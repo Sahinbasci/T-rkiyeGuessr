@@ -65,6 +65,9 @@ export default function HomeClient() {
   const guessLocationRef = useRef<Coordinates | null>(null);
   guessLocationRef.current = guessLocation;
 
+  // BUG-004: Async lock for all critical actions (must be before useTimer so onTimeUp can use it)
+  const { run: runLocked, isKeyLocked } = useAsyncLock();
+
   const { timeRemaining, formattedTime } = useTimer({
     initialTime: room?.timeLimit || 90,
     onTimeUp: () => {
@@ -72,15 +75,21 @@ export default function HomeClient() {
       const pendingGuess = guessLocationRef.current;
       if (pendingGuess && !currentPlayer?.hasGuessed) {
         // Fire-and-forget: server has GUESS_GRACE_PERIOD_MS for late submissions
-        submitGuess(pendingGuess).catch(() => {});
+        submitGuess(pendingGuess).catch((err) => {
+          if (!navigator.onLine) {
+            showTrackedToast("İnternet bağlantısı yok — tahmin gönderilemedi.");
+          }
+        });
       }
-      if (isHost) handleTimeUp();
+      // BUG-FIX: Guard with isKeyLocked to prevent race with handleSkipRound
+      if (isHost && !isKeyLocked("skipRound")) {
+        runLocked(async () => {
+          await handleTimeUp();
+        }, "timeUp").catch(() => {});
+      }
     },
     serverStartTime: room?.roundStartTime || null,
   });
-
-  // BUG-004: Async lock for all critical actions
-  const { run: runLocked, isKeyLocked } = useAsyncLock();
 
   // ==================== REFS ====================
   const prevRoundRef = useRef<number | null>(null);
@@ -459,7 +468,7 @@ export default function HomeClient() {
       } else if (!result.accepted && result.reason !== "already_guessed" && result.reason !== "already_guessed_db" && result.reason !== "in_flight") {
         showTrackedToast("Tahmin gönderilemedi.");
       }
-    }, "submitGuess");
+    }, "submitGuess", 15_000);
   };
 
   const showAdIfNeeded = () => {

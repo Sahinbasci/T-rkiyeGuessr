@@ -22,8 +22,8 @@ import { logger } from "@/utils/logger";
 interface UseAsyncLockReturn {
   /** Whether any action is currently locked/pending */
   isLocked: boolean;
-  /** Run an async action with lock protection. Returns the action's result or undefined if locked. */
-  run: <T>(action: () => Promise<T>, key?: string) => Promise<T | undefined>;
+  /** Run an async action with lock protection. Returns the action's result or undefined if locked. Optional timeoutMs auto-releases lock. */
+  run: <T>(action: () => Promise<T>, key?: string, timeoutMs?: number) => Promise<T | undefined>;
   /** Check if a specific key is locked */
   isKeyLocked: (key: string) => boolean;
   /** Reset all locks (emergency escape hatch) */
@@ -44,7 +44,8 @@ export function useAsyncLock(): UseAsyncLockReturn {
 
   const run = useCallback(async <T>(
     action: () => Promise<T>,
-    key: string = "__default__"
+    key: string = "__default__",
+    timeoutMs?: number
   ): Promise<T | undefined> => {
     // Synchronous check via ref (immune to stale closures)
     if (lockedKeysRef.current.has(key)) {
@@ -56,13 +57,28 @@ export function useAsyncLock(): UseAsyncLockReturn {
     lockedKeysRef.current.add(key);
     setLockedKeys(new Set(lockedKeysRef.current));
 
+    const releaseLock = () => {
+      lockedKeysRef.current.delete(key);
+      setLockedKeys(new Set(lockedKeysRef.current));
+    };
+
+    // Safety timeout: auto-release lock if action hangs (e.g. Firebase offline)
+    let safetyTimer: NodeJS.Timeout | null = null;
+    if (timeoutMs) {
+      safetyTimer = setTimeout(() => {
+        if (lockedKeysRef.current.has(key)) {
+          logger.warn(`[AsyncLock] Action "${key}" timed out after ${timeoutMs}ms — force releasing lock`);
+          releaseLock();
+        }
+      }, timeoutMs);
+    }
+
     try {
       const result = await action();
       return result;
     } finally {
-      // Release lock
-      lockedKeysRef.current.delete(key);
-      setLockedKeys(new Set(lockedKeysRef.current));
+      if (safetyTimer) clearTimeout(safetyTimer);
+      releaseLock();
     }
   }, []);
 
