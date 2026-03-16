@@ -14,15 +14,15 @@
         },
 
         "hostId": {
-          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 128 && (newData.parent().child('hostId').val() == auth.uid || !data.exists())"
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 128 && (data.val() == auth.uid || !data.exists() || data.parent().child('players').child(data.val()).child('status').val() != 'online')"
         },
 
         "status": {
-          ".validate": "newData.isString() && newData.val().matches(/^(waiting|playing|roundEnd|gameOver)$/) && (newData.parent().child('hostId').val() == auth.uid || !data.exists())"
+          ".validate": "newData.isString() && newData.val().matches(/^(waiting|playing|roundEnd|gameOver)$/) && (data.parent().child('hostId').val() == auth.uid || !data.exists())"
         },
 
         "currentRound": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20 && (newData.parent().child('hostId').val() == auth.uid || !data.exists())"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 20 && (data.parent().child('hostId').val() == auth.uid || !data.exists())"
         },
 
         "totalRounds": {
@@ -30,39 +30,39 @@
         },
 
         "gameMode": {
-          ".validate": "newData.isString() && newData.val().matches(/^(urban|geo)$/) && (newData.parent().child('hostId').val() == auth.uid || !data.exists())"
+          ".validate": "newData.isString() && newData.val().matches(/^(urban|geo)$/) && (data.parent().child('hostId').val() == auth.uid || !data.exists())"
         },
 
         "timeLimit": {
-          ".validate": "newData.isNumber() && newData.val() >= 30 && newData.val() <= 300 && (newData.parent().child('hostId').val() == auth.uid || !data.exists())"
+          ".validate": "newData.isNumber() && newData.val() >= 30 && newData.val() <= 300 && (data.parent().child('hostId').val() == auth.uid || !data.exists())"
         },
 
         "moveLimit": {
-          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10 && (newData.parent().child('hostId').val() == auth.uid || !data.exists())"
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10 && (data.parent().child('hostId').val() == auth.uid || !data.exists())"
         },
 
         "currentLocation": {
-          ".validate": "!newData.exists() || ((newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0) && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "currentPanoPackageId": {
-          ".validate": "!newData.exists() || (newData.isString() && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.isString() && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "currentPanoPackage": {
-          ".validate": "!newData.exists() || ((newData.hasChild('id') && newData.hasChild('pano0') && newData.hasChild('locationName') && newData.child('id').isString() && newData.child('id').val().length <= 100 && newData.child('locationName').isString() && newData.child('locationName').val().length <= 100) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.hasChild('id') && newData.hasChild('pano0') && newData.hasChild('locationName') && newData.child('id').isString() && newData.child('id').val().length <= 100 && newData.child('locationName').isString() && newData.child('locationName').val().length <= 100) && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "currentLocationName": {
-          ".validate": "!newData.exists() || ((newData.isString() && newData.val().length <= 100) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.isString() && newData.val().length <= 100) && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "roundResults": {
-          ".validate": "!newData.exists() || (newData.hasChildren() && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.hasChildren() && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "roundStartTime": {
-          ".validate": "!newData.exists() || (newData.isNumber() && (newData.parent().child('hostId').val() == auth.uid || !data.exists()) && (!data.exists() || !data.isNumber() || newData.val() >= data.val()))"
+          ".validate": "!newData.exists() || (newData.isNumber() && (data.parent().child('hostId').val() == auth.uid || !data.exists()) && (!data.exists() || !data.isNumber() || newData.val() >= data.val()))"
         },
 
         "createdAt": {
@@ -78,40 +78,40 @@
         },
 
         "gameInstanceId": {
-          ".validate": "!newData.exists() || (newData.isString() && newData.val().length >= 1 && newData.val().length <= 50 && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length >= 1 && newData.val().length <= 50 && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "roundState": {
-          ".validate": "!newData.exists() || ((newData.isString() && newData.val().matches(/^(waiting|active|ended)$/)) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.isString() && newData.val().matches(/^(waiting|active|ended)$/)) && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "roundVersion": {
-          ".validate": "!newData.exists() || ((newData.isNumber() && newData.val() >= 0 && (!data.exists() || !data.isNumber() || newData.val() >= data.val())) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.isNumber() && newData.val() >= 0 && (!data.exists() || !data.isNumber() || newData.val() >= data.val())) && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "activePlayerCount": {
-          ".validate": "!newData.exists() || ((newData.isNumber() && newData.val() >= 0) && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || ((newData.isNumber() && newData.val() >= 0) && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "expectedGuesses": {
-          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "currentGuesses": {
-          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.parent().child('hostId').val() == auth.uid || (newData.val() == data.val() + 1 && newData.parent().child('status').val() == 'playing')))"
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && (!data.exists() || data.parent().child('hostId').val() == auth.uid || (newData.val() == data.val() + 1 && data.parent().child('status').val() == 'playing')))"
         },
 
         "locationHistory": {
-          ".validate": "newData.parent().child('hostId').val() == auth.uid || !data.exists()"
+          ".validate": "data.parent().child('hostId').val() == auth.uid || !data.exists()"
         },
 
         "roundEndLock": {
-          ".validate": "!newData.exists() || (newData.hasChild('lockedBy') && newData.hasChild('roundId') && newData.hasChild('lockedAt') && newData.child('lockedBy').isString() && newData.child('roundId').isNumber() && newData.child('lockedAt').isNumber() && newData.child('lockedBy').val() == auth.uid && (newData.parent().child('hostId').val() == auth.uid || !data.exists()))"
+          ".validate": "!newData.exists() || (newData.hasChild('lockedBy') && newData.hasChild('roundId') && newData.hasChild('lockedAt') && newData.child('lockedBy').isString() && newData.child('roundId').isNumber() && newData.child('lockedAt').isNumber() && newData.child('lockedBy').val() == auth.uid && (data.parent().child('hostId').val() == auth.uid || !data.exists()))"
         },
 
         "meta": {
           "serverNow": {
-            ".validate": "newData.parent().parent().child('hostId').val() == auth.uid"
+            ".validate": "data.parent().parent().child('hostId').val() == auth.uid"
           },
           "$other": {
             ".validate": false
@@ -126,7 +126,7 @@
           "$playerId": {
             ".validate": "$playerId.matches(/^.{1,128}$/)",
             ".read": "auth != null",
-            ".write": "auth != null && (auth.uid == $playerId || data.parent().parent().child('hostId').val() == auth.uid || newData.parent().parent().child('hostId').val() == auth.uid) && (data.exists() || data.parent().numChildren() < 8)",
+            ".write": "auth != null && (auth.uid == $playerId || data.parent().parent().child('hostId').val() == auth.uid) && (data.exists() || data.parent().numChildren() < 8)",
 
             "id": {
               ".validate": "newData.isString() && newData.val() == $playerId"
@@ -141,15 +141,15 @@
             },
 
             "totalScore": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50000 && (newData.parent().parent().parent().child('hostId').val() == auth.uid || (newData.val() == 0 && auth.uid == $playerId) || (data.exists() && newData.val() == data.val() && auth.uid == $playerId))"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 50000 && (data.parent().parent().parent().child('hostId').val() == auth.uid || (newData.val() == 0 && auth.uid == $playerId) || (data.exists() && newData.val() == data.val() && auth.uid == $playerId))"
             },
 
             "currentGuess": {
-              ".validate": "!newData.exists() || (newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0 && (!data.exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid))"
+              ".validate": "!newData.exists() || (newData.child('lat').isNumber() && newData.child('lng').isNumber() && newData.child('lat').val() >= 35.0 && newData.child('lat').val() <= 43.0 && newData.child('lng').val() >= 25.0 && newData.child('lng').val() <= 46.0 && (!data.exists() || data.parent().parent().parent().child('hostId').val() == auth.uid))"
             },
 
             "hasGuessed": {
-              ".validate": "newData.isBoolean() && (newData.val() == false || newData.parent().child('currentGuess').exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid) && (newData.val() == true || newData.parent().parent().parent().child('hostId').val() == auth.uid || (!data.exists() && auth.uid == $playerId))"
+              ".validate": "newData.isBoolean() && (newData.val() == false || newData.parent().child('currentGuess').exists() || data.parent().parent().parent().child('hostId').val() == auth.uid) && (newData.val() == true || data.parent().parent().parent().child('hostId').val() == auth.uid || (!data.exists() && auth.uid == $playerId))"
             },
 
             "roundScores": {
@@ -181,7 +181,7 @@
             },
 
             "movesUsed": {
-              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10 && (!data.exists() || newData.parent().parent().parent().child('hostId').val() == auth.uid || newData.val() >= data.val())"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10 && (!data.exists() || data.parent().parent().parent().child('hostId').val() == auth.uid || newData.val() >= data.val())"
             },
 
             "$other": {
