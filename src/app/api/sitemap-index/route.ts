@@ -10,7 +10,8 @@ import { SITE_URL } from "@/config/site";
  */
 export async function GET() {
   const sitemapIds = [0, 1, 2, 3];
-  const lastMod = "2026-03-11";
+  // Keep in sync with LAST_DEPLOY in src/app/sitemap.ts
+  const lastMod = "2026-03-16";
 
   const entries = sitemapIds
     .map(
