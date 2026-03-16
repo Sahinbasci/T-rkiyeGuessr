@@ -1,5 +1,6 @@
 import { Users, Crown, Copy, Check, Play, MessageCircle } from "lucide-react";
 import { Room, Player, GameMode, GAME_MODE_CONFIG } from "@/types";
+import { ROOM_LIFECYCLE } from "@/config/production";
 import { PLAYER_COLORS } from "@/constants/playerColors";
 import { Toast } from "@/components/shared/Toast";
 import { AdSlot } from "@/components/ads/AdSlot";
@@ -115,7 +116,7 @@ export function LobbyScreen({
                 Oyuncular
               </p>
               <span className="text-xs bg-gray-700 px-2 py-1 rounded-full">
-                {players.length}/8
+                {players.length}/{ROOM_LIFECYCLE.MAX_PLAYERS_PER_ROOM}
               </span>
             </div>
             <div className="space-y-2 max-h-[240px] overflow-y-auto">
