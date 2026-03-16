@@ -1251,13 +1251,13 @@ export function useRoom() {
 
         // Read fresh players from transaction data
         const freshPlayers = currentRoom.players || {};
-        const onlineCount = Object.values(freshPlayers).filter(
-          (p: any) => !p.status || p.status === 'online'
+        const onlineCount = (Object.values(freshPlayers) as Player[]).filter(
+          (p) => !p.status || p.status === 'online'
         ).length;
 
         // Reset all players for new round
-        const updatedPlayers: { [key: string]: any } = {};
-        Object.values(freshPlayers).forEach((player: any) => {
+        const updatedPlayers: { [key: string]: Player } = {};
+        (Object.values(freshPlayers) as Player[]).forEach((player) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -1320,12 +1320,12 @@ export function useRoom() {
         if (currentRoom.hostId !== playerId) return; // abort
 
         const freshPlayers = currentRoom.players || {};
-        const onlineCount = Object.values(freshPlayers).filter(
-          (p: any) => !p.status || p.status === 'online'
+        const onlineCount = (Object.values(freshPlayers) as Player[]).filter(
+          (p) => !p.status || p.status === 'online'
         ).length;
 
-        const updatedPlayers: { [key: string]: any } = {};
-        Object.values(freshPlayers).forEach((player: any) => {
+        const updatedPlayers: { [key: string]: Player } = {};
+        (Object.values(freshPlayers) as Player[]).forEach((player) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -1640,12 +1640,12 @@ export function useRoom() {
 
         // Read fresh players from transaction data
         const freshPlayers = currentRoom.players || {};
-        const onlineCount = Object.values(freshPlayers).filter(
-          (p: any) => !p.status || p.status === 'online'
+        const onlineCount = (Object.values(freshPlayers) as Player[]).filter(
+          (p) => !p.status || p.status === 'online'
         ).length;
 
-        const updatedPlayers: { [key: string]: any } = {};
-        Object.values(freshPlayers).forEach((player: any) => {
+        const updatedPlayers: { [key: string]: Player } = {};
+        (Object.values(freshPlayers) as Player[]).forEach((player) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -1725,12 +1725,12 @@ export function useRoom() {
         }
 
         const freshPlayers = currentRoom.players || {};
-        const onlineCount = Object.values(freshPlayers).filter(
-          (p: any) => !p.status || p.status === 'online'
+        const onlineCount = (Object.values(freshPlayers) as Player[]).filter(
+          (p) => !p.status || p.status === 'online'
         ).length;
 
-        const updatedPlayers: { [key: string]: any } = {};
-        Object.values(freshPlayers).forEach((player: any) => {
+        const updatedPlayers: { [key: string]: Player } = {};
+        (Object.values(freshPlayers) as Player[]).forEach((player) => {
           updatedPlayers[player.id] = {
             ...player,
             currentGuess: null,
@@ -1800,13 +1800,13 @@ export function useRoom() {
           // Host migration (if we are the current host)
           let newHostId = currentRoom.hostId;
           if (isCurrentHost && currentRoom.hostId === playerId) {
-            const candidates = Object.values(players)
-              .filter((p: any) => p.id !== playerId && (!p.status || p.status === 'online'))
-              .sort((a: any, b: any) => (a.joinedAt || 0) - (b.joinedAt || 0));
-            const newHost = candidates[0] || Object.values(players).find((p: any) => p.id !== playerId);
+            const candidates = (Object.values(players) as Player[])
+              .filter((p) => p.id !== playerId && (!p.status || p.status === 'online'))
+              .sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+            const newHost = candidates[0] || (Object.values(players) as Player[]).find((p) => p.id !== playerId);
 
             if (newHost) {
-              newHostId = (newHost as any).id;
+              newHostId = newHost.id;
               players[newHostId] = { ...players[newHostId], isHost: true };
             }
           }
@@ -1818,7 +1818,7 @@ export function useRoom() {
           // Remove self
           delete players[playerId];
 
-          const updatedRoom: any = {
+          const updatedRoom: Partial<Room> & Pick<Room, 'hostId' | 'players'> = {
             ...currentRoom,
             hostId: newHostId,
             players,
@@ -1907,7 +1907,7 @@ export function useRoom() {
         };
       });
 
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         ...currentRoom,
         status: "waiting",
         currentRound: 0,
