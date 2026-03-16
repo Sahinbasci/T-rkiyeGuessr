@@ -1,4 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+// Load .env.local so tests can check for API keys
+const envPath = resolve(__dirname, '.env.local');
+if (existsSync(envPath)) {
+  for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match && !process.env[match[1].trim()]) {
+      process.env[match[1].trim()] = match[2].trim();
+    }
+  }
+}
 
 export default defineConfig({
   testDir: './e2e',

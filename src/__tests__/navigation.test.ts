@@ -16,6 +16,11 @@ import {
   resetNavigationMetrics,
   type NavigationMetrics,
 } from '@/hooks/useStreetView';
+import {
+  DRAG_THRESHOLD_PX,
+  CLICK_COOLDOWN_MS,
+  HEADING_CONFIDENCE_THRESHOLD,
+} from '@/hooks/streetview/types';
 
 describe('Navigation Metrics Module', () => {
   beforeEach(() => {
@@ -59,8 +64,6 @@ describe('Navigation Metrics Module', () => {
 });
 
 describe('Drag Threshold Logic (Unit)', () => {
-  const DRAG_THRESHOLD_PX = 12;
-
   function isDrag(startX: number, startY: number, endX: number, endY: number): boolean {
     const dx = Math.abs(endX - startX);
     const dy = Math.abs(endY - startY);
@@ -71,22 +74,21 @@ describe('Drag Threshold Logic (Unit)', () => {
   it('small movement should NOT be a drag', () => {
     expect(isDrag(100, 100, 102, 102)).toBe(false); // ~2.83px
     expect(isDrag(100, 100, 105, 100)).toBe(false); // 5px
-    expect(isDrag(100, 100, 108, 108)).toBe(false); // ~11.3px
+    expect(isDrag(100, 100, 115, 100)).toBe(false); // 15px < DRAG_THRESHOLD_PX(20)
   });
 
   it('large movement should be a drag', () => {
-    expect(isDrag(100, 100, 115, 100)).toBe(true); // 15px
-    expect(isDrag(100, 100, 100, 120)).toBe(true); // 20px
+    expect(isDrag(100, 100, 125, 100)).toBe(true); // 25px > DRAG_THRESHOLD_PX(20)
+    expect(isDrag(100, 100, 100, 130)).toBe(true); // 30px
     expect(isDrag(100, 100, 200, 200)).toBe(true); // ~141px (full screen drag)
   });
 
   it('threshold boundary: exactly at threshold should NOT be a drag', () => {
-    // sqrt(8.49^2 + 8.49^2) = ~12.0 = DRAG_THRESHOLD
-    expect(isDrag(100, 100, 112, 100)).toBe(false); // exactly 12px = NOT a drag (> check)
+    expect(isDrag(100, 100, 100 + DRAG_THRESHOLD_PX, 100)).toBe(false); // exactly threshold = NOT a drag (> check)
   });
 
   it('threshold boundary: just over threshold should be a drag', () => {
-    expect(isDrag(100, 100, 113, 100)).toBe(true); // 13px > 12
+    expect(isDrag(100, 100, 100 + DRAG_THRESHOLD_PX + 1, 100)).toBe(true); // threshold + 1
   });
 });
 
@@ -119,7 +121,6 @@ describe('Ghost Click Suppression Logic (Unit)', () => {
 });
 
 describe('Click Cooldown Logic (Unit)', () => {
-  const CLICK_COOLDOWN_MS = 400;
 
   it('should reject clicks within cooldown window', () => {
     const lastClickTime = Date.now();
@@ -191,7 +192,6 @@ describe('Click Heading Calculation (Unit)', () => {
 });
 
 describe('Find Nearest Link Logic (Unit)', () => {
-  const HEADING_CONFIDENCE_THRESHOLD = 60;
 
   interface MockLink {
     heading: number;
@@ -267,18 +267,18 @@ describe('Find Nearest Link Logic (Unit)', () => {
 
   it('should allow link at exactly threshold boundary (> not >=)', () => {
     const links = [
-      { heading: 120, pano: 'atThreshold' },
+      { heading: 60 + HEADING_CONFIDENCE_THRESHOLD, pano: 'atThreshold' },
     ];
-    // Target 60, link 120: diff = 60 = HEADING_CONFIDENCE_THRESHOLD
+    // diff = HEADING_CONFIDENCE_THRESHOLD exactly
     // minDiff > threshold (not >=), so exactly at threshold is allowed
     expect(findNearestLink(60, links)?.pano).toBe('atThreshold');
   });
 
   it('should handle link just within threshold', () => {
     const links = [
-      { heading: 119, pano: 'justWithin' },
+      { heading: 60 + HEADING_CONFIDENCE_THRESHOLD - 1, pano: 'justWithin' },
     ];
-    // Target 60, link 119: diff = 59 < 60 threshold
+    // diff = threshold - 1 < threshold
     expect(findNearestLink(60, links)?.pano).toBe('justWithin');
   });
 });
@@ -383,8 +383,6 @@ describe('Listener Lifecycle (Concept Test)', () => {
 });
 
 describe('Post-Drag Suppress Window (Unit)', () => {
-  const DRAG_THRESHOLD_PX = 12;
-  const CLICK_COOLDOWN_MS = 400;
 
   /**
    * Simulates the exact handlePointerUp flow from useStreetView.ts.
@@ -451,32 +449,37 @@ describe('Post-Drag Suppress Window (Unit)', () => {
     expect(tap.result).toBe('cooldown_suppressed');
   });
 
-  it('tap 399ms after drag should still be suppressed', () => {
+  it(`tap ${CLICK_COOLDOWN_MS - 1}ms after drag should still be suppressed`, () => {
     const dragTime = 1000;
-    const tapTime = dragTime + 399; // Just under 400ms cooldown
+    const tapTime = dragTime + CLICK_COOLDOWN_MS - 1; // Just under cooldown
 
     const drag = simulatePointerUpFlow(100, 100, 200, 100, 0, dragTime);
     const tap = simulatePointerUpFlow(200, 100, 200, 100, drag.newLastClickTime, tapTime);
     expect(tap.result).toBe('cooldown_suppressed');
   });
 
-  it('tap 400ms+ after drag should be allowed (move)', () => {
+  it(`tap ${CLICK_COOLDOWN_MS}ms+ after drag should be allowed (move)`, () => {
     const dragTime = 1000;
-    const tapTime = dragTime + 401; // Just over 400ms cooldown
+    const tapTime = dragTime + CLICK_COOLDOWN_MS + 1; // Just over cooldown
 
     const drag = simulatePointerUpFlow(100, 100, 200, 100, 0, dragTime);
     const tap = simulatePointerUpFlow(200, 100, 200, 100, drag.newLastClickTime, tapTime);
     expect(tap.result).toBe('move');
   });
 
-  it('3 rapid taps after drag should ALL be suppressed', () => {
+  it('3 rapid taps after drag should ALL be suppressed (within cooldown)', () => {
     const dragTime = 1000;
 
     const drag = simulatePointerUpFlow(100, 100, 200, 100, 0, dragTime);
     expect(drag.result).toBe('drag');
 
     let lastClick = drag.newLastClickTime;
-    const tapTimes = [dragTime + 20, dragTime + 100, dragTime + 250];
+    // All taps within CLICK_COOLDOWN_MS window
+    const tapTimes = [
+      dragTime + 20,
+      dragTime + 50,
+      dragTime + Math.floor(CLICK_COOLDOWN_MS / 2),
+    ];
 
     for (const tapTime of tapTimes) {
       const tap = simulatePointerUpFlow(200, 100, 200, 100, lastClick, tapTime);
@@ -518,14 +521,14 @@ describe('Post-Drag Suppress Window (Unit)', () => {
     // Simulate OLD behavior: drag doesn't update lastClickTime
     const oldLastClickTime = 0; // Never updated by drag
 
-    // The tap would see (tapTime - 0) = 1050ms > 400ms cooldown → PASS
+    // The tap would see (tapTime - 0) = 1050ms > cooldown → PASS
     const wouldPassCooldown = (tapTime - oldLastClickTime) >= CLICK_COOLDOWN_MS;
     expect(wouldPassCooldown).toBe(true); // OLD: tap would go through → BUG
 
     // NEW behavior: drag sets lastClickTime
     const newLastClickTime = dragTime; // Updated by drag
 
-    // The tap sees (tapTime - dragTime) = 50ms < 400ms cooldown → BLOCKED
+    // The tap sees (tapTime - dragTime) = 50ms < cooldown → BLOCKED
     const nowBlocked = (tapTime - newLastClickTime) < CLICK_COOLDOWN_MS;
     expect(nowBlocked).toBe(true); // NEW: tap is suppressed → FIX
   });

@@ -137,7 +137,7 @@ test.describe("A4: WhatsApp share URL", () => {
     expect(url).not.toContain("wa.me");
     // Should contain encoded room code and site URL
     const decoded = decodeURIComponent(url);
-    expect(decoded).toContain("turkiyeguessr.xyz");
+    expect(decoded).toContain("turkiyeguessr.com");
     expect(decoded).toContain("Oda Kodu");
   });
 });

@@ -413,8 +413,18 @@ test.describe('Transaction guard smoke tests', () => {
     await expect(createBtn).toBeEnabled({ timeout: 10000 });
 
     // Rapid double-click — useAsyncLock should prevent second call
-    await createBtn.click();
-    await createBtn.click({ delay: 50 });
+    // Use evaluate to fire two clicks in quick succession without Playwright awaiting navigation
+    await page.evaluate(() => {
+      const btn = document.querySelector('button') as HTMLButtonElement;
+      const buttons = document.querySelectorAll('button');
+      for (const b of buttons) {
+        if (b.textContent?.includes('Yeni Oda Oluştur')) {
+          b.click();
+          setTimeout(() => b.click(), 50);
+          break;
+        }
+      }
+    });
 
     // Wait for navigation — only one room should be created
     await page.waitForTimeout(5000);

@@ -858,7 +858,7 @@ test.describe('Mobil UI Testleri', () => {
     await page.goto('/');
 
     // Ana menü elementleri
-    await expect(page.getByRole('heading', { name: 'TürkiyeGuessr' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'TürkiyeGuessr', exact: true })).toBeVisible();
     await expect(page.locator('input[placeholder="Adını gir..."]')).toBeVisible();
     await expect(page.locator('button:has-text("Yeni Oda Oluştur")')).toBeVisible();
     await expect(page.locator('input[placeholder="ABC123"]')).toBeVisible();

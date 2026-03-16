@@ -8,7 +8,7 @@ import { test, expect, Page, BrowserContext, Browser } from '@playwright/test';
  * what regression it guards against.
  *
  * API KEY REQUIREMENTS:
- *   - Tests 1-5 need Google Maps API key (NEXT_PUBLIC_GOOGLE_MAPS_KEY)
+ *   - Tests 1-5 need Google Maps API key (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY)
  *   - Tests 6-13 work WITHOUT any API key
  *
  * Run:  npx playwright test --project='Bugcatcher - Desktop' e2e/bugcatcher.spec.ts
@@ -16,7 +16,7 @@ import { test, expect, Page, BrowserContext, Browser } from '@playwright/test';
 
 // ==================== CONFIG ====================
 
-const NEEDS_API_KEY = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
+const NEEDS_API_KEY = !!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const MOBILE_VIEWPORT = { width: 375, height: 812 };
 
 const TIMEOUT = {
@@ -854,17 +854,21 @@ test.describe('E2E Bug-Catcher Suite', () => {
     const createBtn = page.locator('button:has-text("Yeni Oda Oluştur")');
     await expect(createBtn).toBeEnabled({ timeout: TIMEOUT.ACTION });
 
-    // Rapid double-click
-    await createBtn.click();
-    // After first click, button should be disabled (isLoading or async lock)
-    await page.waitForTimeout(100);
-    const isDisabledAfterFirst = await createBtn.isDisabled().catch(() => true);
+    // Rapid double-click via DOM to avoid Playwright navigation awaiting
+    await page.evaluate(() => {
+      const buttons = document.querySelectorAll('button');
+      for (const b of buttons) {
+        if (b.textContent?.includes('Yeni Oda Oluştur')) {
+          b.click();
+          setTimeout(() => b.click(), 50);
+          break;
+        }
+      }
+    });
 
-    // Try clicking again immediately
-    await createBtn.click({ force: true }).catch(() => {});
-
-    // Wait for result
-    await page.waitForTimeout(5000);
+    // Wait for lobby or error to appear
+    await page.waitForSelector('text=Oda Kodu, [role="alert"]', { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1000);
 
     // Should end up in ONE lobby (not error)
     const lobbyVisible = await page.locator('text=Oda Kodu').isVisible().catch(() => false);
