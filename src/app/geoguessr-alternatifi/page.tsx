@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     "geoguessr ücretsiz oyna",
     "neredeyim ben alternatifi",
   ],
-  alternates: { canonical: "/geoguessr-alternatifi" },
+  alternates: { canonical: "/geoguessr-alternatifi", languages: { "tr-TR": "/geoguessr-alternatifi", "x-default": "/geoguessr-alternatifi" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "geotastic nedir",
     "ücretsiz harita oyunu",
   ],
-  alternates: { canonical: "/blog/geotastic-vs-turkiyeguessr" },
+  alternates: { canonical: "/blog/geotastic-vs-turkiyeguessr", languages: { "tr-TR": "/blog/geotastic-vs-turkiyeguessr", "x-default": "/blog/geotastic-vs-turkiyeguessr" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -48,6 +48,7 @@ export default function GeotasticVsTurkiyeguessrPost() {
     "@type": "BlogPosting",
     headline: "Geotastic vs TürkiyeGuessr: Hangisi Türkiye İçin Daha İyi?",
     datePublished: "2026-02-26",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",
@@ -311,7 +312,7 @@ export default function GeotasticVsTurkiyeguessrPost() {
                 <Link href="/bolgeler/dogu-anadolu" className="text-xs bg-gray-700/60 hover:bg-gray-700 text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg transition-colors">
                   Doğu Anadolu
                 </Link>
-                <Link href="/bolgeler/guneydogu-anadolu" className="text-xs bg-gray-700/60 hover:bg-gray-700 text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg transition-colors">
+                <Link href="/bolgeler/guneydogu" className="text-xs bg-gray-700/60 hover:bg-gray-700 text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg transition-colors">
                   Güneydoğu Anadolu
                 </Link>
               </div>

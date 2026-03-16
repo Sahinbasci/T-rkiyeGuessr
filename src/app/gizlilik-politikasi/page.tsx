@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Gizlilik Politikası",
   description:
     "TürkiyeGuessr gizlilik politikası. Kişisel verilerin korunması, çerez kullanımı ve KVKK hakları hakkında bilgi.",
-  alternates: { canonical: "/gizlilik-politikasi" },
+  alternates: { canonical: "/gizlilik-politikasi", languages: { "tr-TR": "/gizlilik-politikasi", "x-default": "/gizlilik-politikasi" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

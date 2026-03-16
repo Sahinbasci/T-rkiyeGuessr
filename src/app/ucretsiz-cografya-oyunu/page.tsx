@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "harita bilmece oyunu",
     "coğrafya testi türkiye",
   ],
-  alternates: { canonical: "/ucretsiz-cografya-oyunu" },
+  alternates: { canonical: "/ucretsiz-cografya-oyunu", languages: { "tr-TR": "/ucretsiz-cografya-oyunu", "x-default": "/ucretsiz-cografya-oyunu" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

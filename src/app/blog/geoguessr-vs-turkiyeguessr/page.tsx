@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "türkiye harita oyunu",
     "ücretsiz geoguessr",
   ],
-  alternates: { canonical: "/blog/geoguessr-vs-turkiyeguessr" },
+  alternates: { canonical: "/blog/geoguessr-vs-turkiyeguessr", languages: { "tr-TR": "/blog/geoguessr-vs-turkiyeguessr", "x-default": "/blog/geoguessr-vs-turkiyeguessr" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -46,6 +46,7 @@ export default function GeoguessrVsTurkiyeguessrPost() {
     "@type": "BlogPosting",
     headline: "GeoGuessr vs TürkiyeGuessr: Hangisi Daha İyi?",
     datePublished: "2026-02-25",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",
@@ -343,7 +344,7 @@ export default function GeoguessrVsTurkiyeguessrPost() {
             <Link href="/bolgeler/dogu-anadolu" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors">
               Doğu Anadolu
             </Link>
-            <Link href="/bolgeler/guneydogu-anadolu" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors col-span-2 sm:col-span-1">
+            <Link href="/bolgeler/guneydogu" className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-3 text-center text-sm text-gray-300 hover:text-white hover:border-red-500/50 transition-colors col-span-2 sm:col-span-1">
               Güneydoğu Anadolu
             </Link>
           </div>

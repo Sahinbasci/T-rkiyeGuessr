@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "İletişim — Bize Ulaşın",
   description:
     "TürkiyeGuessr ile iletişime geçin. Soru, öneri, hata bildirimi ve iş birliği teklifleri için bize ulaşın.",
-  alternates: { canonical: "/iletisim" },
+  alternates: { canonical: "/iletisim", languages: { "tr-TR": "/iletisim", "x-default": "/iletisim" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

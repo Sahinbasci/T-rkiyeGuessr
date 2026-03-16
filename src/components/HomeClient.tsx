@@ -123,6 +123,25 @@ export default function HomeClient() {
     if (nameInput.trim()) setNameError(null);
   }, [nameInput]);
 
+  // Hydration race recovery:
+  // If the user types before React listeners attach, DOM can show a value while state stays empty.
+  // Reconcile once after mount so action buttons don't remain incorrectly disabled.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const nameEl = document.getElementById("player-name-input") as HTMLInputElement | null;
+      if (!nameInput.trim() && nameEl?.value.trim()) {
+        setNameInput(nameEl.value);
+      }
+
+      const roomEl = document.getElementById("room-code-input") as HTMLInputElement | null;
+      if (!roomInput.trim() && roomEl?.value.trim()) {
+        setRoomInput(roomEl.value.toUpperCase());
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [nameInput, roomInput]);
+
   // ==================== EFFECTS ====================
 
   // Offline detection + BUG-011 FIX: stale session cleanup on mount

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "konum tahmin zor",
     "türkiye doğal güzellikler",
   ],
-  alternates: { canonical: "/blog/turkiyenin-en-zor-10-lokasyonu" },
+  alternates: { canonical: "/blog/turkiyenin-en-zor-10-lokasyonu", languages: { "tr-TR": "/blog/turkiyenin-en-zor-10-lokasyonu", "x-default": "/blog/turkiyenin-en-zor-10-lokasyonu" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -46,6 +46,7 @@ export default function EnZor10LokasyonPost() {
     "@type": "BlogPosting",
     headline: "Türkiye'nin En Zor Tahmin Edilen 10 Lokasyonu",
     datePublished: "2026-02-25",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",

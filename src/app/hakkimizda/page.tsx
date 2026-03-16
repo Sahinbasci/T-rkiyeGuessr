@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "türkiye coğrafya oyunu",
     "turkiyeguessr nedir",
   ],
-  alternates: { canonical: "/hakkimizda" },
+  alternates: { canonical: "/hakkimizda", languages: { "tr-TR": "/hakkimizda", "x-default": "/hakkimizda" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

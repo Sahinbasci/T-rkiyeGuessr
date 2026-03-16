@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
   keywords: ["online harita tahmin oyunları", "geoguessr alternatifleri", "ücretsiz konum tahmin oyunu", "harita oyunları", "worldguessr türkiye", "openguessr türkiye"],
-  alternates: { canonical: "/blog/online-harita-tahmin-oyunlari" },
+  alternates: { canonical: "/blog/online-harita-tahmin-oyunlari", languages: { "tr-TR": "/blog/online-harita-tahmin-oyunlari", "x-default": "/blog/online-harita-tahmin-oyunlari" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -40,6 +40,7 @@ export default function OnlineHaritaTahminOyunlariPost() {
     "@type": "BlogPosting",
     headline: "En İyi Online Harita Tahmin Oyunları (2026)",
     datePublished: "2026-02-10",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",
@@ -204,7 +205,7 @@ export default function OnlineHaritaTahminOyunlariPost() {
               { name: "Karadeniz Bölgesi", desc: "Yemyeşil dağlar ve yaylalar", href: "/bolgeler/karadeniz" },
               { name: "İç Anadolu Bölgesi", desc: "Kapadokya ve bozkır", href: "/bolgeler/ic-anadolu" },
               { name: "Doğu Anadolu Bölgesi", desc: "Ağrı Dağı ve Van Gölü", href: "/bolgeler/dogu-anadolu" },
-              { name: "Güneydoğu Anadolu Bölgesi", desc: "Tarihi Mezopotamya", href: "/bolgeler/guneydogu-anadolu" },
+              { name: "Güneydoğu Anadolu Bölgesi", desc: "Tarihi Mezopotamya", href: "/bolgeler/guneydogu" },
             ].map((region) => (
               <Link
                 key={region.href}

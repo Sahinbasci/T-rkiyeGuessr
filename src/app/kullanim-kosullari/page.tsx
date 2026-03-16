@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Kullanım Koşulları",
   description:
     "TürkiyeGuessr kullanım koşulları. Hizmet şartları, fikri mülkiyet, sorumluluk sınırı ve kullanıcı yükümlülükleri.",
-  alternates: { canonical: "/kullanim-kosullari" },
+  alternates: { canonical: "/kullanim-kosullari", languages: { "tr-TR": "/kullanim-kosullari", "x-default": "/kullanim-kosullari" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

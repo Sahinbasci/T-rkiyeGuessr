@@ -165,6 +165,15 @@ div[class*="address-control"] {
   touch-action: pan-x pan-y !important;
 }
 
+/* Street View interaction must stay fully gesture-driven on mobile.
+   Scoped here to avoid affecting the guess map. */
+.streetview-container,
+.streetview-container .gm-style,
+.streetview-container .widget-scene-canvas,
+.streetview-container [aria-label*="Street View"] {
+  touch-action: none !important;
+}
+
 /* Google Street View canvas için touch */
 .widget-scene-canvas {
   touch-action: none !important;

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "81 il oyunu",
     "türkiye illeri harita",
   ],
-  alternates: { canonical: "/sehirler" },
+  alternates: { canonical: "/sehirler", languages: { "tr-TR": "/sehirler", "x-default": "/sehirler" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

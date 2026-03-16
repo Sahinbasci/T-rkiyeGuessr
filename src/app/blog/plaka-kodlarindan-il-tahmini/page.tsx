@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "plaka quiz",
     "plaka oyunu",
   ],
-  alternates: { canonical: "/blog/plaka-kodlarindan-il-tahmini" },
+  alternates: { canonical: "/blog/plaka-kodlarindan-il-tahmini", languages: { "tr-TR": "/blog/plaka-kodlarindan-il-tahmini", "x-default": "/blog/plaka-kodlarindan-il-tahmini" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -48,6 +48,7 @@ export default function PlakaKodlariPost() {
     "@type": "BlogPosting",
     headline: "Plaka Kodlarından İl Nasıl Anlaşılır?",
     datePublished: "2026-02-25",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",

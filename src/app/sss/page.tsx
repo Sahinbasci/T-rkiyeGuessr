@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "konum tahmin oyunu nasıl oynanır",
     "türkiye guessr ücretsiz mi",
   ],
-  alternates: { canonical: "/sss" },
+  alternates: { canonical: "/sss", languages: { "tr-TR": "/sss", "x-default": "/sss" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

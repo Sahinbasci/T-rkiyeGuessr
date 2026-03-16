@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "türkiye coğrafya bölgeleri",
     "bölge harita oyunu",
   ],
-  alternates: { canonical: "/bolgeler" },
+  alternates: { canonical: "/bolgeler", languages: { "tr-TR": "/bolgeler", "x-default": "/bolgeler" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

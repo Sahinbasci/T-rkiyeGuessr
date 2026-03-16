@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "geoguessr taktikleri",
     "türkiye bölgeleri rehberi",
   ],
-  alternates: { canonical: "/blog" },
+  alternates: { canonical: "/blog", languages: { "tr-TR": "/blog", "x-default": "/blog" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",
@@ -40,8 +40,38 @@ export const metadata: Metadata = {
   },
 };
 
+function BlogJsonLd() {
+  const collectionPage = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Türkiye Coğrafya Rehberi ve Konum Tahmin İpuçları",
+    description:
+      "TürkiyeGuessr blog: Türkiye coğrafyası, konum tahmin taktikleri, bölge rehberleri ve oyun ipuçları.",
+    url: `${SITE_URL}/blog`,
+    isPartOf: { "@type": "WebSite", name: "TürkiyeGuessr", url: SITE_URL },
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: BLOG_POSTS.map((post, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `${SITE_URL}/blog/${post.slug}`,
+        name: post.title,
+      })),
+    },
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPage) }}
+    />
+  );
+}
+
 export default function BlogIndexPage() {
   return (
+    <>
+    <BlogJsonLd />
     <SeoLayout
       breadcrumbs={[
         { name: "Anasayfa", url: "/" },
@@ -54,10 +84,10 @@ export default function BlogIndexPage() {
             className="text-3xl sm:text-4xl font-bold tracking-wide"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Blog
+            Türkiye Coğrafya Rehberi ve Konum Tahmin İpuçları
           </h1>
           <p className="text-gray-400 mt-3 text-lg">
-            Türkiye coğrafyası, konum tahmin taktikleri ve oyun rehberleri.
+            Türkiye coğrafyası, bölge rehberleri, konum tahmin taktikleri ve oyun stratejileri.
           </p>
         </header>
 
@@ -108,5 +138,6 @@ export default function BlogIndexPage() {
         </section>
       </article>
     </SeoLayout>
+    </>
   );
 }

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
   keywords: ["türkiye illeri harita oyunu", "81 il oyunu", "türkiye harita bilmece", "il plaka kodları oyunu"],
-  alternates: { canonical: "/blog/turkiye-illeri-harita-oyunu" },
+  alternates: { canonical: "/blog/turkiye-illeri-harita-oyunu", languages: { "tr-TR": "/blog/turkiye-illeri-harita-oyunu", "x-default": "/blog/turkiye-illeri-harita-oyunu" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -44,6 +44,7 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
     "@type": "BlogPosting",
     headline: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
     datePublished: "2026-02-10",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",

@@ -7,7 +7,7 @@ import { SITE_URL } from "@/config/site";
 export const metadata: Metadata = {
   title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
   description:
-    "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon.",
+    "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
   keywords: [
     "şehir tahmin oyunu",
     "şehir tahmin etme oyunu",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     "konum bulma oyunu",
     "sokak görünümü tahmin oyunu",
   ],
-  alternates: { canonical: "/sehir-tahmin-oyunu" },
+  alternates: { canonical: "/sehir-tahmin-oyunu", languages: { "tr-TR": "/sehir-tahmin-oyunu", "x-default": "/sehir-tahmin-oyunu" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     siteName: "TürkiyeGuessr",
     title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
     description:
-      "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon.",
+      "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image" as const,
     title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
     description:
-      "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon.",
+      "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
   },
 };
 
@@ -71,7 +71,7 @@ const jsonLd = {
   name: "TürkiyeGuessr — Şehir Tahmin Oyunu",
   url: `${SITE_URL}/sehir-tahmin-oyunu`,
   description:
-    "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon.",
+    "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
   applicationCategory: "GameApplication",
   operatingSystem: "Web",
   offers: {

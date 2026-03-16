@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "KVKK Aydınlatma Metni",
   description:
     "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
-  alternates: { canonical: "/kvkk" },
+  alternates: { canonical: "/kvkk", languages: { "tr-TR": "/kvkk", "x-default": "/kvkk" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

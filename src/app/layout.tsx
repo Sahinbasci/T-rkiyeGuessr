@@ -180,6 +180,18 @@ function JsonLd() {
         "query-input": "required name=search_term_string",
       },
     },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Anasayfa",
+          item: SITE_URL,
+        },
+      ],
+    },
   ];
 
   return (

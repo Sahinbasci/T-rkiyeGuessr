@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "coğrafi işaretler türkiye",
     "bölge tanıma rehberi",
   ],
-  alternates: { canonical: "/blog/sokaktan-sehir-nasil-taninir" },
+  alternates: { canonical: "/blog/sokaktan-sehir-nasil-taninir", languages: { "tr-TR": "/blog/sokaktan-sehir-nasil-taninir", "x-default": "/blog/sokaktan-sehir-nasil-taninir" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -46,6 +46,7 @@ export default function SoraktanSehirTaninirPost() {
     "@type": "BlogPosting",
     headline: "Türkiye Sokak Görünümünden Şehir Nasıl Tanınır?",
     datePublished: "2026-02-25",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",

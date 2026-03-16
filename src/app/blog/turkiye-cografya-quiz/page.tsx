@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
   keywords: ["türkiye coğrafya quiz", "coğrafya bilgi yarışması", "türkiye coğrafya testi"],
-  alternates: { canonical: "/blog/turkiye-cografya-quiz" },
+  alternates: { canonical: "/blog/turkiye-cografya-quiz", languages: { "tr-TR": "/blog/turkiye-cografya-quiz", "x-default": "/blog/turkiye-cografya-quiz" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -40,6 +40,7 @@ export default function TurkiyeCografyaQuizPost() {
     "@type": "BlogPosting",
     headline: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
     datePublished: "2026-02-10",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",
@@ -212,7 +213,7 @@ export default function TurkiyeCografyaQuizPost() {
                 Dünyanın en eski tapınağı Göbeklitepe ve batık şehir Halfeti&apos;ye ev sahipliği yapan bu bölge, tarihi ve kültürel zenginlikleriyle dikkat çeker. GAP projesi bölgenin tarımsal potansiyelini artırmıştır.
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
-                <Link href="/bolgeler/guneydogu-anadolu" className="text-xs text-red-400 hover:text-red-300 transition-colors">Güneydoğu Anadolu Bölgesi →</Link>
+                <Link href="/bolgeler/guneydogu" className="text-xs text-red-400 hover:text-red-300 transition-colors">Güneydoğu Anadolu Bölgesi →</Link>
                 <Link href="/sehirler/halfeti-sanliurfa" className="text-xs text-red-400 hover:text-red-300 transition-colors">Halfeti →</Link>
               </div>
             </div>

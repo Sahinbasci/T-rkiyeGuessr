@@ -110,6 +110,13 @@ export function useGuessMap(onLocationSelect: (coord: Coordinates | null) => voi
       // BUG-ZOOM FIX: Map exists and div is same — reset zoom/center for new round.
       // resetMap() may have run on a stale mapRef (detached div from roundEnd unmount),
       // so we must ensure zoom is always reset when initializeMap is called.
+      mapRef.current.setOptions({
+        styles: MAPS_CONFIG.darkMapStyles,
+        restriction: {
+          latLngBounds: TURKEY_MAP_RESTRICTION,
+          strictBounds: true,
+        },
+      });
       mapRef.current.setCenter({ lat: center.lat, lng: center.lng });
       mapRef.current.setZoom(getTurkeyZoom());
     }

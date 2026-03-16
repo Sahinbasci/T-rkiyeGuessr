@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     "konum tahmin",
     "konum tahmin oyunu online",
   ],
-  alternates: { canonical: "/konum-tahmin-oyunu" },
+  alternates: { canonical: "/konum-tahmin-oyunu", languages: { "tr-TR": "/konum-tahmin-oyunu", "x-default": "/konum-tahmin-oyunu" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "TürkiyeGuessr'da konum tahmin etmenin tüm detayları. Oda kurma, mod seçimi, ipuçları ve strateji rehberi. Adım adım anlatım.",
   keywords: ["türkiye guessr nasıl oynanır", "geoguessr türkiye rehber", "konum tahmin oyunu rehber"],
-  alternates: { canonical: "/blog/turkiye-guessr-nasil-oynanir" },
+  alternates: { canonical: "/blog/turkiye-guessr-nasil-oynanir", languages: { "tr-TR": "/blog/turkiye-guessr-nasil-oynanir", "x-default": "/blog/turkiye-guessr-nasil-oynanir" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -40,6 +40,7 @@ export default function TurkiyeGuessrNasilOynanirPost() {
     "@type": "BlogPosting",
     headline: "TürkiyeGuessr Nasıl Oynanır? Detaylı Rehber",
     datePublished: "2026-02-10",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",
@@ -215,7 +216,7 @@ export default function TurkiyeGuessrNasilOynanirPost() {
             </div>
             <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 sm:col-span-2">
               <h3 className="font-semibold text-gray-200">
-                <Link href="/bolgeler/guneydogu-anadolu" className="hover:text-red-400 transition-colors">Güneydoğu Anadolu Bölgesi</Link>
+                <Link href="/bolgeler/guneydogu" className="hover:text-red-400 transition-colors">Güneydoğu Anadolu Bölgesi</Link>
               </h3>
               <p className="text-gray-500 text-sm mt-1">
                 Tarihi yapılar ve taş evler bölgenin en belirgin görsel ipuçlarıdır.{" "}

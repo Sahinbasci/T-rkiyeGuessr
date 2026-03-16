@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Çerez Politikası",
   description:
     "TürkiyeGuessr çerez politikası. Kullanılan çerez türleri, üçüncü taraf çerezleri ve çerez yönetimi hakkında bilgi.",
-  alternates: { canonical: "/cerez-politikasi" },
+  alternates: { canonical: "/cerez-politikasi", languages: { "tr-TR": "/cerez-politikasi", "x-default": "/cerez-politikasi" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

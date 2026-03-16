@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description:
     "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
   keywords: ["geoguessr taktikleri", "konum tahmin ipuçları", "türkiye geoguessr ipuçları", "plaka kodları ipuçları"],
-  alternates: { canonical: "/blog/geoguessr-taktikleri-ipuclari" },
+  alternates: { canonical: "/blog/geoguessr-taktikleri-ipuclari", languages: { "tr-TR": "/blog/geoguessr-taktikleri-ipuclari", "x-default": "/blog/geoguessr-taktikleri-ipuclari" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -40,6 +40,7 @@ export default function GeoguessrTaktikleriPost() {
     "@type": "BlogPosting",
     headline: "GeoGuessr Taktikleri ve İpuçları: Türkiye Özel",
     datePublished: "2026-02-10",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",

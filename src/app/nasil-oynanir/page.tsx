@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     "konum tahmin oyunu nasıl oynanır",
     "geoguessr nasıl oynanır türkçe",
   ],
-  alternates: { canonical: "/nasil-oynanir" },
+  alternates: { canonical: "/nasil-oynanir", languages: { "tr-TR": "/nasil-oynanir", "x-default": "/nasil-oynanir" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",

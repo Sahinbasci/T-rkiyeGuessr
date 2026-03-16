@@ -88,16 +88,11 @@ export function MiniMap({
   return (
     <div
       className={`mini-map-container ${mapExpanded ? "expanded" : ""}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        // BUG-007: Only expand the map, do NOT let click propagate to guess map
-        if (!mapExpanded) {
-          setMapExpanded(true);
-          setTimeout(() => triggerMapResize(), 50);
-        }
-      }}
+      onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
+      onPointerMove={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
     >
       <button
         onClick={(e) => {

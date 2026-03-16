@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "bölge özellikleri",
     "türkiye iklim bölgeleri",
   ],
-  alternates: { canonical: "/blog/turkiye-bolgeleri-rehberi" },
+  alternates: { canonical: "/blog/turkiye-bolgeleri-rehberi", languages: { "tr-TR": "/blog/turkiye-bolgeleri-rehberi", "x-default": "/blog/turkiye-bolgeleri-rehberi" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
@@ -46,6 +46,7 @@ export default function TurkiyeBolgeleriRehberiPost() {
     "@type": "BlogPosting",
     headline: "Türkiye Bölgeleri Rehberi: 7 Bölgenin Farkları",
     datePublished: "2026-02-25",
+    dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
     publisher: {
       "@type": "Organization",

@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${city.locationName} Konum Tahmin Oyunu`,
     description: metaDesc,
-    alternates: { canonical: `/sehirler/${city.slug}` },
+    alternates: { canonical: `/sehirler/${city.slug}`, languages: { "tr-TR": `/sehirler/${city.slug}`, "x-default": `/sehirler/${city.slug}` } },
     openGraph: {
       type: "website",
       locale: "tr_TR",

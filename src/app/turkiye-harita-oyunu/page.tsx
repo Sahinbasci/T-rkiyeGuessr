@@ -7,7 +7,7 @@ import { SITE_URL } from "@/config/site";
 export const metadata: Metadata = {
   title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
   description:
-    "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+    "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
   keywords: [
     "türkiye harita oyunu",
     "harita oyunu online",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     "harita kapmaca",
     "türkiye haritası oyunu",
   ],
-  alternates: { canonical: "/turkiye-harita-oyunu" },
+  alternates: { canonical: "/turkiye-harita-oyunu", languages: { "tr-TR": "/turkiye-harita-oyunu", "x-default": "/turkiye-harita-oyunu" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     siteName: "TürkiyeGuessr",
     title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
     description:
-      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: "summary_large_image" as const,
     title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
     description:
-      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
   },
 };
 
@@ -63,7 +63,7 @@ export default function TurkiyeHaritaOyunuPage() {
         },
         inLanguage: "tr",
         description:
-          "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ lokasyon, 7 bölge, multiplayer. Ücretsiz!",
+          "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
       },
       {
         "@type": "BreadcrumbList",

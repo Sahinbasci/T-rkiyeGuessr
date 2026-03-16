@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "arkadaşlarla harita oyunu",
     "çok oyunculu konum tahmin",
   ],
-  alternates: { canonical: "/multiplayer" },
+  alternates: { canonical: "/multiplayer", languages: { "tr-TR": "/multiplayer", "x-default": "/multiplayer" } },
   openGraph: {
     type: "website",
     locale: "tr_TR",
