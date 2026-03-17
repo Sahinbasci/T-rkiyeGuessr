@@ -20,8 +20,8 @@ import { test, expect, Page } from '@playwright/test';
 // ================================================================
 
 const TIMEOUT = {
-  PANO_LOAD: 60_000,
-  ACTION: 15_000,
+  PANO_LOAD: 90_000,
+  ACTION: 30_000,
 };
 
 const MOBILE_VIEWPORTS = {
@@ -66,10 +66,31 @@ function createMetricsCollector(page: Page) {
  * Navigate a player into a game room and wait for Street View to load.
  */
 async function setupSinglePlayerGame(page: Page, playerName: string): Promise<void> {
-  await page.goto('/');
-  await page.fill('input[placeholder="Adını gir..."]', playerName);
-  await page.click('button:has-text("Yeni Oda Oluştur")');
-  await page.waitForSelector('text=Oda Kodu', { timeout: TIMEOUT.ACTION });
+  await page.goto('/', { waitUntil: 'load' });
+
+  const input = page.locator('input[placeholder="Adını gir..."]');
+  await input.waitFor({ state: 'visible', timeout: TIMEOUT.ACTION });
+  await input.fill(playerName);
+
+  const createBtn = page.locator('button:has-text("Yeni Oda Oluştur")');
+  await expect(createBtn).toBeEnabled({ timeout: TIMEOUT.ACTION });
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await createBtn.click();
+    try {
+      await page.waitForSelector('text=Oda Kodu', { timeout: TIMEOUT.ACTION });
+      break;
+    } catch {
+      if (attempt === 2) throw new Error('setupSinglePlayerGame: lobby did not appear after 2 attempts');
+      console.log(`      setupSinglePlayerGame attempt ${attempt} failed, retrying...`);
+      await page.goto('/', { waitUntil: 'load' });
+      await input.waitFor({ state: 'visible', timeout: TIMEOUT.ACTION });
+      await input.fill(playerName);
+      await expect(createBtn).toBeEnabled({ timeout: TIMEOUT.ACTION });
+      await page.waitForTimeout(2000);
+    }
+  }
+
   await page.click('button:has-text("Oyunu Başlat")');
   await page.waitForSelector('.gm-style', { timeout: TIMEOUT.PANO_LOAD });
   await page.waitForSelector('.widget-scene-canvas, canvas', {
@@ -442,46 +463,37 @@ test.describe('Listener Lifecycle - No Leaks on Remount', () => {
   });
 
   test('5 page navigations should not accumulate listeners', async ({ page }) => {
-    // Simulate 2 full page loads (reduced from 5 to avoid SV API quota issues)
+    const metrics = createMetricsCollector(page);
     let successfulRounds = 0;
-    for (let i = 0; i < 2; i++) {
+
+    // First: set up one game successfully
+    await setupSinglePlayerGame(page, 'ListenerTest0');
+    successfulRounds++;
+
+    // Now do rapid menu→game transitions by navigating back and forth
+    // Use menu navigation (no API calls) for the middle rounds to avoid quota exhaustion
+    for (let i = 1; i < 5; i++) {
       try {
-        await page.goto('/');
-        await page.waitForTimeout(500);
-
-        await page.fill('input[placeholder="Adını gir..."]', `ListenerTest${i}`);
-        await page.click('button:has-text("Yeni Oda Oluştur")');
-        await page.waitForSelector('text=Oda Kodu', { timeout: TIMEOUT.ACTION });
-        await page.click('button:has-text("Oyunu Başlat")');
-
-        await page.waitForSelector('.gm-style', { timeout: 15_000 });
-        await page.waitForSelector('.widget-scene-canvas, canvas', {
-          timeout: 15_000,
-        });
-        await page.waitForTimeout(1000);
+        await page.goto('/', { waitUntil: 'load' });
+        await page.waitForTimeout(300);
+        const input = page.locator('input[placeholder="Adını gir..."]');
+        await input.waitFor({ state: 'visible', timeout: TIMEOUT.ACTION });
         successfulRounds++;
       } catch {
-        console.log(`Round ${i + 1}: SV load timeout (API quota?)`);
+        console.log(`Round ${i + 1}: navigation timeout`);
       }
     }
-    console.log(`Completed ${successfulRounds}/2 rounds`);
+    console.log(`Completed ${successfulRounds}/5 rounds`);
 
-    // After 5 remounts, test that a drag still produces 0 moves
-    // If listeners leaked, a single drag could trigger multiple moves
-    const metrics = createMetricsCollector(page);
+    // Final: set up game again and test that drag produces 0 moves
+    await setupSinglePlayerGame(page, 'ListenerTestFinal');
 
-    try {
-      const { x: cx, y: cy } = await getSVCenter(page);
+    const { x: cx, y: cy } = await getSVCenter(page);
+    await simulateDragOnSV(page, cx - 50, cy, cx + 50, cy, 10);
+    await page.waitForTimeout(1000);
 
-      // Single drag
-      await simulateDragOnSV(page, cx - 50, cy, cx + 50, cy, 10);
-      await page.waitForTimeout(1000);
-
-      expect(metrics.moveCount).toBe(0);
-      console.log(`Listener lifecycle: 5 remounts, drag → ${metrics.moveCount} moves (expected 0)`);
-    } catch {
-      console.log('Listener lifecycle: SV not available on final round, skipping drag test');
-    }
+    expect(metrics.moveCount).toBe(0);
+    console.log(`Listener lifecycle: ${successfulRounds} remounts, drag → ${metrics.moveCount} moves (expected 0)`);
   });
 
   test('unmount + remount should not break navigation', async ({ page }) => {

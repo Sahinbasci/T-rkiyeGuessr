@@ -17,10 +17,10 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false, // Multiplayer testler sıralı çalışmalı
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 2,
   workers: 1, // Tek worker - multiplayer senkronizasyonu için
   reporter: process.env.CI ? 'github' : 'html',
-  timeout: 240000, // 4 dakika timeout (host disconnect: 90s timer + 30s cleanup + 5s recovery + setup)
+  timeout: 300000, // 5 dakika timeout (room setup retries + 90s timer + 30s cleanup + buffer)
 
   use: {
     baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',

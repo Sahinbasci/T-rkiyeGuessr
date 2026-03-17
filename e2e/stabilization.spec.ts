@@ -21,10 +21,38 @@ async function waitForMenu(page: Page) {
 /** Fill player name and create a room */
 async function createRoom(page: Page, name = "E2ETestPlayer") {
   await waitForMenu(page);
-  await page.fill('input[placeholder*="Adını"]', name);
-  await page.click('button:has-text("Yeni Oda Oluştur")');
-  // Wait for lobby to load
-  await page.waitForSelector('text=Oyuncular', { timeout: 15000 });
+
+  // Fill name with retry for React hydration race
+  const input = page.locator('input[placeholder*="Adını"]');
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await input.fill(name);
+    const btn = page.locator('button:has-text("Yeni Oda Oluştur")');
+    const enabled = await btn.isEnabled({ timeout: 5000 }).catch(() => false);
+    if (enabled) break;
+    if (attempt < 3) {
+      await input.clear();
+      await page.waitForTimeout(1000 * attempt);
+    }
+  }
+
+  const createBtn = page.locator('button:has-text("Yeni Oda Oluştur")');
+  await expect(createBtn).toBeEnabled({ timeout: 15000 });
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await createBtn.click();
+    try {
+      await page.waitForSelector('text=Oyuncular', { timeout: 30000 });
+      return;
+    } catch {
+      if (attempt === 2) throw new Error('createRoom: lobby did not appear after 2 attempts');
+      console.log(`      stabilization createRoom attempt ${attempt} failed, retrying...`);
+      await page.goto('/', { waitUntil: 'load' });
+      await waitForMenu(page);
+      await input.fill(name);
+      await expect(createBtn).toBeEnabled({ timeout: 15000 });
+      await page.waitForTimeout(2000);
+    }
+  }
 }
 
 // ==================== A3: Cookie Consent Banner ====================

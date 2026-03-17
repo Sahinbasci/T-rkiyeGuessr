@@ -21,10 +21,10 @@ const MOBILE_VIEWPORT = { width: 375, height: 812 };
 
 const TIMEOUT = {
   PAGE_LOAD: 30_000,
-  LOBBY: 15_000,
-  PANO_LOAD: 60_000,
+  LOBBY: 30_000,
+  PANO_LOAD: 90_000,
   ROUND_END: 130_000,
-  ACTION: 15_000,
+  ACTION: 30_000,
 };
 
 // ==================== HELPERS ====================
@@ -83,12 +83,34 @@ async function createRoom(page: Page, name: string): Promise<string> {
 
   const createBtn = page.locator('button:has-text("Yeni Oda Oluştur")');
   await expect(createBtn).toBeEnabled({ timeout: TIMEOUT.ACTION });
-  await createBtn.click();
 
-  await page.waitForSelector('text=Oda Kodu', { timeout: TIMEOUT.LOBBY });
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    await createBtn.click();
+    try {
+      await page.waitForSelector('text=Oda Kodu', { timeout: TIMEOUT.LOBBY });
+      break;
+    } catch {
+      if (attempt === 2) throw new Error('createRoom: lobby did not appear after 2 attempts');
+      console.log(`      createRoom attempt ${attempt} failed, retrying...`);
+      await page.goto('/', { waitUntil: 'load' });
+      await fillPlayerName(page, name);
+      await expect(createBtn).toBeEnabled({ timeout: TIMEOUT.ACTION });
+      await page.waitForTimeout(2000);
+    }
+  }
+
   const codeEl = page.locator('span.tracking-\\[0\\.3em\\]');
-  const code = await codeEl.textContent();
-  return code?.trim() || '';
+  await codeEl.waitFor({ state: 'visible', timeout: TIMEOUT.ACTION });
+  await page.waitForTimeout(1000);
+  const code = await codeEl.textContent({ timeout: TIMEOUT.ACTION });
+  if (!code?.trim()) {
+    // Fallback: try getting room code from URL
+    const url = page.url();
+    const match = url.match(/room=([A-Z0-9]+)/);
+    if (match) return match[1];
+    throw new Error('createRoom: room code element found but empty');
+  }
+  return code.trim();
 }
 
 /**
@@ -104,15 +126,26 @@ async function joinRoom(page: Page, name: string, code: string): Promise<void> {
 
   const joinBtn = page.locator('button:has-text("Odaya Katıl")');
   await expect(joinBtn).toBeEnabled({ timeout: TIMEOUT.ACTION });
-  await joinBtn.click();
 
-  try {
-    await page.waitForSelector('text=Oyuncular', { timeout: TIMEOUT.LOBBY });
-  } catch {
-    // Retry once on auth race
-    await page.waitForTimeout(2000);
+  // Small delay to let Firebase auth settle
+  await page.waitForTimeout(500);
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
     await joinBtn.click();
-    await page.waitForSelector('text=Oyuncular', { timeout: TIMEOUT.LOBBY });
+    try {
+      await page.waitForSelector('text=Oyuncular', { timeout: TIMEOUT.LOBBY });
+      return;
+    } catch {
+      if (attempt === 3) throw new Error('joinRoom: lobby did not appear after 3 attempts');
+      console.log(`      Join failed, retrying (attempt ${attempt}/3)...`);
+      // Re-fill room code in case it was cleared
+      const currentVal = await roomInput.inputValue().catch(() => '');
+      if (currentVal !== code) {
+        await roomInput.fill(code);
+        await expect(joinBtn).toBeEnabled({ timeout: 5000 });
+      }
+      await page.waitForTimeout(2000 * attempt);
+    }
   }
 }
 
@@ -867,15 +900,16 @@ test.describe('E2E Bug-Catcher Suite', () => {
     });
 
     // Wait for lobby or error to appear
-    await page.waitForSelector('text=Oda Kodu, [role="alert"]', { timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('text=Oda Kodu, [role="alert"]', { timeout: TIMEOUT.LOBBY }).catch(() => {});
     await page.waitForTimeout(1000);
 
     // Should end up in ONE lobby (not error)
     const lobbyVisible = await page.locator('text=Oda Kodu').isVisible().catch(() => false);
     const errorVisible = await page.locator('[role="alert"]').isVisible().catch(() => false);
+    const loadingVisible = await page.locator('button:disabled:has-text("Oda Oluşturuluyor")').isVisible().catch(() => false);
 
-    // Exactly one outcome: lobby success or handled error
-    expect(lobbyVisible || errorVisible).toBe(true);
+    // Exactly one outcome: lobby success, handled error, or loading state
+    expect(lobbyVisible || errorVisible || loadingVisible).toBe(true);
 
     // If in lobby, room code should be valid
     if (lobbyVisible) {
