@@ -75,7 +75,7 @@ export default function HomeClient() {
       const pendingGuess = guessLocationRef.current;
       if (pendingGuess && !currentPlayer?.hasGuessed) {
         // Fire-and-forget: server has GUESS_GRACE_PERIOD_MS for late submissions
-        submitGuess(pendingGuess).catch((err) => {
+        submitGuess(pendingGuess).catch((_err) => {
           if (!navigator.onLine) {
             showTrackedToast("İnternet bağlantısı yok — tahmin gönderilemedi.");
           }
