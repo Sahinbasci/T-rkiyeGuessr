@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     description:
       "TürkiyeGuessr KVKK aydınlatma metni. 6698 sayılı Kanun kapsamında kişisel verilerin işlenmesine ilişkin bilgilendirme.",
   },
+  robots: { index: false, follow: true },
 };
 
 export default function KVKKPage() {

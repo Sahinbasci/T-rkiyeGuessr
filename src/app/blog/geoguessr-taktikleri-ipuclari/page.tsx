@@ -220,7 +220,7 @@ export default function GeoguessrTaktikleriPost() {
         </section>
 
         <nav className="flex flex-wrap gap-3 pt-4 border-t border-gray-700/50">
-          <Link href="/blog/turkiye-guessr-nasil-oynanir" className="text-sm text-gray-400 hover:text-white transition-colors">
+          <Link href="/nasil-oynanir" className="text-sm text-gray-400 hover:text-white transition-colors">
             Nasıl Oynanır Rehberi →
           </Link>
           <Link href="/bolgeler" className="text-sm text-gray-400 hover:text-white transition-colors">

@@ -182,7 +182,7 @@ export default function MultiplayerPage() {
             <Link href="/sehirler" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
               → 142+ Şehir Lokasyonu
             </Link>
-            <Link href="/blog/turkiye-guessr-nasil-oynanir" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
+            <Link href="/nasil-oynanir" className="bg-gray-800/40 border border-gray-700/30 rounded-lg px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
               → TürkiyeGuessr Nasıl Oynanır? (Blog)
             </Link>
           </div>

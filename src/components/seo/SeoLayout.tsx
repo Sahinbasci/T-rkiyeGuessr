@@ -1,9 +1,7 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { SeoFooter } from "./Footer";
+import { MobileMenuToggle } from "./MobileMenuToggle";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { AD_SLOTS } from "@/config/ads";
 
@@ -22,12 +20,10 @@ const NAV_LINKS = [
 ];
 
 export function SeoLayout({ children, breadcrumbs }: SeoLayoutProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       {/* Navigation */}
-      <nav className="border-b border-gray-800 px-4 py-3">
+      <nav className="border-b border-gray-800 px-4 py-3 relative">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <Link
             href="/"
@@ -57,45 +53,9 @@ export function SeoLayout({ children, breadcrumbs }: SeoLayoutProps) {
             >
               Oyna
             </Link>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              aria-label={mobileMenuOpen ? "Menüyü kapat" : "Menüyü aç"}
-              aria-expanded={mobileMenuOpen}
-            >
-              {mobileMenuOpen ? (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              ) : (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              )}
-            </button>
+            <MobileMenuToggle />
           </div>
         </div>
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="sm:hidden mt-3 pb-2 border-t border-gray-800 pt-3">
-            <div className="flex flex-col gap-2">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-gray-400 hover:text-white text-sm py-2 px-2 rounded-lg hover:bg-gray-800/50 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* Breadcrumbs */}

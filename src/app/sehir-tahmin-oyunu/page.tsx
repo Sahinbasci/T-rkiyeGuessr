@@ -67,20 +67,69 @@ const REGIONS = getAllRegions().map((r) => ({
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "WebApplication",
-  name: "TürkiyeGuessr — Şehir Tahmin Oyunu",
-  url: `${SITE_URL}/sehir-tahmin-oyunu`,
-  description:
-    "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
-  applicationCategory: "GameApplication",
-  operatingSystem: "Web",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "TRY",
-  },
-  inLanguage: "tr",
-  browserRequirements: "Requires JavaScript. Requires HTML5.",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      name: "TürkiyeGuessr — Şehir Tahmin Oyunu",
+      url: `${SITE_URL}/sehir-tahmin-oyunu`,
+      description:
+        "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
+      applicationCategory: "GameApplication",
+      operatingSystem: "Web",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "TRY",
+      },
+      inLanguage: "tr",
+      browserRequirements: "Requires JavaScript. Requires HTML5.",
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "Şehir tahmin oyununda başarılı olmak için ne yapmalıyım?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Plaka kodlarına, yol tabelalarına, mimari tarza ve bitki örtüsüne dikkat edin. Her şehrin kendine özgü görsel imzaları vardır — örneğin taş evler Mardin'i, beyaz badanalı evler Bodrum'u, çay tarlaları Rize'yi işaret eder.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Şehir tahmin oyunu ücretsiz mi?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Evet, TürkiyeGuessr tamamen ücretsizdir. Kayıt gerektirmez, abonelik ücreti yoktur ve tüm özellikler (multiplayer dahil) ücretsiz olarak sunulmaktadır.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Hangi şehirler oyunda yer alıyor?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "İstanbul, Antalya, İzmir, Trabzon, Mardin, Muğla, Nevşehir ve daha birçok ilden 142'den fazla özenle seçilmiş lokasyon bulunmaktadır. Hem büyükşehirler hem tarihi kasabalar temsil edilmektedir.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Şehir tahmin oyunu ile konum tahmin oyunu arasındaki fark nedir?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Şehir tahmin oyunu özellikle kentsel ipuçlarına (tabela, mimari, sokak dokusu) odaklanırken, konum tahmin oyunu daha geniş bir perspektifle kırsal alanlar dahil tüm coğrafi ipuçlarını kapsar.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Arkadaşlarımla birlikte şehir tahmin oyunu oynayabilir miyim?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Evet, multiplayer modda 2-8 kişilik odalar oluşturabilirsiniz. Oda kodunu arkadaşlarınızla paylaşarak aynı anda aynı lokasyonları tahmin edebilir ve en yüksek puanı kimin alacağını görebilirsiniz.",
+          },
+        },
+      ],
+    },
+  ],
 };
 
 export default function SehirTahminOyunuPage() {
@@ -221,6 +270,166 @@ export default function SehirTahminOyunuPage() {
           </div>
         </section>
 
+        {/* Şehir Tanıma Becerileri */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Şehir Tanıma Becerileri</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Bir şehri sokak görünümünden tanımak, birden fazla duyusal ve bilişsel beceriyi aynı anda
+            kullanmayı gerektirir. İyi bir şehir tahmincisi, öncelikle güçlü bir gözlem yeteneğine
+            sahiptir: sokak genişliği, kaldırım taşı tipi, elektrik direkleri, çöp kutuları ve hatta
+            duvar boyası renkleri gibi detayları fark eder. İkinci olarak, coğrafi bilgi birikimi
+            kritiktir — Türkiye&apos;nin 81 ilinin plaka kodlarını bilmek, tek bir araç plakasıyla
+            şehri kesinleştirmeyi sağlar.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Üçüncü beceri ise örüntü tanımadır. Deneyimli oyuncular, belirli bir zincir marketin
+            tabelasını, belediye otobüsünün rengini veya cami minaresinin stilini görerek şehri
+            daraltabilir. Dördüncü olarak, eliminasyon stratejisi önemlidir: göremediğin şeyler de
+            ipucudur. Deniz yoksa iç bölgedesin, yüksek binalar yoksa muhtemelen küçük bir ilçedesin,
+            kar yoksa Akdeniz veya Ege olabilir. Bu becerilerin tümü pratikle gelişir ve TürkiyeGuessr
+            bu pratiği yapmanın en eğlenceli yoludur.
+          </p>
+        </section>
+
+        {/* Türkiye'nin En Karakteristik 7 Şehri */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Türkiye&apos;nin En Karakteristik 7 Şehri</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Bazı şehirler, sokak görünümünde anında tanınabilecek kadar güçlü bir görsel kimliğe sahiptir.
+            İşte TürkiyeGuessr&apos;da karşılaşabileceğin en karakteristik 7 şehir:
+          </p>
+          <div className="space-y-3">
+            {[
+              {
+                city: "Mardin",
+                desc: "Mezopotamya ovasına bakan bal rengi taş evleri, dar sokakları ve düz damlı mimarisiyle Türkiye'nin en ayırt edici silüetine sahiptir. Minareler ve kilise kuleleri bir arada görülür.",
+              },
+              {
+                city: "Safranbolu",
+                desc: "UNESCO Dünya Mirası listesindeki Osmanlı konakları, cumbalı ahşap evler ve arnavut kaldırımlı sokaklar Safranbolu'yu benzersiz kılar. Çatı kiremitleri ve ahşap detaylar her kareden okunur.",
+              },
+              {
+                city: "Bodrum",
+                desc: "Beyaz badanalı evler, mavi kapı-pencere detayları ve dar sokaklar Ege'nin imzasıdır. Limanın her açısından görülebilen Bodrum Kalesi ise şehri kesinleştirir.",
+              },
+              {
+                city: "Trabzon",
+                desc: "Dik yamaçlara tırmanan binalar, yemyeşil tepeler ve sis bulutları Karadeniz'in en tanınmış şehrini ele verir. Hamsi restoranları ve çay bahçeleri kültürel ipuçları sunar.",
+              },
+              {
+                city: "Göreme (Kapadokya)",
+                desc: "Peri bacaları, kaya oyma oteller ve tüf kayadan yapılar dünyanın başka hiçbir yerinde bulunmaz. Balon uçuşları ve vadi manzaraları Kapadokya'nın imzasıdır.",
+              },
+              {
+                city: "Antalya (Kaleiçi)",
+                desc: "Roma dönemi surları, Osmanlı ahşap evleri ve modern marina bir arada. Hurma ağaçları, Akdeniz mavisi ve tarihi saat kulesi şehrin en bilinen görsel öğeleridir.",
+              },
+              {
+                city: "İstanbul (Fatih)",
+                desc: "Osmanlı camileri, Bizans surları, tramvay hatları ve yoğun insan trafiği bir arada. Boğaz manzarası, martılar ve vapur dumanları İstanbul'u her açıdan ele verir.",
+              },
+            ].map((item) => (
+              <div
+                key={item.city}
+                className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4"
+              >
+                <h3 className="text-gray-200 font-medium">{item.city}</h3>
+                <p className="text-gray-400 text-sm mt-1">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Sokak Detaylarından Şehir Çıkarma */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Sokak Detaylarından Şehir Çıkarma</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Kentsel alanlarda şehir tahmini yapmak, kırsal alanlardan oldukça farklı bir strateji
+            gerektirir. Şehirlerde ipuçları çok daha yoğundur: mağaza tabelaları, banka şubeleri,
+            belediye logoları, toplu taşıma araçları ve sokak isimleri doğrudan bilgi verir.
+            Örneğin bir belediye otobüsünün üzerindeki logo veya renk şeması şehri kesinleştirebilir.
+            Marketlerin bölgesel zincirleri de önemli bir ipucudur — belirli zincirler yalnızca
+            belirli bölgelerde faaliyet gösterir.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Kırsal alanlarda ise ipuçları daha dolaylıdır ve doğaya dayalıdır. Tarım ürünleri,
+            toprak rengi, yol kalitesi ve arazi yapısı bölgeyi daraltmak için kullanılır.
+            Ancak kentsel ortamlarda dikkat etmen gereken detaylar farklıdır: kaldırım taşı
+            desenleri (her belediye farklı tercih eder), sokak lambası tasarımları, çöp kutusu
+            tipleri ve hatta reklam panolarındaki yerel işletme isimleri sana şehrin kimliğini
+            fısıldar. Bu mikro detayları okumayı öğrenmek, şehir tahmin oyununda profesyonel
+            seviyeye ulaşmanın anahtarıdır.
+          </p>
+        </section>
+
+        {/* Şehir Tahmin Oyunlarının Faydaları */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Şehir Tahmin Oyunlarının Faydaları</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Şehir tahmin oyunları yalnızca eğlenceli bir zaman geçirme aracı değil, aynı zamanda
+            birçok bilişsel ve kültürel fayda sunar. İlk olarak, <strong className="text-gray-300">gözlem becerisi</strong> gelişir:
+            çevrendeki küçük detayları fark etme yeteneğin günlük hayatta da güçlenir. İkinci
+            olarak, <strong className="text-gray-300">mekansal zeka</strong> artar — haritada konum belirleme, mesafe tahmin
+            etme ve yön bulma yeteneklerin keskinleşir.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Üçüncü önemli fayda <strong className="text-gray-300">kültürel farkındalık</strong>tır. Farklı şehirlerin
+            sokaklarını sanal olarak dolaşmak, Türkiye&apos;nin ne kadar çeşitli bir ülke olduğunu
+            görsel olarak deneyimlemenizi sağlar. Güneydoğu&apos;nun taş mimarisi ile Karadeniz&apos;in
+            ahşap evleri, Ege&apos;nin beyaz cepheleri ile İç Anadolu&apos;nun kerpiç yapıları
+            arasındaki fark, ülkenin kültürel zenginliğini gözler önüne serer. Son olarak,
+            multiplayer modda oynandığında <strong className="text-gray-300">sosyal etkileşim</strong> ve sağlıklı rekabet
+            deneyimi yaşanır; arkadaşlarla veya aile bireyleriyle birlikte oynamak, ortak bir
+            keşif deneyimi oluşturur.
+          </p>
+        </section>
+
+        {/* SSS */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Sıkça Sorulan Sorular</h2>
+          <div className="space-y-4">
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Şehir tahmin oyununda başarılı olmak için ne yapmalıyım?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Plaka kodlarına, yol tabelalarına, mimari tarza ve bitki örtüsüne dikkat edin. Her şehrin
+                kendine özgü görsel imzaları vardır — örneğin taş evler Mardin&apos;i, beyaz badanalı evler
+                Bodrum&apos;u, çay tarlaları Rize&apos;yi işaret eder.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Şehir tahmin oyunu ücretsiz mi?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Evet, TürkiyeGuessr tamamen ücretsizdir. Kayıt gerektirmez, abonelik ücreti yoktur ve tüm
+                özellikler (multiplayer dahil) ücretsiz olarak sunulmaktadır.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Hangi şehirler oyunda yer alıyor?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                İstanbul, Antalya, İzmir, Trabzon, Mardin, Muğla, Nevşehir ve daha birçok ilden
+                142&apos;den fazla özenle seçilmiş lokasyon bulunmaktadır. Hem büyükşehirler hem
+                tarihi kasabalar temsil edilmektedir.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Şehir tahmin oyunu ile konum tahmin oyunu arasındaki fark nedir?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Şehir tahmin oyunu özellikle kentsel ipuçlarına (tabela, mimari, sokak dokusu) odaklanırken,
+                konum tahmin oyunu daha geniş bir perspektifle kırsal alanlar dahil tüm coğrafi ipuçlarını
+                kapsar.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Arkadaşlarımla birlikte şehir tahmin oyunu oynayabilir miyim?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Evet, multiplayer modda 2-8 kişilik odalar oluşturabilirsiniz. Oda kodunu arkadaşlarınızla
+                paylaşarak aynı anda aynı lokasyonları tahmin edebilir ve en yüksek puanı kimin alacağını
+                görebilirsiniz.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="text-center py-8 space-y-4">
           <h2 className="text-2xl font-bold text-white">
@@ -261,7 +470,7 @@ export default function SehirTahminOyunuPage() {
               Tüm Bölgeler
             </Link>
             <Link
-              href="/blog/turkiye-guessr-nasil-oynanir"
+              href="/nasil-oynanir"
               className="text-sm text-gray-400 hover:text-white underline transition-colors"
             >
               TürkiyeGuessr Rehberi

@@ -137,6 +137,65 @@ const FAQ_ITEMS: { q: string; a: React.ReactNode }[] = [
       </>
     ),
   },
+  {
+    q: "TürkiyeGuessr'da puan nasıl hesaplanır?",
+    a: "Puanlama, gerçek konum ile tahmininiz arasındaki mesafeye göre yapılır. Ne kadar yakın tahmin ederseniz o kadar çok puan alırsınız. 150 km altı mükemmel bir tahmin sayılır. Her oyun 5 turdan oluşur ve toplam puanınız tüm turların toplamıdır. Maksimum puan tur başına 5000'dir.",
+  },
+  {
+    q: "Konum tahmin ederken hangi ipuçlarına dikkat etmeliyim?",
+    a: (
+      <>
+        En güçlü ipuçları: araç plakaları (il kodları), yol tabelaları, bitki örtüsü,
+        mimari tarz ve arazi yapısıdır. Örneğin çay bahçeleri Karadeniz&apos;i, zeytinlikler
+        Ege&apos;yi, taş evler Güneydoğu&apos;yu işaret eder. Plaka kodlarını bilmek büyük avantaj sağlar.{" "}
+        <Link href="/blog/geoguessr-taktikleri-ipuclari" className="text-red-400 hover:underline">
+          Detaylı ipuçları rehberi
+        </Link>.
+      </>
+    ),
+  },
+  {
+    q: "Hesap oluşturmam gerekiyor mu?",
+    a: "Hayır, TürkiyeGuessr'da hesap oluşturmanız veya kayıt olmanız gerekmez. Siteye girdiğinizde bir oyuncu adı yazmanız yeterlidir. Kişisel bilgi, e-posta adresi veya şifre istenmez. Anında oynamaya başlayabilirsiniz.",
+  },
+  {
+    q: "Türkiye dışında da oynayabilir miyim?",
+    a: "Evet! TürkiyeGuessr'a dünyanın herhangi bir yerinden erişebilirsiniz. İnternet bağlantınız ve Google Street View'ı destekleyen bir tarayıcınız olması yeterlidir. Oyunun arayüzü tamamen Türkçedir ancak herkes oynayabilir.",
+  },
+  {
+    q: "Yeni lokasyonlar ne sıklıkla ekleniyor?",
+    a: "Düzenli olarak yeni lokasyonlar eklenmektedir. Her lokasyon, Street View kalitesi kontrol edilerek ve coğrafi denge gözetilerek elle seçilir. Güncel lokasyon sayısı 142'nin üzerindedir ve sürekli artmaktadır.",
+  },
+  {
+    q: "TürkiyeGuessr'ı okulda veya sınıfta kullanabilir miyim?",
+    a: (
+      <>
+        Kesinlikle! TürkiyeGuessr, coğrafya derslerinde interaktif bir öğrenme aracı olarak
+        kullanılabilir. Multiplayer özelliği sayesinde sınıf içi yarışmalar düzenleyebilirsiniz.
+        Ücretsiz olması herhangi bir okul bütçesi gerektirmez.{" "}
+        <Link href="/hakkimizda" className="text-red-400 hover:underline">
+          Eğitimde TürkiyeGuessr
+        </Link>.
+      </>
+    ),
+  },
+  {
+    q: "Plaka kodlarını nasıl öğrenebilirim?",
+    a: (
+      <>
+        Plaka kodları, konum tahmin oyunlarında en güçlü ipuçlarından biridir. 01 Adana&apos;dan
+        81 Düzce&apos;ye kadar her ilin benzersiz bir plaka kodu vardır. Oyun oynayarak doğal
+        yoldan öğrenebilir veya rehberimize göz atabilirsiniz.{" "}
+        <Link href="/blog/plaka-kodlarindan-il-tahmini" className="text-red-400 hover:underline">
+          Plaka kodları rehberi
+        </Link>.
+      </>
+    ),
+  },
+  {
+    q: "İnternet bağlantısı ne kadar gerekli?",
+    a: "TürkiyeGuessr, Google Street View panoramalarını yüklediği için stabil bir internet bağlantısı gerektirir. 3G/4G mobil internet yeterlidir ancak Wi-Fi bağlantısı daha akıcı bir deneyim sunar. Panoramalar önbelleğe alınmadığı için sürekli internet erişimi gerekir.",
+  },
 ];
 
 export default function SSSPage() {
@@ -153,6 +212,14 @@ export default function SSSPage() {
       { q: "Oyunda kaç lokasyon var?", a: "TürkiyeGuessr'da Türkiye'nin 7 bölgesinden 142'den fazla küratörlü lokasyon bulunmaktadır." },
       { q: "GeoGuessr'dan farkı ne?", a: "TürkiyeGuessr tamamen ücretsiz, tamamen Türkçe ve Türkiye'ye özel içerik sunar." },
       { q: "Oyun modları arasındaki fark nedir?", a: "Urban modunda şehir merkezlerinde konum bulursunuz. Geo modunda kırsal alanlarda tahmin yaparsınız." },
+      { q: "TürkiyeGuessr'da puan nasıl hesaplanır?", a: "Puanlama, gerçek konum ile tahmininiz arasındaki mesafeye göre yapılır. 150 km altı mükemmel bir tahmindir. Her oyun 5 turdan oluşur, maksimum puan tur başına 5000'dir." },
+      { q: "Konum tahmin ederken hangi ipuçlarına dikkat etmeliyim?", a: "En güçlü ipuçları araç plakaları, yol tabelaları, bitki örtüsü, mimari tarz ve arazi yapısıdır." },
+      { q: "Hesap oluşturmam gerekiyor mu?", a: "Hayır, kayıt veya hesap oluşturmak gerekmez. Oyuncu adı yazmanız yeterlidir." },
+      { q: "Türkiye dışında da oynayabilir miyim?", a: "Evet, dünyanın herhangi bir yerinden internet bağlantısıyla oynayabilirsiniz." },
+      { q: "Yeni lokasyonlar ne sıklıkla ekleniyor?", a: "Düzenli olarak yeni lokasyonlar eklenmektedir. Her lokasyon elle seçilir ve kalitesi kontrol edilir." },
+      { q: "TürkiyeGuessr'ı okulda kullanabilir miyim?", a: "Evet, coğrafya derslerinde interaktif öğrenme aracı olarak kullanılabilir. Ücretsizdir ve okul bütçesi gerektirmez." },
+      { q: "Plaka kodlarını nasıl öğrenebilirim?", a: "01'den 81'e kadar her ilin benzersiz plaka kodu vardır. Oyun oynayarak doğal yoldan öğrenebilirsiniz." },
+      { q: "İnternet bağlantısı ne kadar gerekli?", a: "Google Street View panoramalarını yüklemek için stabil internet bağlantısı gerekir. 3G/4G yeterlidir." },
     ].map((item) => ({
       "@type": "Question",
       name: item.q,

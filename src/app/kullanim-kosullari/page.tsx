@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     description:
       "TürkiyeGuessr kullanım koşulları. Hizmet şartları, fikri mülkiyet, sorumluluk sınırı ve kullanıcı yükümlülükleri.",
   },
+  robots: { index: false, follow: true },
 };
 
 export default function KullanimKosullariPage() {

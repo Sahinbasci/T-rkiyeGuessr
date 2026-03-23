@@ -33,6 +33,11 @@
       "source": "/bolgeler/dogu_anadolu",
       "destination": "/bolgeler/dogu-anadolu",
       "statusCode": 301
+    },
+    {
+      "source": "/blog/turkiye-guessr-nasil-oynanir",
+      "destination": "/nasil-oynanir",
+      "statusCode": 301
     }
   ]
 }

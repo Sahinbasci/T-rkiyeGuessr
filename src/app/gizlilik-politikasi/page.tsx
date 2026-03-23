@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     description:
       "TürkiyeGuessr gizlilik politikası. Kişisel verilerin korunması, çerez kullanımı ve KVKK hakları hakkında bilgi.",
   },
+  robots: { index: false, follow: true },
 };
 
 export default function GizlilikPolitikasiPage() {
