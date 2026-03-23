@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllRegions, getUniqueProvinceCount } from "@/data/seoData";
@@ -86,6 +87,18 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
             81 ili tanımanın en eğlenceli yolu: sokak görünümünde keşfet, haritada bul.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/turkey-map.jpg"
+            alt="Türkiye illeri harita oyunu"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin 81 ilini harita üzerinde keşfet</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Neden Harita Oyunu?</h2>

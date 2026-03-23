@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllCities, getAllRegions, getUniqueProvinceCount } from "@/data/seoData";
@@ -64,6 +65,18 @@ export default function SehirlerPage() {
             {totalCities} lokasyon, {totalProvinces} il, 7 bölge. Türkiye&apos;yi keşfetmeye hazır mısın?
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/sehirler-hero.jpg"
+            alt="Türkiye şehirleri konum tahmin oyunu"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye şehirleri ve lokasyonları</figcaption>
+        </figure>
 
         {/* İstatistikler */}
         <div className="grid grid-cols-3 gap-4">

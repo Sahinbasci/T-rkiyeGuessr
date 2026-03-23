@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getCityBySlug, getAllRegions } from "@/data/seoData";
@@ -130,6 +131,18 @@ export default function KonumTahminOyunuPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/konum-tahmin-hero.jpg"
+            alt="Street view konum tahmin oyunu"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Google Street View üzerinden konum tahmin deneyimi</figcaption>
+        </figure>
+
         {/* Nasıl Oynanır */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Konum Tahmin Oyunu Nasıl Oynanır?</h2>
@@ -218,6 +231,17 @@ export default function KonumTahminOyunuPage() {
             ))}
           </div>
         </section>
+
+        <figure className="my-6 rounded-lg overflow-hidden">
+          <Image
+            src="/images/blog/antalya-coast.jpg"
+            alt="Antalya sahil manzarası - konum ipuçları"
+            width={600}
+            height={340}
+            className="w-full h-auto rounded-lg"
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Antalya sahil manzarası - konum tahmininde coğrafi ipuçları</figcaption>
+        </figure>
 
         {/* Oyun Modları */}
         <section className="space-y-4">

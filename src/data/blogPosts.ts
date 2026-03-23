@@ -14,14 +14,6 @@ export interface BlogPostMeta {
 
 export const BLOG_POSTS: BlogPostMeta[] = [
   {
-    slug: "turkiye-guessr-nasil-oynanir",
-    title: "TürkiyeGuessr Nasıl Oynanır? Detaylı Rehber",
-    description: "TürkiyeGuessr'da konum tahmin etmenin tüm detayları. Oda kurma, mod seçimi, ipuçları ve strateji rehberi.",
-    date: "2026-02-10",
-    readTime: "5 dk",
-    tags: ["rehber", "nasıl oynanır", "başlangıç"],
-  },
-  {
     slug: "turkiye-cografya-quiz",
     title: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
     description: "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
@@ -100,6 +92,30 @@ export const BLOG_POSTS: BlogPostMeta[] = [
     date: "2026-02-26",
     readTime: "6 dk",
     tags: ["karşılaştırma", "geotastic", "alternatif"],
+  },
+  {
+    slug: "sinifta-turkiyeguessr",
+    title: "Coğrafya Öğretmenleri İçin: TürkiyeGuessr'ı Sınıfta Kullanma Rehberi",
+    description: "TürkiyeGuessr'ı coğrafya derslerinde nasıl kullanırsınız? 5 sınıf aktivitesi, adım adım kurulum ve MEB müfredatıyla uyum rehberi.",
+    date: "2026-03-15",
+    readTime: "7 dk",
+    tags: ["eğitim", "öğretmen", "sınıf", "coğrafya"],
+  },
+  {
+    slug: "turkiye-mimari-farklari",
+    title: "Türkiye'de Bölgelere Göre Mimari Farklar: Konum Tahmin Rehberi",
+    description: "Türkiye'nin 7 bölgesinde mimari tarzlar nasıl farklılaşır? Osmanlı yalılarından Karadeniz serenderlerine, konum tahmin mimari ipuçları.",
+    date: "2026-03-18",
+    readTime: "10 dk",
+    tags: ["rehber", "mimari", "bölgeler", "ipuçları"],
+  },
+  {
+    slug: "turkiyeguessr-hikayesi",
+    title: "TürkiyeGuessr'ın Hikayesi: Neden Bu Oyunu Yaptık?",
+    description: "TürkiyeGuessr'ın kuruluş hikayesi. Bir yazılım geliştirici nasıl Türkiye'ye özel bir konum tahmin oyunu yarattı?",
+    date: "2026-03-20",
+    readTime: "8 dk",
+    tags: ["hikaye", "hakkımızda", "kurucu"],
   },
 ];
 

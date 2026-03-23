@@ -44,7 +44,7 @@ export function SeoFooter() {
           <h4 className="text-gray-300 font-semibold mb-3">Blog</h4>
           <ul className="space-y-2 text-gray-500">
             <li><Link href="/blog" className="hover:text-white transition-colors">Tüm Yazılar</Link></li>
-            <li><Link href="/blog/turkiye-guessr-nasil-oynanir" className="hover:text-white transition-colors">Nasıl Oynanır Rehberi</Link></li>
+            <li><Link href="/nasil-oynanir" className="hover:text-white transition-colors">Nasıl Oynanır Rehberi</Link></li>
             <li><Link href="/blog/geoguessr-vs-turkiyeguessr" className="hover:text-white transition-colors">GeoGuessr Karşılaştırma</Link></li>
             <li><Link href="/blog/geoguessr-taktikleri-ipuclari" className="hover:text-white transition-colors">Taktik ve İpuçları</Link></li>
             <li><Link href="/blog/turkiye-bolgeleri-rehberi" className="hover:text-white transition-colors">Bölge Rehberi</Link></li>

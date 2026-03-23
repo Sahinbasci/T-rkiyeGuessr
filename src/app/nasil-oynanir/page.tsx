@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -113,6 +114,18 @@ export default function NasilOynanirPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/nasil-oynanir-hero.jpg"
+            alt="TürkiyeGuessr nasıl oynanır adım adım rehber"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr adım adım oyun rehberi</figcaption>
+        </figure>
+
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">1. Oyuncu Adını Gir</h2>
           <p className="text-gray-400 leading-relaxed">
@@ -120,6 +133,18 @@ export default function NasilOynanirPage() {
             TürkiyeGuessr tamamen <strong className="text-gray-300">ücretsiz</strong> bir konum tahmin oyunudur.
           </p>
         </section>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/step-1.jpg"
+            alt="Adım 1: Bölge seçimi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Adım 1: Bölge ve mod seçimi</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">2. Oyun Modunu Seç</h2>
@@ -154,6 +179,18 @@ export default function NasilOynanirPage() {
           </p>
         </section>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/step-2.jpg"
+            alt="Adım 2: Konumu incele"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Adım 2: Sokak görünümünde konumu incele</figcaption>
+        </figure>
+
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">4. Sokak Görünümünde Keşfet</h2>
           <p className="text-gray-400 leading-relaxed">
@@ -162,6 +199,18 @@ export default function NasilOynanirPage() {
             Süren dolmadan haritaya tıklayarak tahminin nereye olduğunu işaretle.
           </p>
         </section>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/step-3.jpg"
+            alt="Adım 3: Tahmini yap"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Adım 3: Haritada tahmini yap ve puan kazan</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">5. Tahmin Et ve Puan Kazan</h2>
@@ -181,6 +230,18 @@ export default function NasilOynanirPage() {
             <li>Hareket haklarını dikkatli kullan — her adım yeni bilgi getirir ama sınırlıdır</li>
           </ul>
         </section>
+
+        {/* YouTube video buraya eklenecek - Video ID gerekli */}
+        <div className="my-8 rounded-xl overflow-hidden bg-gray-800 aspect-video flex items-center justify-center">
+          <div className="text-center text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-lg font-medium">TürkiyeGuessr Tanıtım Videosu</p>
+            <p className="text-sm">Yakında yayında!</p>
+          </div>
+        </div>
 
         {/* İlgili İçerikler */}
         <section className="space-y-4">

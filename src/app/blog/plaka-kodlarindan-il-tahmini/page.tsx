@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
@@ -150,6 +151,18 @@ export default function PlakaKodlariPost() {
             Türkiye&apos;nin plaka sistemini öğren, sokak görünümünde rakiplerinden bir adım önde ol.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/plaka-kodlari.jpg"
+            alt="Türkiye plaka kodlarından il tahmini rehberi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye plaka kodları ile il tahmini rehberi</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Plaka Kodu Nedir?</h2>

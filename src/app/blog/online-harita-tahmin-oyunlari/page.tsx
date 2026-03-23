@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
@@ -82,6 +83,18 @@ export default function OnlineHaritaTahminOyunlariPost() {
             2026&apos;da oynayabileceğin en iyi konum tahmin ve harita oyunları.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/harita-oyunlari.jpg"
+            alt="Online harita tahmin oyunları rehberi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">En iyi online harita tahmin oyunları</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Konum Tahmin Oyunları Nedir?</h2>

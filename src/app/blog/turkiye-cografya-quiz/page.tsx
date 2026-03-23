@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -82,6 +83,18 @@ export default function TurkiyeCografyaQuizPost() {
             Türkiye&apos;nin coğrafyasını ne kadar iyi biliyorsun? Kendinizi test edin!
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/cografya-quiz.jpg"
+            alt="Türkiye coğrafya quiz soruları"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye coğrafya bilgini test et</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Neden Coğrafya Bilgisi Önemli?</h2>

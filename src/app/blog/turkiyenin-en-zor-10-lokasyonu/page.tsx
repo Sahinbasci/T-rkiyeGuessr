@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -151,6 +152,18 @@ export default function EnZor10LokasyonPost() {
             Bu lokasyonları biliyorsan gerçek bir Türkiye coğrafya ustasısın. İşte en çok yanılınan 10 yer.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/zor-lokasyonlar.jpg"
+            alt="Türkiye'nin en zor 10 lokasyonu"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr&apos;da en zor tahmin edilen lokasyonlar</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <p className="text-gray-400 leading-relaxed">

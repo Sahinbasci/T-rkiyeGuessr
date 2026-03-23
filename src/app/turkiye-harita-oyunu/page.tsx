@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getCityBySlug, getAllRegions } from "@/data/seoData";
@@ -82,6 +83,51 @@ export default function TurkiyeHaritaOyunuPage() {
           },
         ],
       },
+      {
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "Harita oyunu oynayarak coğrafya öğrenilebilir mi?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Evet, araştırmalar interaktif harita oyunlarının geleneksel ezbere dayalı yöntemlere kıyasla coğrafi bilgiyi %40'a kadar daha kalıcı hale getirdiğini göstermektedir. TürkiyeGuessr gibi sokak görünümü tabanlı oyunlar, görsel hafızayı ve mekansal muhakemeyi aktif olarak kullanarak öğrenmeyi pekiştirir.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Türkiye harita oyunu hangi yaş grubuna uygundur?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "TürkiyeGuessr her yaş grubuna uygundur. İlkokul öğrencileri bölge tanıma pratiği yapabilirken, ortaokul ve lise öğrencileri sınav hazırlığı için kullanabilir. Yetişkinler ise genel kültür ve eğlence amaçlı oynayabilir.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Harita oyununda kaç lokasyon var?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "TürkiyeGuessr'da Türkiye'nin 7 coğrafi bölgesinden özenle seçilmiş 142'den fazla gerçek Google Sokak Görünümü lokasyonu bulunmaktadır. Lokasyonlar düzenli olarak güncellenmektedir.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Türkiye harita oyunu mobilde oynanabilir mi?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Evet, TürkiyeGuessr tamamen mobil uyumludur. Herhangi bir uygulama indirmenize gerek yoktur; telefon, tablet veya bilgisayarınızın tarayıcısından doğrudan oynayabilirsiniz.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "Öğretmenler harita oyununu derslerinde nasıl kullanabilir?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Öğretmenler TürkiyeGuessr'ı sınıf içi yarışma olarak kullanabilir, bölge bazlı ödevler verebilir veya multiplayer modda takım çalışması etkinlikleri düzenleyebilir. Ücretsiz olması okul bütçesine ek yük getirmez.",
+            },
+          },
+        ],
+      },
     ],
   };
 
@@ -128,6 +174,18 @@ export default function TurkiyeHaritaOyunuPage() {
             bir harita yapboz deneyimi sunar.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/turkiye-harita-hero.jpg"
+            alt="Türkiye harita oyunu ile coğrafya öğrenin"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde interaktif konum tahmin deneyimi</figcaption>
+        </figure>
 
         {/* Nasıl Oynanır */}
         <section className="space-y-4">
@@ -245,6 +303,180 @@ export default function TurkiyeHaritaOyunuPage() {
                 {loc.name}
               </Link>
             ))}
+          </div>
+        </section>
+
+        <figure className="my-6 rounded-lg overflow-hidden">
+          <Image
+            src="/images/blog/cappadocia-balloons.jpg"
+            alt="Kapadokya balonları - Türkiye'nin ikonik manzarası"
+            width={600}
+            height={340}
+            className="w-full h-auto rounded-lg"
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya balonları - Türkiye&apos;nin en ikonik manzaralarından biri</figcaption>
+        </figure>
+
+        {/* Harita Oyunlarıyla Coğrafya Öğrenmek */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Harita Oyunlarıyla Coğrafya Öğrenmek</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Geleneksel coğrafya eğitimi genellikle harita üzerinde illeri ezberlemeye ve ders kitaplarındaki
+            statik görsellere dayanır. Ancak interaktif harita oyunları bu yaklaşımı tamamen değiştirmektedir.
+            Sokak görünümü tabanlı harita oyunları, öğrencinin pasif bir alıcı olmak yerine aktif bir keşifçi
+            rolüne girmesini sağlar. Oyuncu, karşısındaki panoramik görüntüdeki ipuçlarını analiz ederek
+            mekansal muhakeme becerisini geliştirir. Bu süreç, beynin görsel hafıza, yön bulma ve coğrafi
+            çıkarım yeteneklerini aynı anda çalıştırır; bu da bilginin çok daha kalıcı olmasını sağlar.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            TürkiyeGuessr gibi harita oyunlarının en büyük avantajı, öğrenme sürecini oyunlaştırmasıdır.
+            Puan sistemi, turlar ve arkadaşlarla yarışma mekanizması, coğrafya çalışmasını sıkıcı bir ödev
+            olmaktan çıkarıp heyecanlı bir deneyime dönüştürür. Her yanlış tahmin, yeni bir şey öğrenme
+            fırsatıdır: doğru konum gösterildiğinde oyuncu, o bölgenin bitki örtüsünü, mimarisini ve
+            topoğrafyasını zihninde otomatik olarak kodlar. Araştırmalar, bu tür deneyimsel öğrenmenin
+            geleneksel ezbere kıyasla bilgiyi daha uzun süre akılda tutmayı sağladığını ortaya koymaktadır.
+          </p>
+        </section>
+
+        {/* Türkiye Haritasını Tanımanın 5 Yolu */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Türkiye Haritasını Tanımanın 5 Yolu</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye haritasında usta olmak için şu beş stratejiyi uygulayabilirsin:
+          </p>
+          <ol className="space-y-4 text-gray-400 leading-relaxed">
+            <li className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">1. Bölge Sınırlarını Öğren</h3>
+              <p className="text-sm mt-1">
+                Türkiye 7 coğrafi bölgeye ayrılır ve her birinin kendine özgü sınırları vardır.
+                Marmara Bölgesi kuzeybatıda, Karadeniz kuzeyde dar bir şerit halinde uzanır,
+                Doğu Anadolu en geniş yüzölçümüne sahipken Güneydoğu Anadolu en küçük bölgedir.
+                Bu sınırları zihninde canlandırmak, tahminin bölge düzeyinde bile doğru olmasını sağlar.
+              </p>
+            </li>
+            <li className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">2. Kıyı Şeritlerini Tanı</h3>
+              <p className="text-sm mt-1">
+                Türkiye üç tarafı denizlerle çevrili bir yarımadadır. Karadeniz kıyısı dik ve yeşil,
+                Ege kıyısı girintili çıkıntılı ve zeytinliklerle dolu, Akdeniz kıyısı ise uzun kumlu
+                plajlar ve narenciye bahçeleriyle karakterizedir. Kıyı panoramasını gördüğünde hangi
+                denize baktığını ayırt etmek büyük avantaj sağlar.
+              </p>
+            </li>
+            <li className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">3. Dağ Silüetlerini Ezberle</h3>
+              <p className="text-sm mt-1">
+                Kaçkar Dağları Karadeniz&apos;in arkasında yükselir, Toros Dağları Akdeniz boyunca uzanır,
+                Ağrı Dağı Doğu Anadolu&apos;nun simgesidir. Dağ silüetleri, panoramada ufuk çizgisinde
+                göründüğünde bölgeyi daraltmanın en etkili yollarından biridir.
+              </p>
+            </li>
+            <li className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">4. Tarım Ürünlerinden Bölge Çıkar</h3>
+              <p className="text-sm mt-1">
+                Çay tarlaları Rize ve Artvin&apos;i, fındık bahçeleri Giresun ve Ordu&apos;yu,
+                pamuk tarlaları Çukurova&apos;yı, üzüm bağları Kapadokya ve Ege&apos;yi işaret eder.
+                Panoramadaki tarım alanları, harita üzerinde konumu daraltmanın doğal bir yoludur.
+              </p>
+            </li>
+            <li className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">5. Yerleşim Dokusu ve Mimariyi Oku</h3>
+              <p className="text-sm mt-1">
+                Mardin&apos;in taş evleri, Safranbolu&apos;nun Osmanlı konakları, Bodrum&apos;un beyaz
+                badanalı evleri, Karadeniz&apos;in ahşap yığma evleri — her bölgenin mimari dokusu
+                farklıdır. Yapı malzemesi ve çatı tipi bile bölge hakkında güçlü ipuçları verir.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        {/* Okulda Harita Oyunu Kullanımı */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Okulda Harita Oyunu Kullanımı</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Giderek daha fazla öğretmen, coğrafya derslerini canlandırmak için interaktif harita oyunlarını
+            müfredatlarına entegre etmektedir. TürkiyeGuessr, projeksiyon veya akıllı tahta üzerinden
+            tüm sınıfa gösterilebilir; öğretmen bir turu başlatır ve öğrenciler el kaldırarak ya da
+            takımlar halinde tahmin yapar. Bölge modu sayesinde dersin konusuyla doğrudan ilişkili
+            lokasyonlar seçilebilir — örneğin Karadeniz Bölgesi işleniyorsa yalnızca Karadeniz
+            lokasyonları üzerinden oyun oynanabilir.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Multiplayer modu ise uzaktan eğitim dönemlerinde de etkili bir araç olarak öne çıkar.
+            Öğretmen bir oda kodu paylaşarak öğrencilerin aynı anda aynı lokasyonları tahmin etmesini
+            sağlayabilir. Bu yarışma formatı, öğrencilerin motivasyonunu artırır ve dersin etkileşimli
+            olmasını garantiler. Ev ödevlerinde de bölge bazlı oturumlar verilebilir; öğrenciler
+            oynadıktan sonra hangi ipuçlarını kullandıklarını kısa bir paragrafla açıklayarak hem
+            coğrafya hem yazma becerilerini geliştirebilir.
+          </p>
+        </section>
+
+        {/* Türkiye'nin Coğrafi Yapısı */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Türkiye&apos;nin Coğrafi Yapısı</h2>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye, Asya ve Avrupa kıtalarını birbirine bağlayan eşsiz bir coğrafi konuma sahiptir.
+            783.562 km&sup2; yüzölçümüyle üç tarafı denizlerle çevrili bir yarımada olan Türkiye,
+            kuzeyde Karadeniz, batıda Ege Denizi ve güneyde Akdeniz ile sınırlıdır. Bu benzersiz
+            konum, ülkeye olağanüstü bir iklim ve bitki örtüsü çeşitliliği kazandırır: Karadeniz
+            kıyılarında yemyeşil ormanlar, İç Anadolu&apos;da geniş step bozkırları, Akdeniz&apos;de
+            makiler ve Doğu Anadolu&apos;da sert karasal iklim bir arada bulunur.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Türkiye&apos;nin topoğrafyası da son derece çeşitlidir. Ortalama yükseltisi 1.132 metre
+            olan ülke, Ağrı Dağı&apos;nın 5.137 metrelik zirvesinden Hatay&apos;ın deniz seviyesindeki
+            ovalarına kadar geniş bir yükselti aralığına sahiptir. Bu coğrafi çeşitlilik, harita
+            oyunlarında her turun farklı bir meydan okuma sunmasını sağlar — bir turda Kapadokya&apos;nın
+            peri bacaları arasında olabilirken, bir sonraki turda Karadeniz&apos;in sisli yaylalarında
+            bulabilirsin kendini. İşte bu zenginlik, Türkiye harita oyununu dünya üzerindeki en
+            ilgi çekici coğrafya deneyimlerinden biri haline getirir.
+          </p>
+        </section>
+
+        {/* SSS */}
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Sıkça Sorulan Sorular</h2>
+          <div className="space-y-4">
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Harita oyunu oynayarak coğrafya öğrenilebilir mi?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Evet, araştırmalar interaktif harita oyunlarının geleneksel ezbere dayalı yöntemlere kıyasla
+                coğrafi bilgiyi %40&apos;a kadar daha kalıcı hale getirdiğini göstermektedir. TürkiyeGuessr gibi
+                sokak görünümü tabanlı oyunlar, görsel hafızayı ve mekansal muhakemeyi aktif olarak kullanarak
+                öğrenmeyi pekiştirir.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Türkiye harita oyunu hangi yaş grubuna uygundur?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                TürkiyeGuessr her yaş grubuna uygundur. İlkokul öğrencileri bölge tanıma pratiği yapabilirken,
+                ortaokul ve lise öğrencileri sınav hazırlığı için kullanabilir. Yetişkinler ise genel kültür
+                ve eğlence amaçlı oynayabilir.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Harita oyununda kaç lokasyon var?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                TürkiyeGuessr&apos;da Türkiye&apos;nin 7 coğrafi bölgesinden özenle seçilmiş 142&apos;den
+                fazla gerçek Google Sokak Görünümü lokasyonu bulunmaktadır. Lokasyonlar düzenli olarak
+                güncellenmektedir.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Türkiye harita oyunu mobilde oynanabilir mi?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Evet, TürkiyeGuessr tamamen mobil uyumludur. Herhangi bir uygulama indirmenize gerek yoktur;
+                telefon, tablet veya bilgisayarınızın tarayıcısından doğrudan oynayabilirsiniz.
+              </p>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/30 rounded-lg p-4">
+              <h3 className="text-gray-200 font-medium">Öğretmenler harita oyununu derslerinde nasıl kullanabilir?</h3>
+              <p className="text-gray-400 text-sm mt-2">
+                Öğretmenler TürkiyeGuessr&apos;ı sınıf içi yarışma olarak kullanabilir, bölge bazlı ödevler
+                verebilir veya multiplayer modda takım çalışması etkinlikleri düzenleyebilir. Ücretsiz olması
+                okul bütçesine ek yük getirmez.
+              </p>
+            </div>
           </div>
         </section>
 

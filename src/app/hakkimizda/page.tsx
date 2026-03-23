@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -58,6 +59,18 @@ export default function HakkimizdaPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/hakkimizda-hero.jpg"
+            alt="TürkiyeGuessr ekibi hakkında"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr - Türkiye konum tahmin oyunu</figcaption>
+        </figure>
+
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">TürkiyeGuessr Nedir?</h2>
           <p className="text-gray-400 leading-relaxed">
@@ -73,6 +86,18 @@ export default function HakkimizdaPage() {
             rekabetçi bir şekilde yarışabilirsiniz.
           </p>
         </section>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/turkey-map.jpg"
+            alt="TürkiyeGuessr Türkiye haritası"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde oyun lokasyonları</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Misyonumuz</h2>
@@ -179,11 +204,64 @@ export default function HakkimizdaPage() {
         </section>
 
         <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Kurucu Hikayesi</h2>
+          <p className="text-gray-400 leading-relaxed">
+            TürkiyeGuessr, GeoGuessr oynamayı seven ama Türkiye lokasyonlarının yetersizliğinden
+            hayal kırıklığına uğrayan bir yazılım geliştirici tarafından 2026 yılında hayata geçirildi.
+            Mevcut konum tahmin oyunları ya dünya geneline odaklanarak Türkiye&apos;yi ihmal ediyor,
+            ya da ücretli abonelik modelleriyle erişimi kısıtlıyordu.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Bu boşluğu doldurmak için yola çıkan proje, kısa sürede Türkiye&apos;nin 7 coğrafi bölgesinden
+            142&apos;den fazla özenle seçilmiş lokasyonu bir araya getirdi. Her lokasyon tek tek
+            ziyaret edilerek Street View kalitesi kontrol edildi, coğrafi çeşitlilik sağlandı ve
+            zorluk seviyeleri dengelendi. Amacımız sadece bir oyun yapmak değil, Türkiye coğrafyasını
+            gerçekten öğreten, keşfettiren ve sevdiren bir platform oluşturmaktı.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Lokasyonlarımızı Nasıl Seçiyoruz?</h2>
+          <p className="text-gray-400 leading-relaxed">
+            TürkiyeGuessr&apos;daki her lokasyon, otomatik bir algoritma tarafından değil, elle seçilmiş
+            ve küratörlü bir süreçle belirlenmiştir. Lokasyon seçim kriterlerimiz:
+          </p>
+          <ul className="list-disc list-inside text-gray-400 space-y-2 ml-2">
+            <li><strong className="text-gray-300">Street View Kalitesi:</strong> Net, güncel ve 360 derece dönülebilir panoramalar tercih edilir.</li>
+            <li><strong className="text-gray-300">Coğrafi Çeşitlilik:</strong> Her bölgeden dengeli sayıda lokasyon eklenir — sadece turistik yerler değil, günlük yaşamın görüldüğü mahalleler de dahildir.</li>
+            <li><strong className="text-gray-300">Eğitim Değeri:</strong> Oyuncunun plaka kodları, mimari farklılıklar veya bitki örtüsü gibi gerçek coğrafi ipuçlarını öğrenmesine olanak tanıyan noktalar seçilir.</li>
+            <li><strong className="text-gray-300">Zorluk Dengesi:</strong> Kolay (şehir merkezleri, tabelalar görünür), orta (kasabalar) ve zor (kırsal alanlar, doğa) lokasyonlar dengeli şekilde dağıtılır.</li>
+          </ul>
+          <p className="text-gray-400 leading-relaxed">
+            Bu küratörlü yaklaşım, TürkiyeGuessr&apos;ı otomatik oluşturulan lokasyon havuzlarından
+            ayıran en önemli farkımızdır. Her eklenen lokasyon, gerçek bir insanın gözünden geçmiştir.
+          </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-red-400">Eğitimde TürkiyeGuessr</h2>
+          <p className="text-gray-400 leading-relaxed">
+            TürkiyeGuessr, coğrafya öğretmenleri ve öğrenciler tarafından ders materyali olarak
+            da kullanılmaktadır. Oyun, geleneksel ezber yöntemlerinin ötesine geçerek görsel ve
+            deneyimsel öğrenme sunar. Bir öğrenci, Karadeniz yaylalarının yeşilliğini görerek
+            bölgenin iklimini ezberlemek yerine deneyimler; Güneydoğu&apos;nun taş mimarisini
+            görerek kültürel farklılıkları anlar.
+          </p>
+          <p className="text-gray-400 leading-relaxed">
+            Multiplayer özelliği sayesinde öğretmenler sınıf içi yarışmalar düzenleyebilir,
+            öğrenciler takım halinde coğrafya bilgilerini test edebilir. Ücretsiz olması,
+            herhangi bir okul bütçesi gerektirmeden kullanılabilmesini sağlar.
+          </p>
+        </section>
+
+        <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Proje Hakkında</h2>
           <p className="text-gray-400 leading-relaxed">
             TürkiyeGuessr, bireysel bir geliştirici tarafından geliştirilen ve işletilen
             bağımsız bir web projesidir. Bir şirket veya ticari kuruluşla bağlantılı değildir.
             Proje, Türkiye coğrafyasını eğlenceli bir şekilde öğretme tutkusuyla hayata geçirilmiştir.
+            Sürekli olarak yeni lokasyonlar eklenmekte, mevcut içerik güncellenmekte ve kullanıcı
+            geri bildirimleri doğrultusunda iyileştirmeler yapılmaktadır.
           </p>
         </section>
 

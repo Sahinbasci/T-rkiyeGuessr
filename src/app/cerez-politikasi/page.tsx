@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     description:
       "TürkiyeGuessr çerez politikası. Kullanılan çerez türleri, üçüncü taraf çerezleri ve çerez yönetimi hakkında bilgi.",
   },
+  robots: { index: false, follow: true },
 };
 
 export default function CerezPolitikasiPage() {

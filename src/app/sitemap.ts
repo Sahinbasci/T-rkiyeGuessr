@@ -28,10 +28,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/sss`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.7 },
     { url: `${BASE}/hakkimizda`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.6 },
     { url: `${BASE}/iletisim`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${BASE}/gizlilik-politikasi`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${BASE}/cerez-politikasi`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${BASE}/kullanim-kosullari`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.4 },
-    { url: `${BASE}/kvkk`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${BASE}/gizlilik-politikasi`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.1 },
+    { url: `${BASE}/cerez-politikasi`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.1 },
+    { url: `${BASE}/kullanim-kosullari`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.1 },
+    { url: `${BASE}/kvkk`, lastModified: CONTENT_UPDATE, changeFrequency: "monthly", priority: 0.1 },
   ];
 
   const blogPages: MetadataRoute.Sitemap = BLOG_POSTS.map((p) => ({
