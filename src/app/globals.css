@@ -225,10 +225,12 @@ div[aria-label*="Street View"] {
   gap: 8px;
 }
 
-.btn-primary:hover {
-  background: linear-gradient(135deg, #ef4444, #f87171);
-  transform: translateY(-1px);
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+@media (hover: hover) {
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #ef4444, #f87171);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+  }
 }
 
 .btn-primary:active {
@@ -257,9 +259,11 @@ div[aria-label*="Street View"] {
   font-size: 16px;
 }
 
-.btn-secondary:hover {
-  background: rgba(42, 42, 56, 0.9);
-  border-color: rgba(255, 255, 255, 0.2);
+@media (hover: hover) {
+  .btn-secondary:hover {
+    background: rgba(42, 42, 56, 0.9);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
 }
 
 .btn-secondary:active {
@@ -274,6 +278,14 @@ div[aria-label*="Street View"] {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Mobile: reduce expensive backdrop-filter blur */
+@media (max-width: 640px) {
+  .glass {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 }
 
 /* ============================================
@@ -344,6 +356,23 @@ div[aria-label*="Street View"] {
 .animate-pulse { animation: pulse 2s ease-in-out infinite; }
 .animate-bounce { animation: bounce 1s infinite; }
 .animate-spin { animation: spin 0.8s linear infinite; }
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeIn,
+  .animate-slideUp,
+  .animate-slideDown,
+  .animate-pulse,
+  .animate-bounce {
+    animation: none !important;
+  }
+  .animate-fadeIn,
+  .animate-slideUp,
+  .animate-slideDown {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 
 /* ============================================
    GAME HEADER - ALWAYS VISIBLE
@@ -460,42 +489,6 @@ div[aria-label*="Street View"] {
     width: 400px;
     height: 300px;
   }
-}
-
-/* GAP #4: Province selector button — positioned next to expand button */
-.province-selector-btn {
-  position: absolute;
-  top: 6px;
-  left: 48px;
-  z-index: 99999;
-  pointer-events: auto;
-  isolation: isolate;
-  height: 36px;
-  padding: 0 10px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 12px;
-}
-.province-selector-btn:active {
-  transform: scale(0.95);
-  background: rgba(0, 0, 0, 0.95);
-}
-/* GAP #4: Province dropdown container */
-.province-dropdown {
-  position: absolute;
-  top: 46px;
-  left: 48px;
-  z-index: 99999;
-  pointer-events: auto;
-  min-width: 160px;
-  max-width: 200px;
 }
 
 /* Map expand button — BUG-003 FIX: z-index raised to stay above Google Maps overlays */

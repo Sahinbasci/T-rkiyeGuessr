@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  compress: true,
   async headers() {
     return [
       {
@@ -65,6 +66,13 @@ const nextConfig = {
         source: "/(sehirler|bolgeler|blog)/:path*",
         headers: [
           { key: "Cache-Control", value: "public, max-age=86400, s-maxage=604800" },
+        ],
+      },
+      {
+        // Static assets — immutable long-term cache
+        source: "/_next/static/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
     ];

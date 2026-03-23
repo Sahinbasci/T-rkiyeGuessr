@@ -379,15 +379,15 @@ describe("GAP #4: Province centroid data", () => {
     expect(getProvinceCentroid("Trabzon")).toBeDefined();
   });
 
-  test("MiniMap includes province selector UI", async () => {
+  test("MiniMap does not include removed province selector UI", async () => {
     const fs = await import("fs");
     const content = fs.readFileSync(
       "src/components/game/MiniMap.tsx", "utf-8"
     );
-    expect(content).toContain("province-selector-btn");
-    expect(content).toContain("İl Seç");
-    expect(content).toContain("PROVINCE_CENTROIDS");
-    expect(content).toContain("handleProvinceSelect");
+    // Province selector was removed — it relied on unstable internal Google Maps API
+    expect(content).not.toContain("province-selector-btn");
+    expect(content).not.toContain("PROVINCE_CENTROIDS");
+    expect(content).not.toContain("handleProvinceSelect");
   });
 });
 
