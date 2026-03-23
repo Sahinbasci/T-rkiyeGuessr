@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getAllRegions } from "@/data/seoData";
@@ -63,6 +64,18 @@ export default function BolgelerPage() {
             7 coğrafi bölge, 142+ lokasyon. Hangi bölgeyi ne kadar iyi tanıyorsun?
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/bolgeler-hero.jpg"
+            alt="Türkiye'nin 7 coğrafi bölgesi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin 7 coğrafi bölgesi</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Türkiye&apos;nin 7 Coğrafi Bölgesi</h2>

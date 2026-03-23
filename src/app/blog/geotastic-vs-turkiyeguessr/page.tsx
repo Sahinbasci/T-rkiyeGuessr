@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
@@ -87,6 +88,18 @@ export default function GeotasticVsTurkiyeguessrPost() {
             Geotastic vs TürkiyeGuessr: Türkiye İçin Hangisi?
           </h1>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/geotastic-karsilastirma.jpg"
+            alt="Geotastic ve TürkiyeGuessr karşılaştırması"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Geotastic ve TürkiyeGuessr karşılaştırması</figcaption>
+        </figure>
 
         {/* Giriş */}
         <section className="space-y-3">

@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getCityBySlug, getAllRegions } from "@/data/seoData";
@@ -165,6 +166,18 @@ export default function SehirTahminOyunuPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/sehir-tahmin-hero.jpg"
+            alt="Sokak görünümünden şehir tahmin oyunu"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Sokak görünümünden ipuçlarını kullanarak şehir tahmin edin</figcaption>
+        </figure>
+
         {/* Sokak Görünümü Nasıl Çalışır? */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">
@@ -269,6 +282,17 @@ export default function SehirTahminOyunuPage() {
             ))}
           </div>
         </section>
+
+        <figure className="my-6 rounded-lg overflow-hidden">
+          <Image
+            src="/images/blog/istanbul-skyline.jpg"
+            alt="İstanbul silüeti - şehir tanıma ipuçları"
+            width={600}
+            height={340}
+            className="w-full h-auto rounded-lg"
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">İstanbul silüeti - şehir tanımanın en bilinen örneklerinden biri</figcaption>
+        </figure>
 
         {/* Şehir Tanıma Becerileri */}
         <section className="space-y-4">

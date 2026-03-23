@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
@@ -82,6 +83,18 @@ export default function SiniftaTurkiyeguessrPost() {
             Geleneksel ezber yerine interaktif öğrenme. Öğrencileriniz Türkiye coğrafyasını oynayarak öğrensin.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/classroom.jpg"
+            alt="Sınıfta TürkiyeGuessr kullanımı rehberi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr ile interaktif coğrafya eğitimi</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Geleneksel Coğrafya Eğitiminin Sınırları</h2>

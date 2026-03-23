@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -82,6 +83,18 @@ export default function TurkiyeMimariFarklariPost() {
             Konum tahmin oyunlarında mimari tarzı okumak, bölgeyi daraltmanın en etkili yollarından biri. İşte Türkiye&apos;nin 7 bölgesinin yapı karakteristikleri.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/cappadocia-balloons.jpg"
+            alt="Türkiye'de bölgelere göre mimari farklar"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin bölgelerine göre değişen mimari tarzlar</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Mimari Neden En Güçlü İpucudur?</h2>

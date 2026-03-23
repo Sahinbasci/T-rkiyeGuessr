@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -163,6 +164,18 @@ export default function UcretsizCografyaOyunuPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/ucretsiz-cografya-hero.jpg"
+            alt="Ücretsiz coğrafya oyunu ile Türkiye'yi keşfedin"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr ile ücretsiz coğrafya öğrenme deneyimi</figcaption>
+        </figure>
+
         {/* Neden Ücretsiz? */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Neden Ücretsiz?</h2>
@@ -223,6 +236,17 @@ export default function UcretsizCografyaOyunuPage() {
             ))}
           </div>
         </section>
+
+        <figure className="my-6 rounded-lg overflow-hidden">
+          <Image
+            src="/images/blog/classroom.jpg"
+            alt="Sınıfta coğrafya eğitimi"
+            width={600}
+            height={340}
+            className="w-full h-auto rounded-lg"
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Interaktif coğrafya oyunları ile sınıf içi eğitim</figcaption>
+        </figure>
 
         {/* Eğitim İçin İdeal */}
         <section className="space-y-4">

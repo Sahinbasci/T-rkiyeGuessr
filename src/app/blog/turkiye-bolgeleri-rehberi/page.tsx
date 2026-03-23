@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -88,6 +89,18 @@ export default function TurkiyeBolgeleriRehberiPost() {
             Her bölgenin kendine özgü iklimi, bitki örtüsü ve mimarisi var. Bu rehberle hepsini tanı.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/bolge-rehberi.jpg"
+            alt="Türkiye bölgeleri coğrafya rehberi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin 7 coğrafi bölgesi ve özellikleri</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <p className="text-gray-400 leading-relaxed">

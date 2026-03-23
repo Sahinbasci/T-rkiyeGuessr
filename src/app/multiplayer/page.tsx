@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -82,6 +83,18 @@ export default function MultiplayerPage() {
             Arkadaşlarınla aynı anda aynı konuma düşün, kim daha iyi bilecek?
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/multiplayer-hero.jpg"
+            alt="TürkiyeGuessr multiplayer çok oyunculu mod"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Arkadaşlarınla birlikte Türkiye konum tahmin oyunu oyna</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Nasıl Çalışır?</h2>
@@ -168,6 +181,18 @@ export default function MultiplayerPage() {
             ))}
           </div>
         </section>
+
+        {/* YouTube video buraya eklenecek - Video ID gerekli */}
+        <div className="my-8 rounded-xl overflow-hidden bg-gray-800 aspect-video flex items-center justify-center">
+          <div className="text-center text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-lg font-medium">TürkiyeGuessr Tanıtım Videosu</p>
+            <p className="text-sm">Yakında yayında!</p>
+          </div>
+        </div>
 
         {/* İlgili İçerikler */}
         <section className="space-y-4">

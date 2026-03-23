@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -129,6 +130,18 @@ export default function GeoguessrAlternatifiPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/geoguessr-alternatifi-hero.jpg"
+            alt="GeoGuessr alternatifi Türkiye konum tahmin oyunu"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr - GeoGuessr&apos;a Türkçe ve ücretsiz alternatif</figcaption>
+        </figure>
+
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Neden TürkiyeGuessr?</h2>
           <p className="text-gray-400 leading-relaxed">
@@ -200,6 +213,17 @@ export default function GeoguessrAlternatifiPage() {
             </div>
           </div>
         </section>
+
+        <figure className="my-6 rounded-lg overflow-hidden">
+          <Image
+            src="/images/blog/turkey-map.jpg"
+            alt="Türkiye haritası üzerinde konum tahmini"
+            width={600}
+            height={340}
+            className="w-full h-auto rounded-lg"
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde konum tahmini deneyimi</figcaption>
+        </figure>
 
         {/* Detaylı Özellik Karşılaştırması */}
         <section className="space-y-4">

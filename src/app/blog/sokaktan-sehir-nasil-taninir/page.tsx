@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
@@ -88,6 +89,18 @@ export default function SoraktanSehirTaninirPost() {
             Tabelalardan mimariye, bitkilerden coğrafi şekillere: her ipucu seni doğru şehre yaklaştırır.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/istanbul-skyline.jpg"
+            alt="Sokak görünümünden şehir tanıma ipuçları"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Sokak görünümünde şehirleri tanımanın ipuçları</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Tabelalar ve Yazılar</h2>

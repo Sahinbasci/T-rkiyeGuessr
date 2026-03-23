@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -58,6 +59,18 @@ export default function HakkimizdaPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/hakkimizda-hero.jpg"
+            alt="TürkiyeGuessr ekibi hakkında"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr - Türkiye konum tahmin oyunu</figcaption>
+        </figure>
+
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">TürkiyeGuessr Nedir?</h2>
           <p className="text-gray-400 leading-relaxed">
@@ -73,6 +86,18 @@ export default function HakkimizdaPage() {
             rekabetçi bir şekilde yarışabilirsiniz.
           </p>
         </section>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/turkey-map.jpg"
+            alt="TürkiyeGuessr Türkiye haritası"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde oyun lokasyonları</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Misyonumuz</h2>

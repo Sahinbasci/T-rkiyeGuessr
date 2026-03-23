@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
@@ -82,6 +83,18 @@ export default function GeoguessrTaktikleriPost() {
             Sokak görünümünde Türkiye&apos;yi tanımanın altın kuralları.
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/street-view-tips.jpg"
+            alt="GeoGuessr taktikleri ve ipuçları rehberi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">GeoGuessr ve konum tahmin oyunlarında kullanabileceğiniz taktikler</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">1. Plaka Kodlarını Öğren</h2>

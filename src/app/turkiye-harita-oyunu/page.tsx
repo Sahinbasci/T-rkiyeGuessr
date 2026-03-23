@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { getCityBySlug, getAllRegions } from "@/data/seoData";
@@ -174,6 +175,18 @@ export default function TurkiyeHaritaOyunuPage() {
           </p>
         </header>
 
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/pages/turkiye-harita-hero.jpg"
+            alt="Türkiye harita oyunu ile coğrafya öğrenin"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde interaktif konum tahmin deneyimi</figcaption>
+        </figure>
+
         {/* Nasıl Oynanır */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Nasıl Oynanır?</h2>
@@ -292,6 +305,17 @@ export default function TurkiyeHaritaOyunuPage() {
             ))}
           </div>
         </section>
+
+        <figure className="my-6 rounded-lg overflow-hidden">
+          <Image
+            src="/images/blog/cappadocia-balloons.jpg"
+            alt="Kapadokya balonları - Türkiye'nin ikonik manzarası"
+            width={600}
+            height={340}
+            className="w-full h-auto rounded-lg"
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya balonları - Türkiye&apos;nin en ikonik manzaralarından biri</figcaption>
+        </figure>
 
         {/* Harita Oyunlarıyla Coğrafya Öğrenmek */}
         <section className="space-y-4">

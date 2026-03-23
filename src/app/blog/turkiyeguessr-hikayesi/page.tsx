@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
@@ -82,6 +83,18 @@ export default function TurkiyeguessrHikayesiPost() {
             Bir yazılım geliştirici, GeoGuessr&apos;da Türkiye lokasyonlarının yetersizliğinden yola çıkarak nasıl Türkiye&apos;ye özel bir konum tahmin oyunu yarattı?
           </p>
         </header>
+
+        <figure className="my-8 rounded-xl overflow-hidden">
+          <Image
+            src="/images/blog/istanbul-skyline.jpg"
+            alt="TürkiyeGuessr'ın hikayesi"
+            width={800}
+            height={450}
+            className="w-full h-auto rounded-xl"
+            priority
+          />
+          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr&apos;ın kuruluş hikayesi</figcaption>
+        </figure>
 
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">Her Şey Bir Hayal Kırıklığıyla Başladı</h2>
