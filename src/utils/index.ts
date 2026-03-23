@@ -231,19 +231,22 @@ export async function getLocationName(coord: Coordinates): Promise<string> {
     }
 
     // Sonucu formatla — "İlçe, İl" format
+    // NFC normalize to fix decomposed Unicode from Google Geocoder
+    const normalize = (s: string) => s.normalize("NFC").trim();
+
     if (ilce && il) {
       // İlçe ve il aynıysa (merkez ilçe) sadece il göster
       if (
         ilce.toLocaleLowerCase("tr-TR") === il.toLocaleLowerCase("tr-TR") ||
         ilce.toLocaleLowerCase("tr-TR").includes("merkez")
       ) {
-        return il;
+        return normalize(il);
       }
-      return `${ilce}, ${il}`;
+      return normalize(`${ilce}, ${il}`);
     } else if (il) {
-      return il;
+      return normalize(il);
     } else if (ilce) {
-      return ilce;
+      return normalize(ilce);
     }
 
     return "Türkiye";

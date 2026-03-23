@@ -115,6 +115,7 @@ export function usePanoLifecycle(): PanoLifecycleResult {
         ...BASE_STREET_VIEW_OPTIONS,
         pano: panoId,
         pov: { heading, pitch: 0 },
+        zoom: 0,
       }
     );
     panoramaConstructedRef.current = true;
@@ -205,6 +206,7 @@ export function usePanoLifecycle(): PanoLifecycleResult {
 
       panoramaRef.current.setPano(panoId);
       panoramaRef.current.setPov({ heading, pitch: 0 });
+      panoramaRef.current.setZoom(0);
       metrics.googleInternalMetadataEstimate++;
       metrics.setPanoCallCount++;
       logCostMetrics("reuseSetPano", { pano: panoId.substring(0, 12) });

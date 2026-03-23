@@ -97,5 +97,6 @@ export const BASE_STREET_VIEW_OPTIONS: google.maps.StreetViewPanoramaOptions = {
   motionTrackingControl: false,
   clickToGo: false,
   disableDefaultUI: false,
-  scrollwheel: true,
+  scrollwheel: false,
+  zoom: 0,
 };
