@@ -5,13 +5,16 @@ import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
+  title: "GeoGuessr Türkiye Nasıl Oynanır? — Ücretsiz Adım Adım Rehber",
   description:
-    "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
+    "GeoGuessr Türkiye (TürkiyeGuessr) nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konum tahmin et. Ücretsiz Türkçe rehber — kayıt gerektirmez.",
   keywords: [
+    "geoguessr türkiye nasıl oynanır",
+    "geoguessr nasıl oynanır",
     "türkiye guessr nasıl oynanır",
     "konum tahmin oyunu nasıl oynanır",
     "geoguessr nasıl oynanır türkçe",
+    "geoguessr oyna",
   ],
   alternates: { canonical: "/nasil-oynanir", languages: { "tr-TR": "/nasil-oynanir", "x-default": "/nasil-oynanir" } },
   openGraph: {
@@ -19,9 +22,9 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     url: `${SITE_URL}/nasil-oynanir`,
     siteName: "TürkiyeGuessr",
-    title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
+    title: "GeoGuessr Türkiye Nasıl Oynanır? — Ücretsiz Adım Adım Rehber",
     description:
-      "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
+      "GeoGuessr Türkiye (TürkiyeGuessr) nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konum tahmin et. Ücretsiz Türkçe rehber — kayıt gerektirmez.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -33,9 +36,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Nasıl Oynanır? — TürkiyeGuessr Adım Adım Rehber",
+    title: "GeoGuessr Türkiye Nasıl Oynanır? — Ücretsiz Adım Adım Rehber",
     description:
-      "TürkiyeGuessr nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konumu tahmin et. Adım adım Türkçe rehber.",
+      "GeoGuessr Türkiye (TürkiyeGuessr) nasıl oynanır? Oda kur, arkadaşlarını davet et, sokak görünümünde konum tahmin et. Ücretsiz Türkçe rehber — kayıt gerektirmez.",
   },
 };
 
@@ -117,13 +120,13 @@ export default function NasilOynanirPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/nasil-oynanir-hero.jpg"
-            alt="TürkiyeGuessr nasıl oynanır adım adım rehber"
+            alt="Kapadokya'da gün doğumunda sıcak hava balonu silüeti"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr adım adım oyun rehberi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya&apos;da gün doğumunda sıcak hava balonları</figcaption>
         </figure>
 
         <section className="space-y-4">
@@ -137,13 +140,13 @@ export default function NasilOynanirPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/step-1.jpg"
-            alt="Adım 1: Bölge seçimi"
+            alt="Gün batımında modern İstanbul silüeti"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Adım 1: Bölge ve mod seçimi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Gün batımında modern İstanbul manzarası</figcaption>
         </figure>
 
         <section className="space-y-4">
@@ -182,13 +185,13 @@ export default function NasilOynanirPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/step-2.jpg"
-            alt="Adım 2: Konumu incele"
+            alt="Antalya Kaleiçi tarihi eski şehir binaları"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Adım 2: Sokak görünümünde konumu incele</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Antalya Kaleiçi tarihi eski şehir sokakları</figcaption>
         </figure>
 
         <section className="space-y-4">
@@ -203,13 +206,13 @@ export default function NasilOynanirPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/step-3.jpg"
-            alt="Adım 3: Tahmini yap"
+            alt="Kumköy ve Belek arasında Akdeniz sahili havadan görünüm"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Adım 3: Haritada tahmini yap ve puan kazan</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kumköy ve Belek arasında Akdeniz kıyı şeridi kuş bakışı</figcaption>
         </figure>
 
         <section className="space-y-4">

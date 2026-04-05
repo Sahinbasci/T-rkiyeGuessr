@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { SeoFooter } from "./Footer";
 import { getPopularCities, getAllRegions } from "@/data/seoData";
+import { SITE_URL } from "@/config/site";
 
 const REGIONS = getAllRegions().map((r) => ({
   slug: r.slug,
@@ -26,9 +27,106 @@ const BLOG_LINKS = [
   { slug: "geoguessr-taktikleri-ipuclari", title: "GeoGuessr Taktikleri" },
 ];
 
+const HOME_FAQ = [
+  {
+    question: "TürkiyeGuessr nedir?",
+    answer:
+      "TürkiyeGuessr, Google Street View panoramalarını kullanarak Türkiye genelinde konum tahmin ettiğiniz ücretsiz bir harita oyunudur. 142+ özenle seçilmiş lokasyonla Türkiye'nin 7 coğrafi bölgesini keşfedebilirsiniz.",
+  },
+  {
+    question: "TürkiyeGuessr ücretsiz mi?",
+    answer:
+      "Evet, TürkiyeGuessr tamamen ücretsizdir. Kayıt, abonelik veya uygulama içi satın alım yoktur. Tarayıcınızı açıp anında oynamaya başlayabilirsiniz.",
+  },
+  {
+    question: "Kaç kişi aynı anda oynayabilir?",
+    answer:
+      "Multiplayer modunda 2-8 kişi aynı anda yarışabilir. Oda oluşturup arkadaşlarınıza davet linki paylaşmanız yeterlidir.",
+  },
+  {
+    question: "TürkiyeGuessr telefondan oynanır mı?",
+    answer:
+      "Evet, TürkiyeGuessr mobil uyumludur. iPhone, Android veya tablet fark etmez; herhangi bir modern tarayıcıda sorunsuz çalışır.",
+  },
+  {
+    question: "GeoGuessr ile TürkiyeGuessr arasındaki fark nedir?",
+    answer:
+      "GeoGuessr dünya genelinde bir oyundur ve ücretli abonelik gerektirir. TürkiyeGuessr ise tamamen ücretsiz, Türkçe arayüzlü ve yalnızca Türkiye'ye odaklanmış bir alternatiftir. 142+ elle seçilmiş Türkiye lokasyonu sunar.",
+  },
+];
+
+function HomeFaqJsonLd() {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: HOME_FAQ.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
+function HomeItemListJsonLd() {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "TürkiyeGuessr Oyun Modları",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Türkiye Harita Oyunu",
+        url: `${SITE_URL}/turkiye-harita-oyunu`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Şehir Tahmin Oyunu",
+        url: `${SITE_URL}/sehir-tahmin-oyunu`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: "Konum Tahmin Oyunu",
+        url: `${SITE_URL}/konum-tahmin-oyunu`,
+      },
+      {
+        "@type": "ListItem",
+        position: 4,
+        name: "Ücretsiz Coğrafya Oyunu",
+        url: `${SITE_URL}/ucretsiz-cografya-oyunu`,
+      },
+      {
+        "@type": "ListItem",
+        position: 5,
+        name: "GeoGuessr Alternatifi",
+        url: `${SITE_URL}/geoguessr-alternatifi`,
+      },
+    ],
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+    />
+  );
+}
+
 export function HomeSEOContent() {
   return (
     <div className="home-seo bg-[#0a0a0f]">
+      <HomeFaqJsonLd />
+      <HomeItemListJsonLd />
       <div className="max-w-4xl mx-auto px-4 py-12 space-y-12">
 
         {/* Açıklama */}
@@ -200,6 +298,21 @@ export function HomeSEOContent() {
               >
                 &rarr; {b.title}
               </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* SSS */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-300 text-center">Sıkça Sorulan Sorular</h2>
+          <div className="space-y-3">
+            {HOME_FAQ.map((faq) => (
+              <details key={faq.question} className="bg-gray-800/40 border border-gray-700/30 rounded-lg">
+                <summary className="px-4 py-3 text-sm text-gray-300 font-medium cursor-pointer hover:text-white transition-colors">
+                  {faq.question}
+                </summary>
+                <p className="px-4 pb-3 text-xs text-gray-500 leading-relaxed">{faq.answer}</p>
+              </details>
             ))}
           </div>
         </section>

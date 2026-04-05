@@ -5,9 +5,9 @@ import { SeoLayout } from "@/components/seo/SeoLayout";
 import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
+  title: "Ücretsiz Coğrafya Oyunu — Türkiye Haritasında Oyna",
   description:
-    "Kayıt olmadan ücretsiz coğrafya oyunu oyna. Sokak görünümünde Türkiye'nin 7 bölgesini keşfet.",
+    "Kayıt olmadan ücretsiz coğrafya oyunu oyna! Sokak görünümünde Türkiye'nin 7 bölgesini, 81 ilini keşfet. 142+ gerçek lokasyon, multiplayer mod — hemen ücretsiz başla.",
   keywords: [
     "ücretsiz coğrafya oyunu",
     "coğrafya oyunu online",
@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     "coğrafya bilgi yarışması",
     "harita bilmece oyunu",
     "coğrafya testi türkiye",
+    "coğrafya oyunu",
+    "kpss coğrafya oyunu",
+    "coğrafya kpss oyun",
   ],
   alternates: { canonical: "/ucretsiz-cografya-oyunu", languages: { "tr-TR": "/ucretsiz-cografya-oyunu", "x-default": "/ucretsiz-cografya-oyunu" } },
   openGraph: {
@@ -23,9 +26,9 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     url: `${SITE_URL}/ucretsiz-cografya-oyunu`,
     siteName: "TürkiyeGuessr",
-    title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
+    title: "Ücretsiz Coğrafya Oyunu — Türkiye Haritasında Oyna",
     description:
-      "Kayıt olmadan ücretsiz coğrafya oyunu oyna. Sokak görünümünde Türkiye'nin 7 bölgesini keşfet.",
+      "Kayıt olmadan ücretsiz coğrafya oyunu oyna! Sokak görünümünde Türkiye'nin 7 bölgesini, 81 ilini keşfet. 142+ gerçek lokasyon, multiplayer mod — hemen ücretsiz başla.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -37,9 +40,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Ücretsiz Coğrafya Oyunu — Türkiye'yi Keşfet",
+    title: "Ücretsiz Coğrafya Oyunu — Türkiye Haritasında Oyna",
     description:
-      "Kayıt olmadan ücretsiz coğrafya oyunu oyna. Sokak görünümünde Türkiye'nin 7 bölgesini keşfet.",
+      "Kayıt olmadan ücretsiz coğrafya oyunu oyna! Sokak görünümünde Türkiye'nin 7 bölgesini, 81 ilini keşfet. 142+ gerçek lokasyon, multiplayer mod — hemen ücretsiz başla.",
   },
 };
 
@@ -167,13 +170,13 @@ export default function UcretsizCografyaOyunuPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/ucretsiz-cografya-hero.jpg"
-            alt="Ücretsiz coğrafya oyunu ile Türkiye'yi keşfedin"
+            alt="Denizli Pamukkale beyaz travertenler ve doğal havuzlar"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr ile ücretsiz coğrafya öğrenme deneyimi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Denizli Pamukkale&apos;nin beyaz traverten terasları</figcaption>
         </figure>
 
         {/* Neden Ücretsiz? */}
@@ -240,12 +243,12 @@ export default function UcretsizCografyaOyunuPage() {
         <figure className="my-6 rounded-lg overflow-hidden">
           <Image
             src="/images/blog/classroom.jpg"
-            alt="Sınıfta coğrafya eğitimi"
+            alt="Trabzon Sümela Manastırı, kayalık yamaçtaki tarihi manastır"
             width={600}
             height={340}
             className="w-full h-auto rounded-lg"
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Interaktif coğrafya oyunları ile sınıf içi eğitim</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Trabzon Sümela Manastırı - Karadeniz&apos;in kayalıklara oyulmuş tarihi yapısı</figcaption>
         </figure>
 
         {/* Eğitim İçin İdeal */}

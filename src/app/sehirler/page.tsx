@@ -69,13 +69,13 @@ export default function SehirlerPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/sehirler-hero.jpg"
-            alt="Türkiye şehirleri konum tahmin oyunu"
+            alt="Doğubayazıt İshak Paşa Sarayı, Doğu Türkiye tarihi yapısı"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye şehirleri ve lokasyonları</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Doğubayazıt&apos;ta İshak Paşa Sarayı - Doğu Türkiye&apos;nin mimari incisi</figcaption>
         </figure>
 
         {/* İstatistikler */}

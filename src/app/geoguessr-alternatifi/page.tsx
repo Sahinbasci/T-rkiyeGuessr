@@ -63,6 +63,10 @@ export const metadata: Metadata = {
     "geoguessr türkçe",
     "geoguessr türkiye ücretsiz",
     "geoguessr türkiye oyna",
+    "geoguessr free türkiye",
+    "geoguessr sadece türkiye",
+    "openguessr türkiye",
+    "worldguessr türkiye",
     "geoguessr ücretsiz oyna",
     "neredeyim ben alternatifi",
   ],
@@ -133,13 +137,13 @@ export default function GeoguessrAlternatifiPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/geoguessr-alternatifi-hero.jpg"
-            alt="GeoGuessr alternatifi Türkiye konum tahmin oyunu"
+            alt="Gün batımında İstanbul Ayasofya Camii manzarası"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr - GeoGuessr&apos;a Türkçe ve ücretsiz alternatif</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Gün batımında İstanbul Ayasofya - Türkiye&apos;nin ikonik silüeti</figcaption>
         </figure>
 
         <section className="space-y-4">
@@ -217,12 +221,12 @@ export default function GeoguessrAlternatifiPage() {
         <figure className="my-6 rounded-lg overflow-hidden">
           <Image
             src="/images/blog/turkey-map.jpg"
-            alt="Türkiye haritası üzerinde konum tahmini"
+            alt="İstanbul Boğazı panoraması ve tarihi camiler"
             width={600}
             height={340}
             className="w-full h-auto rounded-lg"
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde konum tahmini deneyimi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">İstanbul Boğazı panoraması - Türkiye&apos;nin kültürel başkenti</figcaption>
         </figure>
 
         {/* Detaylı Özellik Karşılaştırması */}

@@ -24,7 +24,7 @@ const dmSans = DM_Sans({
 const SITE_NAME = "TürkiyeGuessr";
 const TITLE = "TürkiyeGuessr — Türkiye Konum Tahmin Oyunu";
 const DESCRIPTION =
-  "TürkiyeGuessr ile Türkiye'nin sokak görünümünde konum tahmin et! Arkadaşlarınla multiplayer oyna, 81 ili keşfet. Ücretsiz coğrafya oyunu.";
+  "TürkiyeGuessr ile Türkiye'nin sokak görünümünde konum tahmin et! Google Maps tabanlı ücretsiz konum bulma oyunu. Arkadaşlarınla multiplayer oyna, 81 ili keşfet.";
 
 export const metadata: Metadata = {
   title: {
@@ -39,7 +39,12 @@ export const metadata: Metadata = {
     "ücretsiz geoguessr",
     "türkiye harita oyunu",
     "konum tahmin oyunu",
+    "konum bulma oyunu",
     "türkiye coğrafya oyunu",
+    "google maps oyunu",
+    "yer tahmin etme oyunu",
+    "şehir tahmin etme",
+    "harita tahmin oyunu",
   ],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -175,7 +180,7 @@ function JsonLd() {
         "@type": "SearchAction",
         target: {
           "@type": "EntryPoint",
-          urlTemplate: `${SITE_URL}/blog?q={search_term_string}`,
+          urlTemplate: `https://www.google.com/search?q=site:turkiyeguessr.com+{search_term_string}`,
         },
         "query-input": "required name=search_term_string",
       },

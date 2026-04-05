@@ -61,6 +61,7 @@ export default function PlakaKodlariPost() {
     },
     description:
       "Türkiye plaka kodları rehberi. 01'den 81'e kadar plaka kodlarını ezberle, sokak görünümünde avantaj kazan.",
+    wordCount: 2200,
     mainEntityOfPage: `${SITE_URL}/blog/plaka-kodlarindan-il-tahmini`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -155,13 +156,13 @@ export default function PlakaKodlariPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/plaka-kodlari.jpg"
-            alt="Türkiye plaka kodlarından il tahmini rehberi"
+            alt="Turkiye devlet yolu D750 karayolu manzarasi"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye plaka kodları ile il tahmini rehberi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Turkiye devlet yolu D750 karayolu gorunumu</figcaption>
         </figure>
 
         <section className="space-y-4">

@@ -87,13 +87,13 @@ export default function MultiplayerPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/multiplayer-hero.jpg"
-            alt="TürkiyeGuessr multiplayer çok oyunculu mod"
+            alt="İstanbul Ayasofya Camii dış cephesi ve minareleri"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Arkadaşlarınla birlikte Türkiye konum tahmin oyunu oyna</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">İstanbul&apos;un simgesi Ayasofya Camii ve minareleri</figcaption>
         </figure>
 
         <section className="space-y-4">

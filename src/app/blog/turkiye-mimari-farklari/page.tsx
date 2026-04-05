@@ -53,6 +53,7 @@ export default function TurkiyeMimariFarklariPost() {
     },
     description:
       "Türkiye'nin 7 bölgesinde mimari tarzlar nasıl farklılaşır? Osmanlı yalılarından Karadeniz serenderlerine, Ege taş evlerinden Güneydoğu avlu evlerine kadar konum tahmin ipuçları.",
+    wordCount: 2200,
     mainEntityOfPage: `${SITE_URL}/blog/turkiye-mimari-farklari`,
     image: `${SITE_URL}/og-image.png`,
   };

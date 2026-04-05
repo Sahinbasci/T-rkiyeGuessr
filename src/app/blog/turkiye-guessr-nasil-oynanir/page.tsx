@@ -52,6 +52,7 @@ export default function TurkiyeGuessrNasilOynanirPost() {
     },
     description:
       "TürkiyeGuessr'da konum tahmin etmenin tüm detayları. Oda kurma, mod seçimi, ipuçları ve strateji rehberi. Adım adım anlatım.",
+    wordCount: 1900,
     mainEntityOfPage: `${SITE_URL}/blog/turkiye-guessr-nasil-oynanir`,
     image: `${SITE_URL}/og-image.png`,
   };

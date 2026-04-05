@@ -256,13 +256,13 @@ export default function SSSPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/sss-hero.jpg"
-            alt="TürkiyeGuessr sıkça sorulan sorular"
+            alt="Efes Antik Kenti Celsus Kütüphanesi kalıntıları"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr hakkında sıkça sorulan sorular</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Efes Antik Kenti&apos;ndeki Celsus Kütüphanesi - Türkiye&apos;nin tarihi mirası</figcaption>
         </figure>
 
         <div className="space-y-4">

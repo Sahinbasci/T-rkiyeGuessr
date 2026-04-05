@@ -6,9 +6,9 @@ import { getCityBySlug, getAllRegions } from "@/data/seoData";
 import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+  title: "Türkiye Harita Oyunu — Ücretsiz Konum Tahmin Et, Hemen Oyna",
   description:
-    "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
+    "Türkiye haritasında sokak görünümünden konum tahmin et! 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Google Maps tabanlı ücretsiz harita oyunu — kayıt gerektirmez, hemen başla!",
   keywords: [
     "türkiye harita oyunu",
     "harita oyunu online",
@@ -20,6 +20,9 @@ export const metadata: Metadata = {
     "harita tahmin oyunu",
     "harita kapmaca",
     "türkiye haritası oyunu",
+    "google maps oyunu ücretsiz",
+    "harita oyunu türkiye",
+    "harita bulma oyunu",
   ],
   alternates: { canonical: "/turkiye-harita-oyunu", languages: { "tr-TR": "/turkiye-harita-oyunu", "x-default": "/turkiye-harita-oyunu" } },
   openGraph: {
@@ -27,9 +30,9 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     url: `${SITE_URL}/turkiye-harita-oyunu`,
     siteName: "TürkiyeGuessr",
-    title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+    title: "Türkiye Harita Oyunu — Ücretsiz Konum Tahmin Et, Hemen Oyna",
     description:
-      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
+      "Türkiye haritasında sokak görünümünden konum tahmin et! 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Google Maps tabanlı ücretsiz harita oyunu — kayıt gerektirmez, hemen başla!",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -41,9 +44,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Türkiye Harita Oyunu — Ücretsiz Online Oyna",
+    title: "Türkiye Harita Oyunu — Ücretsiz Konum Tahmin Et, Hemen Oyna",
     description:
-      "Türkiye haritasında sokak görünümünden konum tahmin et. 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Kayıt gerektirmez, tamamen ücretsiz harita oyunu!",
+      "Türkiye haritasında sokak görünümünden konum tahmin et! 142+ gerçek lokasyon, 7 bölge, multiplayer mod. Google Maps tabanlı ücretsiz harita oyunu — kayıt gerektirmez, hemen başla!",
   },
 };
 
@@ -178,13 +181,13 @@ export default function TurkiyeHaritaOyunuPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/turkiye-harita-hero.jpg"
-            alt="Türkiye harita oyunu ile coğrafya öğrenin"
+            alt="Kars Ani Antik Kenti harabeleri panoramik manzarası"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde interaktif konum tahmin deneyimi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kars Ani Antik Kenti harabeleri - Doğu Türkiye&apos;nin tarihi hazinesi</figcaption>
         </figure>
 
         {/* Nasıl Oynanır */}

@@ -68,13 +68,13 @@ export default function BolgelerPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/bolgeler-hero.jpg"
-            alt="Türkiye'nin 7 coğrafi bölgesi"
+            alt="Kapadokya'da gün doğumunda sıcak hava balonu turu"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin 7 coğrafi bölgesi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya&apos;da gün doğumunda sıcak hava balonu deneyimi</figcaption>
         </figure>
 
         <section className="space-y-4">

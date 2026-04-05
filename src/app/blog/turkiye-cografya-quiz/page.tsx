@@ -53,6 +53,7 @@ export default function TurkiyeCografyaQuizPost() {
     },
     description:
       "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",
+    wordCount: 1800,
     mainEntityOfPage: `${SITE_URL}/blog/turkiye-cografya-quiz`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -87,13 +88,13 @@ export default function TurkiyeCografyaQuizPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/cografya-quiz.jpg"
-            alt="Türkiye coğrafya quiz soruları"
+            alt="Kapadokya peri bacalari manzarasi"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye coğrafya bilgini test et</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya&apos;nin essiz peri bacalari — Nevsehir</figcaption>
         </figure>
 
         <section className="space-y-4">

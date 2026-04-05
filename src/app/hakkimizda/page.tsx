@@ -62,13 +62,13 @@ export default function HakkimizdaPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/hakkimizda-hero.jpg"
-            alt="TürkiyeGuessr ekibi hakkında"
+            alt="Modern İstanbul silüeti ve gökdelenler"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr - Türkiye konum tahmin oyunu</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Modern İstanbul silüeti - Türkiye&apos;nin dinamik metropolü</figcaption>
         </figure>
 
         <section className="space-y-4">
@@ -90,13 +90,13 @@ export default function HakkimizdaPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/turkey-map.jpg"
-            alt="TürkiyeGuessr Türkiye haritası"
+            alt="İstanbul Boğazı panoraması ve tarihi camiler"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye haritası üzerinde oyun lokasyonları</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">İstanbul Boğazı panoraması ve tarihi yarımada silüeti</figcaption>
         </figure>
 
         <section className="space-y-4">

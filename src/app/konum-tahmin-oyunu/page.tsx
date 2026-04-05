@@ -134,13 +134,13 @@ export default function KonumTahminOyunuPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/konum-tahmin-hero.jpg"
-            alt="Street view konum tahmin oyunu"
+            alt="Kapadokya peri bacaları kaya oluşumları manzarası"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Google Street View üzerinden konum tahmin deneyimi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya&apos;nın eşsiz peri bacaları kaya oluşumları</figcaption>
         </figure>
 
         {/* Nasıl Oynanır */}
@@ -235,12 +235,12 @@ export default function KonumTahminOyunuPage() {
         <figure className="my-6 rounded-lg overflow-hidden">
           <Image
             src="/images/blog/antalya-coast.jpg"
-            alt="Antalya sahil manzarası - konum ipuçları"
+            alt="Antalya Düden Şelalesi ve Akdeniz kıyısı manzarası"
             width={600}
             height={340}
             className="w-full h-auto rounded-lg"
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Antalya sahil manzarası - konum tahmininde coğrafi ipuçları</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Antalya Düden Şelalesi - Akdeniz kıyısının doğal güzelliği</figcaption>
         </figure>
 
         {/* Oyun Modları */}

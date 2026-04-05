@@ -59,6 +59,7 @@ export default function SoraktanSehirTaninirPost() {
     },
     description:
       "Sokak görünümünde Türkiye şehirlerini tanımanın ipuçları. Tabelalar, mimari, bitki örtüsü ve coğrafi işaretler.",
+    wordCount: 2300,
     mainEntityOfPage: `${SITE_URL}/blog/sokaktan-sehir-nasil-taninir`,
     image: `${SITE_URL}/og-image.png`,
   };

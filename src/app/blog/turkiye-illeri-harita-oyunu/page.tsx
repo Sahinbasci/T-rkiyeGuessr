@@ -6,19 +6,19 @@ import { getAllRegions, getUniqueProvinceCount } from "@/data/seoData";
 import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+  title: "Türkiye İlleri Harita Oyunu: 81 İli Ücretsiz Öğren ve Test Et",
   description:
-    "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
-  keywords: ["türkiye illeri harita oyunu", "81 il oyunu", "türkiye harita bilmece", "il plaka kodları oyunu"],
+    "Türkiye'nin 81 ilini interaktif harita oyunuyla öğren! Sokak görünümünde illeri bul, plaka kodlarını test et, bölgeleri keşfet. Kayıt olmadan ücretsiz oyna — 142+ gerçek lokasyon.",
+  keywords: ["türkiye illeri harita oyunu", "81 il oyunu", "türkiye haritası oyunu", "il plaka kodları oyunu", "81 il bilme oyunu", "türkiye illeri bulma oyunu", "il harita oyunu", "türkiye iller haritası oyunu"],
   alternates: { canonical: "/blog/turkiye-illeri-harita-oyunu", languages: { "tr-TR": "/blog/turkiye-illeri-harita-oyunu", "x-default": "/blog/turkiye-illeri-harita-oyunu" } },
   openGraph: {
     type: "article",
     locale: "tr_TR",
     url: `${SITE_URL}/blog/turkiye-illeri-harita-oyunu`,
     siteName: "TürkiyeGuessr",
-    title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+    title: "Türkiye İlleri Harita Oyunu: 81 İli Ücretsiz Öğren ve Test Et",
     description:
-      "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
+      "Türkiye'nin 81 ilini interaktif harita oyunuyla öğren! Sokak görünümünde illeri bul, plaka kodlarını test et, bölgeleri keşfet. Kayıt olmadan ücretsiz oyna — 142+ gerçek lokasyon.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -30,9 +30,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+    title: "Türkiye İlleri Harita Oyunu: 81 İli Ücretsiz Öğren ve Test Et",
     description:
-      "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
+      "Türkiye'nin 81 ilini interaktif harita oyunuyla öğren! Sokak görünümünde illeri bul, plaka kodlarını test et, bölgeleri keşfet. Kayıt olmadan ücretsiz oyna — 142+ gerçek lokasyon.",
   },
 };
 
@@ -43,7 +43,7 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    headline: "Türkiye İlleri Harita Oyunu: 81 İli Keşfet",
+    headline: "Türkiye İlleri Harita Oyunu: 81 İli Ücretsiz Öğren ve Test Et",
     datePublished: "2026-02-10",
     dateModified: "2026-03-12",
     author: { "@type": "Organization", name: "TürkiyeGuessr" },
@@ -57,6 +57,7 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
     },
     description:
       "Türkiye'nin 81 ilini harita üzerinde öğren. Sokak görünümünde illeri tanı, plaka kodlarını ezberle, coğrafyayı keşfet. Ücretsiz.",
+    wordCount: 2500,
     mainEntityOfPage: `${SITE_URL}/blog/turkiye-illeri-harita-oyunu`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -91,13 +92,13 @@ export default function TurkiyeIlleriHaritaOyunuPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/turkey-map.jpg"
-            alt="Türkiye illeri harita oyunu"
+            alt="Istanbul Bogazici panoramasi ve camiler"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin 81 ilini harita üzerinde keşfet</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Istanbul Bogazici ve tarihi camiler panoramasi</figcaption>
         </figure>
 
         <section className="space-y-4">

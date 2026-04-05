@@ -59,6 +59,7 @@ export default function TurkiyeBolgeleriRehberiPost() {
     },
     description:
       "Türkiye'nin 7 coğrafi bölgesinin özellikleri, iklimi, bitki örtüsü ve mimari farklılıkları.",
+    wordCount: 2800,
     mainEntityOfPage: `${SITE_URL}/blog/turkiye-bolgeleri-rehberi`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -93,13 +94,13 @@ export default function TurkiyeBolgeleriRehberiPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/bolge-rehberi.jpg"
-            alt="Türkiye bölgeleri coğrafya rehberi"
+            alt="Istanbul Bogazici Koprusu ve Kiz Kulesi panoramasi"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Türkiye&apos;nin 7 coğrafi bölgesi ve özellikleri</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Istanbul Bogazici panoramasi — Kiz Kulesi&apos;nden kopru manzarasi</figcaption>
         </figure>
 
         <section className="space-y-4">

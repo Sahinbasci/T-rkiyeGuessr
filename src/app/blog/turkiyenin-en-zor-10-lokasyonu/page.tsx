@@ -59,6 +59,7 @@ export default function EnZor10LokasyonPost() {
     },
     description:
       "TürkiyeGuessr'da en çok yanılınan 10 lokasyon ve bu lokasyonları tanımanın ipuçları.",
+    wordCount: 2600,
     mainEntityOfPage: `${SITE_URL}/blog/turkiyenin-en-zor-10-lokasyonu`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -156,13 +157,13 @@ export default function EnZor10LokasyonPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/zor-lokasyonlar.jpg"
-            alt="Türkiye'nin en zor 10 lokasyonu"
+            alt="Kapadokya peri bacalari ve kaya olusumlari yakindan gorunum"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr&apos;da en zor tahmin edilen lokasyonlar</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Kapadokya&apos;nin peri bacalari ve kaya olusumlari — Nevsehir</figcaption>
         </figure>
 
         <section className="space-y-4">

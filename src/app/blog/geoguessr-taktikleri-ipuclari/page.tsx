@@ -53,6 +53,7 @@ export default function GeoguessrTaktikleriPost() {
     },
     description:
       "Türkiye'de konum tahmin ederken işine yarayacak taktikler. Plaka kodları, tabela dili, bitki örtüsü, mimari ve bölgesel ipuçları.",
+    wordCount: 2400,
     mainEntityOfPage: `${SITE_URL}/blog/geoguessr-taktikleri-ipuclari`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -87,13 +88,13 @@ export default function GeoguessrTaktikleriPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/street-view-tips.jpg"
-            alt="GeoGuessr taktikleri ve ipuçları rehberi"
+            alt="Istanbul Kapalicarsi ic mekan gorunumu"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">GeoGuessr ve konum tahmin oyunlarında kullanabileceğiniz taktikler</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Istanbul Kapalicarsi&apos;nin tarihi ic mekani</figcaption>
         </figure>
 
         <section className="space-y-4">

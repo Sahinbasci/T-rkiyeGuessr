@@ -53,6 +53,7 @@ export default function OnlineHaritaTahminOyunlariPost() {
     },
     description:
       "2026'nın en iyi online harita ve konum tahmin oyunları listesi. GeoGuessr alternatifleri, ücretsiz seçenekler ve Türkçe oyunlar.",
+    wordCount: 2100,
     mainEntityOfPage: `${SITE_URL}/blog/online-harita-tahmin-oyunlari`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -87,13 +88,13 @@ export default function OnlineHaritaTahminOyunlariPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/harita-oyunlari.jpg"
-            alt="Online harita tahmin oyunları rehberi"
+            alt="Istanbul Galata Kulesi panoramasi"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">En iyi online harita tahmin oyunları</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Istanbul Galata Kulesi ve cevresinin panoramik gorunumu</figcaption>
         </figure>
 
         <section className="space-y-4">

@@ -6,9 +6,9 @@ import { getCityBySlug, getAllRegions } from "@/data/seoData";
 import { SITE_URL } from "@/config/site";
 
 export const metadata: Metadata = {
-  title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
+  title: "Şehir Tahmin Oyunu — Hangi Şehirdesin? Ücretsiz Oyna",
   description:
-    "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
+    "Sokak görünümünden hangi şehirdesin bul! İstanbul, Antalya, Kapadokya ve 139+ Türkiye lokasyonu. Arkadaşlarınla yarış — kayıt gerektirmez, ücretsiz şehir tahmin oyunu.",
   keywords: [
     "şehir tahmin oyunu",
     "şehir tahmin etme oyunu",
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     locale: "tr_TR",
     url: `${SITE_URL}/sehir-tahmin-oyunu`,
     siteName: "TürkiyeGuessr",
-    title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
+    title: "Şehir Tahmin Oyunu — Hangi Şehirdesin? Ücretsiz Oyna",
     description:
-      "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
+      "Sokak görünümünden hangi şehirdesin bul! İstanbul, Antalya, Kapadokya ve 139+ Türkiye lokasyonu. Arkadaşlarınla yarış — kayıt gerektirmez, ücretsiz şehir tahmin oyunu.",
     images: [
       {
         url: `${SITE_URL}/og-image.png`,
@@ -45,9 +45,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "Şehir Tahmin Oyunu — 142+ Türkiye Lokasyonu",
+    title: "Şehir Tahmin Oyunu — Hangi Şehirdesin? Ücretsiz Oyna",
     description:
-      "Sokak görünümünden hangi şehirdesin tahmin et! İstanbul, Antalya, Kapadokya ve 139+ lokasyon. Arkadaşlarınla yarış, ücretsiz oyna.",
+      "Sokak görünümünden hangi şehirdesin bul! İstanbul, Antalya, Kapadokya ve 139+ Türkiye lokasyonu. Arkadaşlarınla yarış — kayıt gerektirmez, ücretsiz şehir tahmin oyunu.",
   },
 };
 
@@ -169,13 +169,13 @@ export default function SehirTahminOyunuPage() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/pages/sehir-tahmin-hero.jpg"
-            alt="Sokak görünümünden şehir tahmin oyunu"
+            alt="Eski Mardin taş şehri ve tepedeki kale manzarası"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Sokak görünümünden ipuçlarını kullanarak şehir tahmin edin</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Eski Mardin taş evleri ve Mardin Kalesi silüeti</figcaption>
         </figure>
 
         {/* Sokak Görünümü Nasıl Çalışır? */}

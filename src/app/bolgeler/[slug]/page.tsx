@@ -68,6 +68,19 @@ export default function BolgeDetailPage({ params }: Props) {
     })),
   };
 
+  const placeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name: region.name,
+    description: desc?.shortDesc || `Türkiye'nin ${region.name} bölgesi`,
+    url: `${SITE_URL}/bolgeler/${params.slug}`,
+    containedInPlace: {
+      "@type": "Country",
+      name: "Türkiye",
+    },
+    ...(desc?.geography && { geo: { "@type": "GeoShape", description: desc.geography } }),
+  };
+
   return (
     <SeoLayout
       breadcrumbs={[
@@ -79,6 +92,10 @@ export default function BolgeDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(placeJsonLd) }}
       />
 
       <article className="space-y-8">

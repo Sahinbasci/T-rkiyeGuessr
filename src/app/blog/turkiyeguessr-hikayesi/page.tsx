@@ -53,6 +53,7 @@ export default function TurkiyeguessrHikayesiPost() {
     },
     description:
       "TürkiyeGuessr'ın kuruluş hikayesi. Bir yazılım geliştirici GeoGuessr'da Türkiye lokasyonlarının yetersizliğinden yola çıkarak nasıl Türkiye'ye özel bir konum tahmin oyunu yarattı?",
+    wordCount: 1500,
     mainEntityOfPage: `${SITE_URL}/blog/turkiyeguessr-hikayesi`,
     image: `${SITE_URL}/og-image.png`,
   };

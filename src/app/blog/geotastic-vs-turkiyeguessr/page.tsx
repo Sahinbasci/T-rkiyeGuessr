@@ -61,6 +61,7 @@ export default function GeotasticVsTurkiyeguessrPost() {
     },
     description:
       "Geotastic ve TürkiyeGuessr karşılaştırması. Fiyat, Türkiye odağı, lokasyon sayısı, multiplayer ve dil desteği açısından detaylı analiz.",
+    wordCount: 2000,
     mainEntityOfPage: `${SITE_URL}/blog/geotastic-vs-turkiyeguessr`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -92,13 +93,13 @@ export default function GeotasticVsTurkiyeguessrPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/geotastic-karsilastirma.jpg"
-            alt="Geotastic ve TürkiyeGuessr karşılaştırması"
+            alt="Istanbul sehir silueti gun batiminda"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">Geotastic ve TürkiyeGuessr karşılaştırması</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Istanbul sehir silueti gun batiminda</figcaption>
         </figure>
 
         {/* Giriş */}

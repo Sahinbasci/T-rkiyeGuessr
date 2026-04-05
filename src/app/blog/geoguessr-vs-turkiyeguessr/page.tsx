@@ -59,6 +59,7 @@ export default function GeoguessrVsTurkiyeguessrPost() {
     },
     description:
       "GeoGuessr ve TürkiyeGuessr karşılaştırması. Fiyat, içerik, Türkiye odağı, multiplayer ve daha fazlası.",
+    wordCount: 2300,
     mainEntityOfPage: `${SITE_URL}/blog/geoguessr-vs-turkiyeguessr`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -93,13 +94,13 @@ export default function GeoguessrVsTurkiyeguessrPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/geoguessr-karsilastirma.jpg"
-            alt="GeoGuessr ve TürkiyeGuessr karşılaştırması"
+            alt="Istanbul Kapalicarsi ic mekan gorunumu"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">GeoGuessr ve TürkiyeGuessr detaylı karşılaştırması</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Istanbul Kapalicarsi&apos;nin tarihi ic mekani</figcaption>
         </figure>
 
         <section className="space-y-4">

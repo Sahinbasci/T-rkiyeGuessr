@@ -53,6 +53,7 @@ export default function SiniftaTurkiyeguessrPost() {
     },
     description:
       "TürkiyeGuessr'ı coğrafya derslerinde nasıl kullanırsınız? 5 sınıf aktivitesi, adım adım kurulum ve MEB müfredatıyla uyum rehberi.",
+    wordCount: 2000,
     mainEntityOfPage: `${SITE_URL}/blog/sinifta-turkiyeguessr`,
     image: `${SITE_URL}/og-image.png`,
   };
@@ -87,13 +88,13 @@ export default function SiniftaTurkiyeguessrPost() {
         <figure className="my-8 rounded-xl overflow-hidden">
           <Image
             src="/images/blog/classroom.jpg"
-            alt="Sınıfta TürkiyeGuessr kullanımı rehberi"
+            alt="Sumela Manastiri, Trabzon — kayaliklara oyulmus tarihi manastir"
             width={800}
             height={450}
             className="w-full h-auto rounded-xl"
             priority
           />
-          <figcaption className="text-center text-sm text-gray-500 mt-2">TürkiyeGuessr ile interaktif coğrafya eğitimi</figcaption>
+          <figcaption className="text-center text-sm text-gray-500 mt-2">Sumela Manastiri — Trabzon&apos;un kayalik yamaclarina oyulmus tarihi manastir</figcaption>
         </figure>
 
         <section className="space-y-4">
