@@ -70,6 +70,10 @@ import {
   recordPlayerActivity,
 } from "@/services/roomLifecycle";
 import {
+  trackRoomCreated,
+  trackRoomJoined,
+} from "@/services/analytics";
+import {
   isValidTurkeyCoordinate,
   isValidPlayerName,
   ERROR_MESSAGES,
@@ -1026,6 +1030,10 @@ export function useRoom() {
       notifiedLeftRef.current.clear();
 
       setupRoomCleanup(newRoom);
+      trackRoomCreated({
+        roomId: roomCode,
+        gameMode,
+      });
 
       return roomCode;
     } catch (err) {
@@ -1192,6 +1200,10 @@ export function useRoom() {
       notifiedLeftRef.current.clear();
 
       recordPlayerActivity(normalizedRoomCode, authUid);
+      trackRoomJoined({
+        roomId: normalizedRoomCode,
+        playerCount: playerCount + 1,
+      });
 
       return { success: true, roomStatus: "waiting" };
     } catch (err) {

@@ -1,53 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-import { GA4_MEASUREMENT_ID, ANALYTICS_ENABLED } from "@/services/analytics";
-import { isAnalyticsAllowed, CONSENT_CHANGED_EVENT } from "@/utils/consent";
+import {
+  ANALYTICS_ENABLED,
+  GA_MEASUREMENT_ID,
+  GA_READY_EVENT,
+} from "@/lib/analytics";
 import { trackEvent, trackError } from "@/utils/telemetry";
 
 /**
- * Loads the GA4 gtag.js script **only** when:
- *  1. ANALYTICS_ENABLED (env)
- *  2. User consented to analytics cookies
+ * Loads the GA4 gtag.js script whenever analytics is enabled.
  *
- * Once loaded, the Script tag stays in the DOM even if consent is revoked.
- * Consent Mode v2 handles signal suppression at the Google side.
+ * ConsentModeInit sets `analytics_storage: denied` by default, so loading the
+ * tag is safe before consent and lets Google's setup checker detect the tag.
+ * Actual pageviews and custom events are still guarded by consent in
+ * src/lib/analytics.ts.
  *
  * Place this once in layout.tsx, after ConsentModeInit.
  */
 export function GA4Script() {
-  const [shouldLoad, setShouldLoad] = useState(false);
-  const scriptLoadedRef = useRef(false);
-
-  useEffect(() => {
-    if (!ANALYTICS_ENABLED) return;
-
-    const check = () => setShouldLoad(isAnalyticsAllowed());
-    check();
-
-    window.addEventListener(CONSENT_CHANGED_EVENT, check);
-    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, check);
-  }, []);
-
-  // Don't render until consent given; but once loaded, keep the tag
-  if (!shouldLoad && !scriptLoadedRef.current) return null;
+  if (!ANALYTICS_ENABLED) return null;
 
   return (
     <>
       <Script
         id="ga4-gtag"
-        src={`https://www.googletagmanager.com/gtag/js?id=${GA4_MEASUREMENT_ID}`}
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
         strategy="afterInteractive"
         onLoad={() => {
-          scriptLoadedRef.current = true;
-          // Initialize gtag config (ConsentModeInit already created the gtag function)
-          if (typeof window.gtag === "function") {
-            window.gtag("js", new Date());
-            window.gtag("config", GA4_MEASUREMENT_ID, {
-              send_page_view: true,
-            });
-          }
           trackEvent("ga4ScriptLoaded");
         }}
         onError={(e) => {
@@ -58,6 +38,16 @@ export function GA4Script() {
           trackEvent("ga4ScriptFailed");
         }}
       />
+      <Script id="ga4-init" strategy="afterInteractive">
+        {`
+          window.gtag('js', new Date());
+          window.gtag('config', '${GA_MEASUREMENT_ID}', {
+            send_page_view: false
+          });
+          window.__ga4Ready = true;
+          window.dispatchEvent(new Event('${GA_READY_EVENT}'));
+        `}
+      </Script>
     </>
   );
 }

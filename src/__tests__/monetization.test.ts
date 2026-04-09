@@ -682,12 +682,12 @@ describe("GA4 Analytics Service", () => {
     expect(ANALYTICS_ENABLED).toBe(false);
   });
 
-  it("ANALYTICS_ENABLED is false when measurement ID is empty", async () => {
+  it("ANALYTICS_ENABLED stays true with the built-in GA4 measurement ID", async () => {
     vi.stubEnv("NEXT_PUBLIC_ENABLE_ANALYTICS", "true");
     vi.stubEnv("NEXT_PUBLIC_GA4_MEASUREMENT_ID", "");
 
     const { ANALYTICS_ENABLED } = await import("@/services/analytics");
-    expect(ANALYTICS_ENABLED).toBe(false);
+    expect(ANALYTICS_ENABLED).toBe(true);
   });
 
   it("ANALYTICS_ENABLED is true when both env vars are set", async () => {
@@ -717,7 +717,7 @@ describe("GA4 Analytics Service", () => {
       (args) => args[0] === "event" && args[1] === "game_start"
     );
     expect(eventCall).toBeDefined();
-    expect((eventCall![2] as Record<string, unknown>).gameMode).toBe("urban");
+    expect((eventCall![2] as Record<string, unknown>).game_mode).toBe("urban");
   });
 
   it("trackGameStart does NOT call gtag when not consented", async () => {

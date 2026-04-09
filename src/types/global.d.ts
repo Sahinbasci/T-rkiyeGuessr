@@ -34,6 +34,9 @@ interface PerformanceMemory {
 declare global {
   interface Window {
     __mpCounters?: MpCounters;
+    __ga4Ready?: boolean;
+    dataLayer: any[];
+    gtag: (...args: any[]) => void;
   }
   interface Performance {
     memory?: PerformanceMemory;

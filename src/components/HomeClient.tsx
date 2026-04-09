@@ -8,6 +8,11 @@ import { getRandomPanoPackage, onNewGameStart, initStreetViewService } from "@/s
 import { MenuScreen } from "@/components/screens/MenuScreen";
 import { LobbyScreen } from "@/components/screens/LobbyScreen";
 import { GameErrorBoundary } from "@/components/shared/ErrorBoundary";
+import {
+  trackGameComplete,
+  trackGameStart,
+  trackRoundComplete,
+} from "@/services/analytics";
 import { trackError } from "@/utils/telemetry";
 import { incrementRoundsPlayed } from "@/utils/adsFrequency";
 import { logger } from "@/utils/logger";
@@ -96,6 +101,11 @@ export default function HomeClient() {
   const prevStatusRef = useRef<string | null>(null);
   const lastShownPanoRoundRef = useRef<string | null>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const trackedGameSessionKeyRef = useRef<string | null>(null);
+  const trackedRoundKeysRef = useRef<Set<string>>(new Set());
+  const roundDistanceHistoryRef = useRef<number[]>([]);
+  const totalRoundTimeSecondsRef = useRef(0);
+  const gameCompleteTrackedRef = useRef(false);
   // BUG-006 FIX: Suppress screen-transition effect during restart
   const isRestartingRef = useRef(false);
 
@@ -318,6 +328,126 @@ export default function HomeClient() {
       prevRoundRef.current = null;
     }
   }, [room?.currentRound, room?.status, room?.timeLimit, room?.moveLimit, resetMap, resetMoves, setMoves]);
+
+  // GA4: Track the start of each fresh game session for the current player.
+  useEffect(() => {
+    if (!room || !currentPlayer) return;
+    if (room.status !== "playing" || room.currentRound !== 1 || !room.roundStartTime) {
+      return;
+    }
+
+    const sessionKey = `${room.id}:${room.gameInstanceId ?? room.roundStartTime}`;
+    if (trackedGameSessionKeyRef.current === sessionKey) return;
+
+    trackedGameSessionKeyRef.current = sessionKey;
+    trackedRoundKeysRef.current = new Set();
+    roundDistanceHistoryRef.current = [];
+    totalRoundTimeSecondsRef.current = 0;
+    gameCompleteTrackedRef.current = false;
+
+    trackGameStart({
+      gameMode: room.gameMode,
+      roomId: room.id,
+      playerCount: players.length,
+    });
+  }, [
+    room?.currentRound,
+    room?.gameInstanceId,
+    room?.gameMode,
+    room?.id,
+    room?.roundStartTime,
+    room?.status,
+    currentPlayer,
+    players.length,
+  ]);
+
+  // GA4: Track per-player round performance when round results arrive.
+  useEffect(() => {
+    if (!room || !currentPlayer) return;
+
+    const roundResults = room.roundResults;
+    if (!Array.isArray(roundResults) || roundResults.length === 0) return;
+    if (room.status !== "roundEnd" && room.status !== "playing") return;
+
+    const sessionKey =
+      trackedGameSessionKeyRef.current ??
+      `${room.id}:${room.gameInstanceId ?? room.roundStartTime ?? "pending"}`;
+    const roundKey = `${sessionKey}:${room.currentRound}`;
+    if (trackedRoundKeysRef.current.has(roundKey)) return;
+
+    const playerResult = roundResults.find(
+      (result) => result.playerId === playerId,
+    );
+    if (!playerResult) return;
+
+    trackedRoundKeysRef.current.add(roundKey);
+
+    const hasValidDistance = playerResult.distance < 9999;
+    const timeSpentSeconds = room.roundStartTime
+      ? Math.max(0, Math.floor((Date.now() - room.roundStartTime) / 1000))
+      : undefined;
+
+    if (hasValidDistance) {
+      roundDistanceHistoryRef.current = [
+        ...roundDistanceHistoryRef.current,
+        playerResult.distance,
+      ];
+    }
+
+    if (typeof timeSpentSeconds === "number") {
+      totalRoundTimeSecondsRef.current += timeSpentSeconds;
+    }
+
+    trackRoundComplete({
+      roundNumber: room.currentRound,
+      distanceKm: hasValidDistance ? playerResult.distance : undefined,
+      score: playerResult.score,
+      timeSpentSeconds,
+      roomId: room.id,
+    });
+  }, [
+    room?.currentRound,
+    room?.gameInstanceId,
+    room?.id,
+    room?.roundResults,
+    room?.roundStartTime,
+    room?.status,
+    currentPlayer,
+    playerId,
+  ]);
+
+  // GA4: Track final score summary once when the game-over state is reached.
+  useEffect(() => {
+    if (!room || !currentPlayer) return;
+    if (room.status !== "gameOver" || gameCompleteTrackedRef.current) return;
+
+    gameCompleteTrackedRef.current = true;
+
+    const validDistances = roundDistanceHistoryRef.current;
+    const averageDistanceKm =
+      validDistances.length > 0
+        ? Math.round(
+            (validDistances.reduce((sum, distance) => sum + distance, 0) /
+              validDistances.length) *
+              10,
+          ) / 10
+        : undefined;
+
+    trackGameComplete({
+      totalScore: currentPlayer.totalScore,
+      totalRounds: room.totalRounds,
+      averageDistanceKm,
+      totalTimeSeconds: totalRoundTimeSecondsRef.current,
+      gameMode: room.gameMode,
+      roomId: room.id,
+    });
+  }, [
+    room?.gameMode,
+    room?.id,
+    room?.status,
+    room?.totalRounds,
+    currentPlayer,
+  ]);
 
   // Navigate to game/lobby on status change
   useEffect(() => {
