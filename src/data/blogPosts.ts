@@ -14,6 +14,15 @@ export interface BlogPostMeta {
 
 export const BLOG_POSTS: BlogPostMeta[] = [
   {
+    slug: "cografya-egitiminde-oyunlastirma",
+    title: "Coğrafya Eğitiminde Oyunlaştırma: Türkiye'yi Oynayarak Öğrenmek",
+    description:
+      "Coğrafya derslerinde oyunlaştırma neden işe yarar? TürkiyeGuessr ile dikkat, katılım, kalıcı öğrenme ve ölçme-değerlendirme için uygulanabilir sınıf senaryoları.",
+    date: "2026-04-09",
+    readTime: "9 dk",
+    tags: ["eğitim", "oyunlaştırma", "coğrafya", "öğretmen"],
+  },
+  {
     slug: "turkiye-cografya-quiz",
     title: "Türkiye Coğrafya Quiz: Bilgini Test Et!",
     description: "Türkiye coğrafyasını ne kadar iyi biliyorsun? İller, bölgeler, dağlar, göller hakkında bilgini TürkiyeGuessr ile test et.",

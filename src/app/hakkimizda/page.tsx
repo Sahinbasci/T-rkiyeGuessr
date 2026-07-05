@@ -163,7 +163,8 @@ export default function HakkimizdaPage() {
           <p className="text-gray-400 leading-relaxed">
             Coğrafya bilgisinin herkes için erişilebilir olması gerektiğine inanıyoruz.
             TürkiyeGuessr kayıt gerektirmez ve tüm özellikleri ücretsizdir. Platformumuzu sürdürülebilir kılmak
-            için Google AdSense aracılığıyla minimum düzeyde, kullanıcı deneyimini bozmayan reklamlar gösteriyoruz.
+            için bilgilendirici ve editoryal sayfalarda sınırlı reklam alanları kullanıyoruz. Aktif oyun akışında,
+            düğmelerin çevresinde veya kullanıcıyı yanlış tıklamaya iten agresif yerleşimlerden kaçınıyoruz.
             Hiçbir özellik reklam duvarı arkasında değildir.
           </p>
           <p className="text-gray-400 leading-relaxed">
@@ -263,6 +264,14 @@ export default function HakkimizdaPage() {
             Sürekli olarak yeni lokasyonlar eklenmekte, mevcut içerik güncellenmekte ve kullanıcı
             geri bildirimleri doğrultusunda iyileştirmeler yapılmaktadır.
           </p>
+          <p className="text-gray-400 leading-relaxed">
+            İçerik üretim yaklaşımımız, düzeltme politikamız ve reklam şeffaflığı hakkında daha ayrıntılı bilgi
+            için{" "}
+            <Link href="/yayin-ilkeleri" className="text-red-400 hover:underline">
+              Yayın İlkeleri
+            </Link>{" "}
+            sayfamızı yayınlıyoruz.
+          </p>
         </section>
 
         <section className="space-y-4">
@@ -300,6 +309,9 @@ export default function HakkimizdaPage() {
             </Link>
             <Link href="/gizlilik-politikasi" className="text-sm text-gray-400 hover:text-white underline transition-colors">
               Gizlilik Politikası
+            </Link>
+            <Link href="/yayin-ilkeleri" className="text-sm text-gray-400 hover:text-white underline transition-colors">
+              Yayın İlkeleri
             </Link>
           </div>
         </section>

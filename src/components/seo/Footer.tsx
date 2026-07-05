@@ -47,6 +47,7 @@ export function SeoFooter() {
             <li><Link href="/nasil-oynanir" className="hover:text-white transition-colors">Nasıl Oynanır Rehberi</Link></li>
             <li><Link href="/blog/geoguessr-vs-turkiyeguessr" className="hover:text-white transition-colors">GeoGuessr Karşılaştırma</Link></li>
             <li><Link href="/blog/geoguessr-taktikleri-ipuclari" className="hover:text-white transition-colors">Taktik ve İpuçları</Link></li>
+            <li><Link href="/blog/cografya-egitiminde-oyunlastirma" className="hover:text-white transition-colors">Oyunlaştırma Rehberi</Link></li>
             <li><Link href="/blog/turkiye-bolgeleri-rehberi" className="hover:text-white transition-colors">Bölge Rehberi</Link></li>
             <li><Link href="/blog/plaka-kodlarindan-il-tahmini" className="hover:text-white transition-colors">Plaka Kodları</Link></li>
             <li><Link href="/sss" className="hover:text-white transition-colors">SSS</Link></li>
@@ -61,6 +62,7 @@ export function SeoFooter() {
             <li><Link href="/cerez-politikasi" className="hover:text-white transition-colors">Çerez Politikası</Link></li>
             <li><Link href="/kullanim-kosullari" className="hover:text-white transition-colors">Kullanım Koşulları</Link></li>
             <li><Link href="/kvkk" className="hover:text-white transition-colors">KVKK</Link></li>
+            <li><Link href="/yayin-ilkeleri" className="hover:text-white transition-colors">Yayın İlkeleri</Link></li>
             <li>
               <button
                 type="button"

@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { MapPin, Users, ArrowRight } from "lucide-react";
 import { GameMode, GAME_MODE_CONFIG } from "@/types";
-import { AdSlot } from "@/components/ads/AdSlot";
-import { AD_SLOTS } from "@/config/ads";
 
 interface MenuScreenProps {
   nameInput: string;
@@ -231,12 +229,6 @@ export function MenuScreen({
             TürkiyeGuessr - Türkiye Sokak Görünümü Konum Tahmin Oyunu
           </p>
         </footer>
-
-        {/* Ad — menu footer banner */}
-        <div className="mt-6">
-          <AdSlot slot={AD_SLOTS.banner} format="horizontal" roomStatus="waiting" className="max-w-md mx-auto" />
-        </div>
-
         {/* SEO Power Section */}
         <SEOLandingContent />
       </div>

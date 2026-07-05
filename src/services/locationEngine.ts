@@ -1,10 +1,10 @@
 /**
- * PROFESSIONAL URBAN LOCATION SELECTION ENGINE v4 — DYNAMIC INTEGRATION
+ * PROFESSIONAL URBAN LOCATION SELECTION ENGINE v5 — 4-TIER CYCLIC SCHEDULE
  *
  * This module implements a comprehensive location selection system with:
- * 1. Auto-difficulty tagging (easy/medium/hard) based on cluster + panoId analysis
+ * 1. Auto-difficulty tagging (easy/medium/medium_hard/hard) based on cluster + panoId analysis
  * 2. Anti-repeat engine with sliding window dedup (zero-tolerance)
- * 3. Difficulty mix targeting (15% easy, 55% medium, 30% hard)
+ * 3. DETERMINISTIC difficulty schedule: every 5 rounds = 1 easy + 2 medium + 1 medium_hard + 1 hard
  * 4. Province bag rotation (URBAN-ONLY provinces, Fisher-Yates, boundary guard)
  * 5. Dynamic integration: heavy-player detection + repeat-risk assessment
  *
@@ -29,7 +29,7 @@ import { logger } from "@/utils/logger";
 
 // ==================== TYPES ====================
 
-export type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "medium_hard" | "hard";
 
 export interface EnrichedPackage {
   pkg: PanoPackage;
@@ -54,19 +54,23 @@ interface AntiRepeatState {
 
 // ==================== CONSTANTS ====================
 
-const DIFFICULTY_MIX = { easy: 0.15, medium: 0.55, hard: 0.30 };
+// DETERMINISTIC 5-round block: 1 easy + 2 medium + 1 medium_hard + 1 hard = 20/40/20/20
+const DIFFICULTY_MIX = { easy: 0.20, medium: 0.40, medium_hard: 0.20, hard: 0.20 };
+// Cyclic block schedule — guarantees exact 1+2+1+1 distribution every 5 rounds.
+// Shuffled each cycle so order within the block is random.
+const DIFFICULTY_BLOCK: Difficulty[] = ["easy", "medium", "medium", "medium_hard", "hard"];
 const GRID_PRECISION = 3;  // 3 decimals ≈ 111m cells
 // Max province attempts per selection = urbanProvinceList.length
 // Try each province at most once, then fall through to absolute fallback.
 // This prevents burning through multiple bag cycles per selection.
 
-// Sliding window sizes — tuned to actual dataset (86 packages, 30 unique panoIds)
+// Sliding window sizes — tuned to actual dataset (150 packages, ~90 unique panoIds)
 // Window must be < unique count to avoid deadlocks
-const RECENT_PACKAGE_WINDOW = 20;
-const RECENT_PANO_WINDOW = 10;       // Only 30 unique panoIds — 10 avoids deadlock
-const RECENT_HASH_WINDOW = 15;       // 86 unique hashes — safe at 15
-const RECENT_CLUSTER_WINDOW = 15;    // 86 unique clusters — safe at 15
-const RECENT_PROVINCE_WINDOW = 5;
+const RECENT_PACKAGE_WINDOW = 35;    // 150 unique IDs — safe at 35
+const RECENT_PANO_WINDOW = 20;       // ~90 unique panoIds — safe at 20
+const RECENT_HASH_WINDOW = 25;       // 150 unique hashes — safe at 25
+const RECENT_CLUSTER_WINDOW = 25;    // 150 unique clusters — safe at 25
+const RECENT_PROVINCE_WINDOW = 8;    // 60+ unique provinces — safe at 8
 
 // Hotspot detection: packages sharing a panoId
 // Packages with high panoId reuse are city-center locations — they get
@@ -97,8 +101,12 @@ const antiRepeat: AntiRepeatState = {
   lastProvince: null,
 };
 
+// Difficulty cyclic block state — guarantees exact 1+2+1+1 over every 5 rounds
+// When the queue is empty, we shuffle a fresh copy of DIFFICULTY_BLOCK and pop one each round.
+let difficultyQueue: Difficulty[] = [];
+
 // Note: staticUsedIds removed in v3 hardening. Anti-repeat sliding windows
-// now handle all dedup. This prevents pool exhaustion deadlocks with 86 packages.
+// now handle all dedup. This prevents pool exhaustion deadlocks with 150 packages.
 
 // ==================== PART 1: DATASET ENRICHMENT ====================
 
@@ -200,10 +208,12 @@ function enrichPackages(packages: PanoPackage[], mode: GameMode): EnrichedPackag
 
   // Step 6: Assign difficulty tiers using PERCENTILE-BASED ranking
   // Sort by easyScore descending, then assign:
-  //   Top 15% → easy, Next 55% → medium, Bottom 30% → hard
+  //   Top 20% → easy, Next 40% → medium, Next 20% → medium_hard, Bottom 20% → hard
+  // This matches the 5-round cyclic schedule: 1 easy + 2 medium + 1 medium_hard + 1 hard
   const sorted = [...enriched].sort((a, b) => b.easyScore - a.easyScore);
-  const easyCount = Math.max(1, Math.floor(sorted.length * 0.15));
-  const mediumCount = Math.max(1, Math.floor(sorted.length * 0.55));
+  const easyCount = Math.max(1, Math.floor(sorted.length * 0.20));
+  const mediumCount = Math.max(1, Math.floor(sorted.length * 0.40));
+  const mediumHardCount = Math.max(1, Math.floor(sorted.length * 0.20));
   // hard gets the rest
 
   // Direct index-based assignment — no threshold collapse possible
@@ -212,6 +222,8 @@ function enrichPackages(packages: PanoPackage[], mode: GameMode): EnrichedPackag
       sorted[i].difficulty = "easy";
     } else if (i < easyCount + mediumCount) {
       sorted[i].difficulty = "medium";
+    } else if (i < easyCount + mediumCount + mediumHardCount) {
+      sorted[i].difficulty = "medium_hard";
     } else {
       sorted[i].difficulty = "hard";
     }
@@ -311,11 +323,11 @@ export function getEnrichmentReport(): string {
     }
 
     // Difficulty counts
-    const diffCounts = { easy: 0, medium: 0, hard: 0 };
+    const diffCounts = { easy: 0, medium: 0, medium_hard: 0, hard: 0 };
     for (const ep of cache) {
       diffCounts[ep.difficulty]++;
     }
-    lines.push(`Difficulty: easy=${diffCounts.easy} medium=${diffCounts.medium} hard=${diffCounts.hard}`);
+    lines.push(`Difficulty: easy=${diffCounts.easy} medium=${diffCounts.medium} medium_hard=${diffCounts.medium_hard} hard=${diffCounts.hard}`);
 
     // Banned count
     const bannedCount = cache.filter(ep => ep.bannedUrban).length;
@@ -487,13 +499,40 @@ function popProvince(): string {
 // ==================== PART 3: URBAN DIFFICULTY MIX ====================
 
 /**
- * Pick a difficulty tier based on weighted random (15/55/30).
+ * Pick a difficulty tier using a DETERMINISTIC 5-round cyclic schedule.
+ *
+ * Every 5 rounds, the distribution is guaranteed to be EXACTLY:
+ *   - 1 × easy
+ *   - 2 × medium
+ *   - 1 × medium_hard
+ *   - 1 × hard
+ *
+ * The order within each 5-round block is randomized (Fisher-Yates shuffle),
+ * so the player never feels a rigid pattern — but the total is always 1+2+1+1.
+ *
+ * Implementation: maintain a queue. When empty, refill with a shuffled copy
+ * of DIFFICULTY_BLOCK. Pop one per round.
+ *
+ * Peek-only (does NOT consume). Call consumeDifficultyTier() after a successful
+ * selection so that failed fallbacks don't skip ahead in the schedule.
  */
-function pickDifficultyTier(): Difficulty {
-  const r = Math.random();
-  if (r < DIFFICULTY_MIX.easy) return "easy";
-  if (r < DIFFICULTY_MIX.easy + DIFFICULTY_MIX.medium) return "medium";
-  return "hard";
+function peekDifficultyTier(): Difficulty {
+  if (difficultyQueue.length === 0) {
+    difficultyQueue = shuffle([...DIFFICULTY_BLOCK]);
+  }
+  return difficultyQueue[0];
+}
+
+/**
+ * Consume (pop) the next tier from the queue. Must be called exactly once
+ * per successful round, AFTER peekDifficultyTier() and AFTER the selection
+ * has succeeded (so fallbacks don't burn tier slots).
+ */
+function consumeDifficultyTier(): Difficulty {
+  if (difficultyQueue.length === 0) {
+    difficultyQueue = shuffle([...DIFFICULTY_BLOCK]);
+  }
+  return difficultyQueue.shift()!;
 }
 
 /**
@@ -584,13 +623,14 @@ function selectUrbanPackage(): EnrichedPackage | null {
     ? antiRepeat.recentClusterIds[antiRepeat.recentClusterIds.length - 1]
     : null;
 
-  // Pick target difficulty BEFORE province loop
-  const targetTier = pickDifficultyTier();
+  // Pick target difficulty BEFORE province loop.
+  // Consume from the cyclic schedule — every round uses exactly one slot,
+  // guaranteeing 1 easy + 2 medium + 1 medium_hard + 1 hard per 5 rounds.
+  const targetTier = consumeDifficultyTier();
 
-  // DIFFICULTY-FIRST PATH: When target tier is easy or hard, and
-  // most provinces lack packages of that tier, try finding a matching
-  // package across ALL provinces first (still with province back-to-back guard).
-  // This ensures the 15/55/30 mix is achievable despite uneven tier distribution.
+  // DIFFICULTY-FIRST PATH: try finding a matching package across ALL provinces
+  // first (still with province back-to-back guard). This ensures the
+  // 20/40/20/20 mix is achievable despite uneven tier distribution.
   const tierPackages = allAvailable.filter(ep => ep.difficulty === targetTier);
   if (tierPackages.length > 0) {
     const shuffledTier = shuffle(tierPackages);
@@ -627,12 +667,14 @@ function selectUrbanPackage(): EnrichedPackage | null {
 
     if (provinceCandidates.length === 0) continue;
 
-    // Try the target tier first within this province
+    // Try the target tier first within this province.
+    // Fallback order prefers nearest tiers (so we don't jump from easy straight to hard).
     if (provinceCandidates.length > 1) {
       const tierOrder: Difficulty[] = [targetTier];
-      if (targetTier === "easy") tierOrder.push("medium", "hard");
-      else if (targetTier === "medium") tierOrder.push("hard", "easy");
-      else tierOrder.push("medium", "easy");
+      if (targetTier === "easy") tierOrder.push("medium", "medium_hard", "hard");
+      else if (targetTier === "medium") tierOrder.push("medium_hard", "easy", "hard");
+      else if (targetTier === "medium_hard") tierOrder.push("medium", "hard", "easy");
+      else /* hard */ tierOrder.push("medium_hard", "medium", "easy");
 
       for (const tier of tierOrder) {
         const selected = selectFromTier(provinceCandidates, tier);
@@ -850,11 +892,12 @@ export function selectStaticPackage(mode: GameMode, preferredProvince?: string):
       );
 
       if (candidates.length > 0) {
-        const targetTier = pickDifficultyTier();
+        const targetTier = consumeDifficultyTier();
         const tierOrder: Difficulty[] = [targetTier];
-        if (targetTier === "easy") tierOrder.push("medium", "hard");
-        else if (targetTier === "medium") tierOrder.push("hard", "easy");
-        else tierOrder.push("medium", "easy");
+        if (targetTier === "easy") tierOrder.push("medium", "medium_hard", "hard");
+        else if (targetTier === "medium") tierOrder.push("medium_hard", "easy", "hard");
+        else if (targetTier === "medium_hard") tierOrder.push("medium", "hard", "easy");
+        else /* hard */ tierOrder.push("medium_hard", "medium", "easy");
 
         for (const tier of tierOrder) {
           const selected = selectFromTier(candidates, tier);
@@ -914,7 +957,10 @@ export function resetLocationEngine(): void {
   lastBagProvince = null;
   sessionRoundCount = 0;
 
-  logger.debug("[LocationEngine v4] Reset complete");
+  // Reset cyclic difficulty schedule — next session starts fresh
+  difficultyQueue = [];
+
+  logger.debug("[LocationEngine v5] Reset complete");
 }
 
 /**
@@ -945,7 +991,7 @@ export function getUrbanProvinceList(): readonly string[] {
 export interface SimulationResult {
   totalDraws: number;
   totalSuccessful: number;
-  difficultyDist: { easy: number; medium: number; hard: number };
+  difficultyDist: { easy: number; medium: number; medium_hard: number; hard: number };
   provinceCoverage: number;
   uniqueProvinces: Set<string>;
   bannedSelections: number;
@@ -984,7 +1030,7 @@ export function runSimulation(draws: number = 1000): SimulationResult {
   const stats: SimulationResult = {
     totalDraws: draws,
     totalSuccessful: 0,
-    difficultyDist: { easy: 0, medium: 0, hard: 0 },
+    difficultyDist: { easy: 0, medium: 0, medium_hard: 0, hard: 0 },
     provinceCoverage: 0,
     uniqueProvinces: new Set<string>(),
     bannedSelections: 0,
@@ -1081,7 +1127,10 @@ export const _testExports = {
   recordSelection,
   fillProvinceBag,
   popProvince,
-  pickDifficultyTier,
+  peekDifficultyTier,
+  consumeDifficultyTier,
+  getDifficultyQueue: () => [...difficultyQueue],
+  resetDifficultyQueue: () => { difficultyQueue = []; },
   selectFromTier,
   selectAnyTier,
   selectUrbanPackage,

@@ -74,7 +74,7 @@ describe("Urban Seed Map", () => {
   test("builds seed map from static packages", () => {
     const map = buildUrbanSeedMap();
     expect(map.size).toBeGreaterThan(0);
-    expect(map.size).toBeLessThanOrEqual(48); // Max 48 urban provinces
+    expect(map.size).toBeLessThanOrEqual(81); // Max 81 Turkish provinces
   });
 
   test("every province in seed map has at least 1 seed", () => {
@@ -110,12 +110,13 @@ describe("Urban Seed Map", () => {
 
   test("provinces with many packages get multiple seeds (multi-district)", () => {
     const map = getUrbanSeedMap();
-    // İstanbul has 14 packages across many districts — should have multiple seeds
+    // İstanbul has many packages across many districts — should have multiple seeds
     const istanbul = map.get("İstanbul");
     expect(istanbul).toBeDefined();
     if (istanbul) {
       expect(istanbul.seeds.length).toBeGreaterThan(1);
-      expect(istanbul.totalStaticPackages).toBe(14);
+      // Dataset grew to 150 urban packages; İstanbul should have at least 14
+      expect(istanbul.totalStaticPackages).toBeGreaterThanOrEqual(14);
     }
   });
 
@@ -415,13 +416,13 @@ describe("Dynamic Urban Generator — Minting", () => {
   test("difficulty estimation produces valid tiers", () => {
     const seed: UrbanSeed = { lat: 41.0, lng: 29.0, radiusKm: 2.0 };
 
-    // Near center (high density province) → easy
+    // Near center (high density province) → easy / medium
     const easy = dynamicTestExports.estimateDifficulty(41.001, 29.001, seed, 14);
-    expect(["easy", "medium", "hard"]).toContain(easy);
+    expect(["easy", "medium", "medium_hard", "hard"]).toContain(easy);
 
-    // Far from center (low density province) → hard
+    // Far from center (low density province) → hard / medium_hard
     const hard = dynamicTestExports.estimateDifficulty(41.02, 29.02, seed, 1);
-    expect(["easy", "medium", "hard"]).toContain(hard);
+    expect(["easy", "medium", "medium_hard", "hard"]).toContain(hard);
   });
 
   test("buildPanoPackage creates valid package", () => {
@@ -663,14 +664,19 @@ describe("Combined Static + Dynamic 10K Simulation", () => {
     const total = stats.totalSuccessful;
     const easyPct = stats.difficultyDist.easy / total;
     const mediumPct = stats.difficultyDist.medium / total;
+    const mediumHardPct = stats.difficultyDist.medium_hard / total;
     const hardPct = stats.difficultyDist.hard / total;
 
-    expect(easyPct).toBeGreaterThan(0.08);
-    expect(easyPct).toBeLessThan(0.22);
-    expect(mediumPct).toBeGreaterThan(0.45);
-    expect(mediumPct).toBeLessThan(0.65);
-    expect(hardPct).toBeGreaterThan(0.22);
-    expect(hardPct).toBeLessThan(0.38);
+    // 4-tier cyclic schedule: 1 easy + 2 medium + 1 medium_hard + 1 hard per 5-round block
+    // Target: 20/40/20/20, tolerance ±7% for fallback path drift.
+    expect(easyPct).toBeGreaterThan(0.13);
+    expect(easyPct).toBeLessThan(0.27);
+    expect(mediumPct).toBeGreaterThan(0.33);
+    expect(mediumPct).toBeLessThan(0.47);
+    expect(mediumHardPct).toBeGreaterThan(0.13);
+    expect(mediumHardPct).toBeLessThan(0.27);
+    expect(hardPct).toBeGreaterThan(0.13);
+    expect(hardPct).toBeLessThan(0.27);
   });
 });
 

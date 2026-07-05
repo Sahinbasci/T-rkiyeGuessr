@@ -6,6 +6,8 @@
  * generated from panoPackages. Prevents internal 404s.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { getAllCities, getCityBySlug, getPopularCities, POPULAR_CITY_SLUGS } from "@/data/seoData";
 import { BLOG_POSTS } from "@/data/blogPosts";
 
@@ -59,6 +61,17 @@ describe("Internal Link Integrity", () => {
       expect(post.slug).toBeTruthy();
       expect(post.slug).not.toContain(" ");
     }
+  });
+
+  test("every BLOG_POSTS entry has a concrete page route", () => {
+    const missingRoutes = BLOG_POSTS
+      .map((post) => post.slug)
+      .filter((slug) => {
+        const pagePath = path.resolve(__dirname, `../app/blog/${slug}/page.tsx`);
+        return !fs.existsSync(pagePath);
+      });
+
+    expect(missingRoutes).toEqual([]);
   });
 
   // ── getCityBySlug works for every city ──

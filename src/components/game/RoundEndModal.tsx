@@ -2,8 +2,6 @@ import { MapPin, ArrowRight } from "lucide-react";
 import { Room, RoundResult } from "@/types";
 import { formatDistance } from "@/utils";
 import { formatLocationName, normalizeTurkish } from "@/utils/turkishFormat";
-import { AdSlot } from "@/components/ads/AdSlot";
-import { AD_SLOTS } from "@/config/ads";
 
 interface RoundEndModalProps {
   room: Room;
@@ -66,12 +64,6 @@ export function RoundEndModal({ room, playerId, isHost, sortedResults, onNextRou
             </div>
           ))}
         </div>
-
-        {/* Ad — round end banner */}
-        <div className="mb-4">
-          <AdSlot slot={AD_SLOTS.inContent} format="horizontal" roomStatus="roundEnd" />
-        </div>
-
         {isHost ? (
           <button
             onClick={onNextRound}

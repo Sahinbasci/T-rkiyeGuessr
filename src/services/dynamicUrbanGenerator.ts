@@ -134,14 +134,16 @@ async function resolvePano(
  * - Province package density: more static packages = easier province
  * - Seed radius: smaller radius = tighter urban core = easier
  *
- * Returns "easy" | "medium" | "hard"
+ * Returns "easy" | "medium" | "medium_hard" | "hard"
+ * Thresholds tuned to target 20/40/20/20 distribution matching the 5-round
+ * cyclic schedule in locationEngine (1 easy + 2 medium + 1 medium_hard + 1 hard).
  */
 function estimateDifficulty(
   lat: number,
   lng: number,
   seed: UrbanSeed,
   provincePackageCount: number
-): "easy" | "medium" | "hard" {
+): "easy" | "medium" | "medium_hard" | "hard" {
   // Distance factor: 0 (at center) to 1 (at edge)
   const distFromCenter = Math.sqrt(
     Math.pow((lat - seed.lat) * 111, 2) +
@@ -155,9 +157,10 @@ function estimateDifficulty(
   // Composite score: 0 = hardest, 1 = easiest
   const easyScore = (1 - distFactor) * 0.6 + densityFactor * 0.4;
 
-  // Map to tiers with weighted distribution targeting 15/55/30
-  if (easyScore > 0.7) return "easy";
-  if (easyScore > 0.3) return "medium";
+  // Map to 4 tiers matching 20/40/20/20 distribution
+  if (easyScore > 0.75) return "easy";
+  if (easyScore > 0.45) return "medium";
+  if (easyScore > 0.20) return "medium_hard";
   return "hard";
 }
 
@@ -173,7 +176,7 @@ function buildPanoPackage(
   pano: { panoId: string; lat: number; lng: number },
   province: string,
   district: string | undefined,
-  difficulty: "easy" | "medium" | "hard",
+  difficulty: "easy" | "medium" | "medium_hard" | "hard",
   region: string
 ): PanoPackage {
   const heading0 = Math.floor(Math.random() * 360);

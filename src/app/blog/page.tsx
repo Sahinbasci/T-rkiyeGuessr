@@ -4,6 +4,10 @@ import { SeoLayout } from "@/components/seo/SeoLayout";
 import { BLOG_POSTS } from "@/data/blogPosts";
 import { SITE_URL } from "@/config/site";
 
+const SORTED_POSTS = [...BLOG_POSTS].sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+);
+
 export const metadata: Metadata = {
   title: "Blog — Türkiye Coğrafya Rehberi ve Oyun İpuçları",
   description:
@@ -51,7 +55,7 @@ function BlogJsonLd() {
     isPartOf: { "@type": "WebSite", name: "TürkiyeGuessr", url: SITE_URL },
     mainEntity: {
       "@type": "ItemList",
-      itemListElement: BLOG_POSTS.map((post, i) => ({
+      itemListElement: SORTED_POSTS.map((post, i) => ({
         "@type": "ListItem",
         position: i + 1,
         url: `${SITE_URL}/blog/${post.slug}`,
@@ -92,7 +96,7 @@ export default function BlogIndexPage() {
         </header>
 
         <div className="space-y-4">
-          {BLOG_POSTS.map((post) => (
+          {SORTED_POSTS.map((post) => (
             <Link
               key={post.slug}
               href={`/blog/${post.slug}`}

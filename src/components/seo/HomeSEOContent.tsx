@@ -20,6 +20,7 @@ const POPULAR_CITIES = getPopularCities().map((c) => ({
 }));
 
 const BLOG_LINKS = [
+  { slug: "cografya-egitiminde-oyunlastirma", title: "Coğrafya Eğitiminde Oyunlaştırma" },
   { slug: "turkiye-guessr-nasil-oynanir", title: "TürkiyeGuessr Nasıl Oynanır?" },
   { slug: "turkiye-cografya-quiz", title: "Türkiye Coğrafya Quiz" },
   { slug: "turkiye-illeri-harita-oyunu", title: "Türkiye İlleri Harita Oyunu" },
@@ -299,6 +300,25 @@ export function HomeSEOContent() {
                 &rarr; {b.title}
               </Link>
             ))}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-300 text-center">Yayın İlkelerimiz</h2>
+          <div className="text-gray-500 text-sm sm:text-base space-y-3 leading-relaxed">
+            <p>
+              TürkiyeGuessr&apos;daki lokasyon, bölge ve şehir sayfaları otomatik olarak doldurulan boş şablonlar
+              değil; editoryal gözden geçirme ve dahili içerik kontrol süreciyle hazırlanır. Blog yazılarında
+              ise kendi oyun deneyimimiz, Türkiye coğrafyasına dair gözlemlerimiz ve kullanıcı geri bildirimlerinden
+              çıkan gerçek kullanım senaryoları temel alınır.
+            </p>
+            <p>
+              İçerik kalitesi, düzeltme süreci ve reklam ayrımı hakkında detaylı bilgi için{" "}
+              <Link href="/yayin-ilkeleri" className="text-red-400 hover:text-red-300 underline">
+                Yayın İlkeleri
+              </Link>{" "}
+              sayfamızı inceleyebilirsin.
+            </p>
           </div>
         </section>
 

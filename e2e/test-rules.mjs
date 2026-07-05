@@ -3,7 +3,7 @@ import { getDatabase, ref, set, get, remove, runTransaction } from 'firebase/dat
 import { getAuth, signInAnonymously } from 'firebase/auth';
 
 const cfg = {
-  apiKey: "AIzaSyChX9qroh1RAeAwTScCXZPwnyowbz8xADo",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: "turkiye-guessr.firebaseapp.com",
   projectId: "turkiye-guessr",
   databaseURL: "https://turkiye-guessr-default-rtdb.firebaseio.com",

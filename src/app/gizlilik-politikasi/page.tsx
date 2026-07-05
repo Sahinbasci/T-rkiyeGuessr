@@ -49,7 +49,7 @@ export default function GizlilikPolitikasiPage() {
           >
             Gizlilik Politikası
           </h1>
-          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 28 Şubat 2026</p>
+          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 9 Nisan 2026</p>
         </header>
 
         <section className="space-y-4">
@@ -129,15 +129,16 @@ export default function GizlilikPolitikasiPage() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-red-400">4. Reklam Teknolojileri</h2>
           <p className="text-gray-400 leading-relaxed">
-            TürkiyeGuessr, Google AdSense aracılığıyla reklam gösterebilir. Reklamlar
-            yalnızca oyun dışındaki anlarda (lobi, round sonu, oyun sonu gibi) gösterilir.
-            Aktif oyun sırasında reklam gösterilmez.
+            TürkiyeGuessr, Google AdSense altyapısını kullanabilir. Reklam amaçlı veri işleme,
+            Google Consent Mode üzerinden varsayılan olarak kısıtlı başlatılır ve tercihlerinize göre güncellenir.
+            Görsel reklam alanları yalnızca editoryal, bilgi ve rehber niteliğindeki sayfalarda gösterilir.
+            Aktif oyun akışı, sonuç ekranı ve geçiş butonlarının çevresinde reklam yerleştirmemeyi tercih ederiz.
           </p>
           <p className="text-gray-400 leading-relaxed">
             Google AdSense, ilgi alanınıza uygun reklamlar sunmak için çerezler kullanabilir.
             Bu çerezler yalnızca çerez tercihlerinizde &quot;Reklam / Pazarlama Çerezleri&quot;ni
-            kabul ettiğinizde etkinleştirilir. Reklam çerezlerini reddederseniz Google AdSense
-            scripti yüklenmez ve kişiselleştirilmiş reklam gösterilmez.
+            kabul ettiğinizde etkinleştirilir. Bu izni vermediğiniz durumda reklam amaçlı depolama ve
+            kişiselleştirme etkinleşmez.
           </p>
           <p className="text-gray-400 leading-relaxed text-sm">
             Google reklam politikaları hakkında detaylı bilgi:{" "}

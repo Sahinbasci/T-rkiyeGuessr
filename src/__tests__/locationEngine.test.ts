@@ -1,10 +1,10 @@
 /**
- * Location Engine Unit Tests — HARDENED v3
+ * Location Engine Unit Tests — HARDENED v5 (4-TIER CYCLIC SCHEDULE)
  *
  * Tests cover:
  * - PART 1: Dataset enrichment (auto-difficulty, panoId groups, hotspot bans)
  * - PART 2: Anti-repeat engine (sliding windows, zero consecutive duplicates)
- * - PART 3: Urban difficulty mix (15/55/30 target)
+ * - PART 3: Urban difficulty mix (20/40/20/20 target — 1 easy + 2 medium + 1 medium_hard + 1 hard per 5-round block)
  * - PART 4: Province bag (urban-only, boundary guard, zero back-to-back)
  * - PHASE A: Province back-to-back = 0 (HARD INVARIANT)
  * - PHASE B: Urban-only province bag
@@ -36,7 +36,10 @@ const {
   recordSelection,
   fillProvinceBag,
   popProvince,
-  pickDifficultyTier,
+  peekDifficultyTier,
+  consumeDifficultyTier,
+  getDifficultyQueue,
+  resetDifficultyQueue,
   selectUrbanPackage,
   antiRepeat,
   getProvinceBag,
@@ -115,7 +118,7 @@ describe("Part 1: Dataset Enrichment", () => {
 
     for (const ep of urbanPackages) {
       expect(ep.province).toBeTruthy();
-      expect(["easy", "medium", "hard"]).toContain(ep.difficulty);
+      expect(["easy", "medium", "medium_hard", "hard"]).toContain(ep.difficulty);
       expect(typeof ep.bannedUrban).toBe("boolean");
       expect(ep.locationHash).toBeTruthy();
       expect(ep.clusterId).toBeTruthy();
@@ -126,11 +129,12 @@ describe("Part 1: Dataset Enrichment", () => {
     }
   });
 
-  test("enriched packages have all three difficulty tiers", () => {
+  test("enriched packages have all four difficulty tiers", () => {
     const urbanPackages = getEnrichedPackages("urban");
     const diffs = new Set(urbanPackages.map(ep => ep.difficulty));
     expect(diffs.has("easy")).toBe(true);
     expect(diffs.has("medium")).toBe(true);
+    expect(diffs.has("medium_hard")).toBe(true);
     expect(diffs.has("hard")).toBe(true);
   });
 
@@ -420,31 +424,80 @@ describe("Phase B: Urban-Only Province Bag", () => {
 
 // ==================== PART 3: DIFFICULTY MIX TESTS ====================
 
-describe("Part 3: Urban Difficulty Mix", () => {
-  test("pickDifficultyTier returns valid difficulties", () => {
+describe("Part 3: Urban Difficulty Mix (4-Tier Cyclic Schedule)", () => {
+  beforeEach(() => {
+    resetDifficultyQueue();
+  });
+
+  test("consumeDifficultyTier returns valid difficulties (all four tiers)", () => {
     const results = new Set<string>();
     for (let i = 0; i < 1000; i++) {
-      results.add(pickDifficultyTier());
+      results.add(consumeDifficultyTier());
     }
     expect(results.has("easy")).toBe(true);
     expect(results.has("medium")).toBe(true);
+    expect(results.has("medium_hard")).toBe(true);
     expect(results.has("hard")).toBe(true);
   });
 
-  test("pickDifficultyTier roughly follows 15/55/30 distribution", () => {
-    const counts = { easy: 0, medium: 0, hard: 0 };
-    const N = 10000;
+  test("consumeDifficultyTier follows exact 20/40/20/20 distribution over many blocks", () => {
+    const counts = { easy: 0, medium: 0, medium_hard: 0, hard: 0 };
+    const N = 10000; // 2000 full 5-round blocks
 
     for (let i = 0; i < N; i++) {
-      counts[pickDifficultyTier()]++;
+      counts[consumeDifficultyTier()]++;
     }
 
-    expect(counts.easy / N).toBeGreaterThan(0.10);
-    expect(counts.easy / N).toBeLessThan(0.20);
-    expect(counts.medium / N).toBeGreaterThan(0.50);
-    expect(counts.medium / N).toBeLessThan(0.60);
-    expect(counts.hard / N).toBeGreaterThan(0.25);
-    expect(counts.hard / N).toBeLessThan(0.35);
+    // Because the queue is a deterministic 5-round block shuffle,
+    // N = 10000 (a multiple of 5) guarantees EXACTLY 20/40/20/20.
+    expect(counts.easy / N).toBeCloseTo(0.20, 2);
+    expect(counts.medium / N).toBeCloseTo(0.40, 2);
+    expect(counts.medium_hard / N).toBeCloseTo(0.20, 2);
+    expect(counts.hard / N).toBeCloseTo(0.20, 2);
+  });
+
+  test("every 5-round block contains exactly 1 easy + 2 medium + 1 medium_hard + 1 hard", () => {
+    resetDifficultyQueue();
+    const BLOCKS = 50;
+
+    for (let b = 0; b < BLOCKS; b++) {
+      const block: string[] = [];
+      for (let i = 0; i < 5; i++) {
+        block.push(consumeDifficultyTier());
+      }
+      const count = { easy: 0, medium: 0, medium_hard: 0, hard: 0 };
+      for (const d of block) count[d as keyof typeof count]++;
+
+      expect(count.easy).toBe(1);
+      expect(count.medium).toBe(2);
+      expect(count.medium_hard).toBe(1);
+      expect(count.hard).toBe(1);
+    }
+  });
+
+  test("peekDifficultyTier does NOT consume the queue", () => {
+    resetDifficultyQueue();
+    const peek1 = peekDifficultyTier();
+    const peek2 = peekDifficultyTier();
+    const peek3 = peekDifficultyTier();
+    expect(peek1).toBe(peek2);
+    expect(peek2).toBe(peek3);
+    // Queue should still have all 5 entries
+    expect(getDifficultyQueue().length).toBe(5);
+    // Consume — should match what we peeked
+    expect(consumeDifficultyTier()).toBe(peek1);
+    expect(getDifficultyQueue().length).toBe(4);
+  });
+
+  test("queue refills automatically when drained", () => {
+    resetDifficultyQueue();
+    // Drain the queue
+    for (let i = 0; i < 5; i++) consumeDifficultyTier();
+    expect(getDifficultyQueue().length).toBe(0);
+
+    // Next call should auto-refill with a new shuffled block
+    consumeDifficultyTier();
+    expect(getDifficultyQueue().length).toBe(4);
   });
 
   test("selectStaticPackage returns valid urban packages", () => {
@@ -551,9 +604,10 @@ describe("Phase E: 10,000-Draw Stability Test", () => {
     console.log(`Total successful: ${stats.totalSuccessful}`);
     const total = stats.totalSuccessful;
     console.log(`Difficulty distribution:`);
-    console.log(`  Easy:   ${stats.difficultyDist.easy} (${((stats.difficultyDist.easy / total) * 100).toFixed(1)}%)`);
-    console.log(`  Medium: ${stats.difficultyDist.medium} (${((stats.difficultyDist.medium / total) * 100).toFixed(1)}%)`);
-    console.log(`  Hard:   ${stats.difficultyDist.hard} (${((stats.difficultyDist.hard / total) * 100).toFixed(1)}%)`);
+    console.log(`  Easy:        ${stats.difficultyDist.easy} (${((stats.difficultyDist.easy / total) * 100).toFixed(1)}%)`);
+    console.log(`  Medium:      ${stats.difficultyDist.medium} (${((stats.difficultyDist.medium / total) * 100).toFixed(1)}%)`);
+    console.log(`  Medium_hard: ${stats.difficultyDist.medium_hard} (${((stats.difficultyDist.medium_hard / total) * 100).toFixed(1)}%)`);
+    console.log(`  Hard:        ${stats.difficultyDist.hard} (${((stats.difficultyDist.hard / total) * 100).toFixed(1)}%)`);
     console.log(`Province coverage: ${stats.provinceCoverage}`);
     console.log(`Banned selections: ${stats.bannedSelections}`);
     console.log(`Consecutive same province: ${stats.consecutiveSameProvince}`);
@@ -587,19 +641,25 @@ describe("Phase E: 10,000-Draw Stability Test", () => {
     // Duplicate returned count = 0
     expect(stats.duplicateReturnedCount).toBe(0);
 
-    // ===== SOFT TARGETS (±3%) =====
+    // ===== SOFT TARGETS =====
+    // Target distribution: 20% easy / 40% medium / 20% medium_hard / 20% hard
+    // The cyclic scheduler guarantees exact ratios when every round hits its
+    // tier, but fallback paths (when target tier has no eligible candidate)
+    // can shift a few percent to adjacent tiers — so we allow ±7% windows.
 
-    // Difficulty distribution within ±5% of target
     const easyPct = stats.difficultyDist.easy / total;
     const mediumPct = stats.difficultyDist.medium / total;
+    const mediumHardPct = stats.difficultyDist.medium_hard / total;
     const hardPct = stats.difficultyDist.hard / total;
 
-    expect(easyPct).toBeGreaterThan(0.08);
-    expect(easyPct).toBeLessThan(0.22);
-    expect(mediumPct).toBeGreaterThan(0.45);
-    expect(mediumPct).toBeLessThan(0.65);
-    expect(hardPct).toBeGreaterThan(0.22);
-    expect(hardPct).toBeLessThan(0.38);
+    expect(easyPct).toBeGreaterThan(0.13);
+    expect(easyPct).toBeLessThan(0.27);
+    expect(mediumPct).toBeGreaterThan(0.33);
+    expect(mediumPct).toBeLessThan(0.47);
+    expect(mediumHardPct).toBeGreaterThan(0.13);
+    expect(mediumHardPct).toBeLessThan(0.27);
+    expect(hardPct).toBeGreaterThan(0.13);
+    expect(hardPct).toBeLessThan(0.27);
 
     // All draws successful
     expect(stats.totalSuccessful).toBe(stats.totalDraws);

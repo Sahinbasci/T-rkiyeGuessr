@@ -49,7 +49,7 @@ export default function KullanimKosullariPage() {
           >
             Kullanım Koşulları
           </h1>
-          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 24 Şubat 2026</p>
+          <p className="text-gray-500 text-sm mt-2">Son güncelleme: 9 Nisan 2026</p>
         </header>
 
         <section className="space-y-4">
@@ -98,8 +98,9 @@ export default function KullanimKosullariPage() {
           <h2 className="text-xl font-semibold text-red-400">5. Reklamlar</h2>
           <p className="text-gray-400 leading-relaxed">
             TürkiyeGuessr, Google AdSense aracılığıyla reklam gösterebilir. Reklamlar
-            oyun deneyimini bozmayacak şekilde, yalnızca lobi, round sonu ve oyun sonu
-            gibi uygun anlarda gösterilir. Aktif oyun sırasında reklam gösterilmez.
+            kullanıcı deneyimini bozmayacak şekilde bilgi, rehber ve editoryal içerik sayfalarında
+            konumlandırılır. Kullanıcıyı yanlış tıklamaya yönelten, aktif oyun akışını kesen veya
+            geçiş düğmeleriyle karışabilecek reklam yerleşimlerinden kaçınılır.
           </p>
         </section>
 

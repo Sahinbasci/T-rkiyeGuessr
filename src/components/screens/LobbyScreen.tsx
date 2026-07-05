@@ -3,8 +3,6 @@ import { Room, Player, GameMode, GAME_MODE_CONFIG } from "@/types";
 import { ROOM_LIFECYCLE } from "@/config/production";
 import { PLAYER_COLORS } from "@/constants/playerColors";
 import { Toast } from "@/components/shared/Toast";
-import { AdSlot } from "@/components/ads/AdSlot";
-import { AD_SLOTS } from "@/config/ads";
 
 interface LobbyScreenProps {
   room: Room;
@@ -199,11 +197,6 @@ export function LobbyScreen({
             {isTransitioning ? "Ayrılıyor..." : "Odadan Ayrıl"}
           </button>
         </div>
-      </div>
-
-      {/* Ad — lobby banner below card */}
-      <div className="w-full max-w-lg mx-auto mt-4">
-        <AdSlot slot={AD_SLOTS.banner} format="horizontal" roomStatus="waiting" />
       </div>
 
       <Toast message={showToast} />
